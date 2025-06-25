@@ -1,7 +1,11 @@
 """
 Core agent implementation for Veritas fact-checking.
 """
+import asyncio
+import base64
+import io
 import json
+import re
 import logging
 import hashlib
 import time
@@ -13,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import llm_manager
 from agent.tools import AVAILABLE_TOOLS
+from agent.temporal_analysis import temporal_analyzer
+from agent.vector_store import vector_store
 from agent.prompts import (
     MULTIMODAL_ANALYSIS_PROMPT,
     FACT_CHECKING_PROMPT,
@@ -100,11 +106,18 @@ class VeritasAgent:
             # Step 3: Get user reputation
             if progress_callback:
                 await progress_callback("Checking user reputation...", 35)
-            
+
             user_reputation = await self._get_user_reputation(
                 db, extracted_info.get("nickname", "unknown")
             )
-            
+
+            # Step 3.5: Temporal analysis
+            if progress_callback:
+                await progress_callback("Analyzing temporal context...", 40)
+
+            temporal_analysis = temporal_analyzer.analyze_temporal_context(extracted_info)
+            extracted_info["temporal_analysis"] = temporal_analysis
+
             # Step 4: Fact-checking
             if progress_callback:
                 await progress_callback("Fact-checking claims...", 50)
@@ -134,7 +147,10 @@ class VeritasAgent:
             verification_record = await self._save_verification_result(
                 db, image_bytes, user_prompt, extracted_info, verdict_result
             )
-            
+
+            # Step 7.5: Store in vector database and check for similar verifications
+            await self._store_in_vector_db(extracted_info, verdict_result, fact_check_result)
+
             # Step 8: Compile final result
             processing_time = int(time.time() - start_time)
             
@@ -150,6 +166,15 @@ class VeritasAgent:
                 "justification": verdict_result["justification"],
                 "confidence_score": verdict_result["confidence_score"],
                 "processing_time_seconds": processing_time,
+                "temporal_analysis": extracted_info.get("temporal_analysis", {}),
+                "examined_sources": fact_check_result.get("examined_sources", []),
+                "search_queries_used": fact_check_result.get("search_queries_used", []),
+                "fact_check_summary": {
+                    "total_sources_found": fact_check_result.get("total_sources_found", 0),
+                    "credible_sources": fact_check_result.get("credible_sources", 0),
+                    "supporting_evidence": fact_check_result.get("supporting_evidence", 0),
+                    "contradicting_evidence": fact_check_result.get("contradicting_evidence", 0)
+                },
                 "user_reputation": {
                     "nickname": updated_reputation.nickname,
                     "true_count": updated_reputation.true_count,
@@ -226,10 +251,9 @@ class VeritasAgent:
             raise
     
     def _extract_key_information(self, analysis_result: str) -> Dict[str, Any]:
-        """Extract structured information from analysis result."""
-        # This is a simplified extraction
-        # In a real implementation, you'd use more sophisticated parsing
-        
+        """Extract structured information from analysis result using improved parsing."""
+        import re
+
         extracted = {
             "extracted_text": "",
             "nickname": "unknown",
@@ -237,24 +261,99 @@ class VeritasAgent:
             "claims": [],
             "irony_assessment": "not_ironic"
         }
-        
-        # Simple keyword-based extraction (placeholder)
+
+        # Enhanced parsing with multiple strategies
         lines = analysis_result.split('\n')
-        for line in lines:
-            if "nickname" in line.lower() or "username" in line.lower():
-                # Extract nickname (simplified)
-                parts = line.split(':')
-                if len(parts) > 1:
-                    extracted["nickname"] = parts[1].strip()
-            elif "topic" in line.lower() or "category" in line.lower():
-                # Extract topic (simplified)
-                for topic in ["medical", "financial", "political", "scientific"]:
-                    if topic in line.lower():
-                        extracted["primary_topic"] = topic
-                        break
-        
+        text_lower = analysis_result.lower()
+
+        # 1. Enhanced username/nickname extraction with better entity distinction
+        username_patterns = [
+            # High priority patterns - likely to be actual authors
+            r'(?:nickname|username|handle|user|posted by|author):\s*([^\n\r,]+)',
+            r'@([a-zA-Z0-9_]+)(?:\s|$)',  # @ symbol followed by space or end
+            r'(?:^|\n)([a-zA-Z0-9_]+)\s*•',  # Username followed by bullet point (common in social media)
+            r'(?:by|from)\s+@?([a-zA-Z0-9_]+)(?:\s|$)',
+            r'user(?:name)?:\s*([^\n\r,]+)',
+            r'posted by:\s*([^\n\r,]+)'
+        ]
+
+        # Extract potential usernames and validate them
+        potential_usernames = []
+        for pattern in username_patterns:
+            match = re.search(pattern, analysis_result, re.IGNORECASE)
+            if match:
+                username = match.group(1).strip().strip('"\'')
+                if username and username.lower() not in ['unknown', 'user', 'author']:
+                    potential_usernames.append(username)
+
+        # Filter out common false positives (entities mentioned in content)
+        content_entities = ['blackrock', 'bitcoin', 'btc', 'crypto', 'news', 'breaking', 'million', 'billion']
+        valid_usernames = []
+        for username in potential_usernames:
+            if username.lower() not in content_entities and not username.isdigit():
+                valid_usernames.append(username)
+
+        if valid_usernames:
+            extracted["nickname"] = valid_usernames[0]  # Take the first valid one
+        elif potential_usernames:
+            # Fallback to first potential username if no valid ones found
+            extracted["nickname"] = potential_usernames[0]
+
+        # 2. Enhanced topic classification with financial keywords
+        financial_keywords = [
+            'bitcoin', 'btc', 'cryptocurrency', 'crypto', 'blackrock', 'investment',
+            'trading', 'finance', 'financial', 'money', 'dollar', 'million', 'billion',
+            'stock', 'market', 'economy', 'economic', 'fund', 'etf', 'portfolio'
+        ]
+
+        medical_keywords = [
+            'medical', 'health', 'doctor', 'medicine', 'treatment', 'disease',
+            'vaccine', 'drug', 'hospital', 'clinical', 'patient', 'therapy'
+        ]
+
+        political_keywords = [
+            'political', 'politics', 'government', 'election', 'vote', 'policy',
+            'president', 'congress', 'senate', 'law', 'legislation', 'democrat', 'republican'
+        ]
+
+        scientific_keywords = [
+            'scientific', 'science', 'research', 'study', 'experiment', 'data',
+            'analysis', 'theory', 'hypothesis', 'peer-reviewed', 'journal'
+        ]
+
+        # Count keyword matches for each category
+        topic_scores = {
+            'financial': sum(1 for keyword in financial_keywords if keyword in text_lower),
+            'medical': sum(1 for keyword in medical_keywords if keyword in text_lower),
+            'political': sum(1 for keyword in political_keywords if keyword in text_lower),
+            'scientific': sum(1 for keyword in scientific_keywords if keyword in text_lower)
+        }
+
+        # Assign topic based on highest score
+        if max(topic_scores.values()) > 0:
+            extracted["primary_topic"] = max(topic_scores, key=topic_scores.get)
+
+        # 3. Enhanced claims extraction
+        claim_patterns = [
+            r'(?:claim|statement|assertion):\s*([^\n\r]+)',
+            r'(?:fact|statistic|number):\s*([^\n\r]+)',
+            r'(?:alleges|states|claims)\s+(?:that\s+)?([^\n\r]+)'
+        ]
+
+        claims = []
+        for pattern in claim_patterns:
+            matches = re.findall(pattern, analysis_result, re.IGNORECASE)
+            claims.extend([claim.strip() for claim in matches if claim.strip()])
+
+        extracted["claims"] = claims[:5]  # Limit to 5 claims
+
+        # 4. Irony/sarcasm detection
+        irony_indicators = ['joke', 'sarcasm', 'ironic', 'satirical', 'humor', 'meme', 'funny']
+        if any(indicator in text_lower for indicator in irony_indicators):
+            extracted["irony_assessment"] = "potentially_ironic"
+
         extracted["extracted_text"] = analysis_result
-        
+
         return extracted
     
     async def _get_user_reputation(self, db: AsyncSession, nickname: str) -> Any:
@@ -277,8 +376,10 @@ class VeritasAgent:
             
             fact_check_input = {
                 "post_analysis": extracted_info["extracted_text"],
+                "claims": extracted_info.get("claims", []),
                 "user_prompt": user_prompt,
-                "domain": domain
+                "domain": domain,
+                "temporal_context": json.dumps(extracted_info.get("temporal_analysis", {}))
             }
             
             # Use the agent executor for fact-checking
@@ -486,6 +587,56 @@ class VeritasAgent:
         except Exception as e:
             logger.error(f"Fallback analysis failed: {e}")
             raise AgentError(f"Both primary and fallback analysis failed: {e}")
+
+    async def _store_in_vector_db(
+        self,
+        extracted_info: Dict[str, Any],
+        verdict_result: Dict[str, Any],
+        fact_check_result: Dict[str, Any]
+    ):
+        """Store verification result in vector database asynchronously."""
+        try:
+            # Run vector storage in background to avoid blocking
+            import asyncio
+
+            def store_in_background():
+                try:
+                    # Prepare data for vector storage
+                    vector_data = {
+                        "nickname": extracted_info.get("nickname"),
+                        "extracted_text": extracted_info.get("extracted_text"),
+                        "claims": extracted_info.get("claims", []),
+                        "temporal_analysis": extracted_info.get("temporal_analysis", {}),
+                        "verdict": verdict_result.get("verdict"),
+                        "confidence_score": verdict_result.get("confidence_score"),
+                        "justification": verdict_result.get("justification"),
+                        "fact_check_results": fact_check_result
+                    }
+
+                    # Store in vector database (non-blocking)
+                    verification_id = vector_store.store_verification_result(vector_data)
+                    if verification_id:
+                        logger.info(f"Stored verification in vector database: {verification_id}")
+
+                    # Check for similar verifications (non-blocking)
+                    if extracted_info.get("claims"):
+                        for claim in extracted_info["claims"]:
+                            similar_claims = vector_store.find_similar_claims(claim, limit=3)
+                            if similar_claims:
+                                logger.info(f"Found {len(similar_claims)} similar claims for: {claim[:50]}...")
+
+                except Exception as e:
+                    logger.warning(f"Background vector storage failed: {e}")
+
+            # Run in background thread to avoid blocking main process
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, store_in_background)
+
+            logger.info("Vector storage initiated in background")
+
+        except Exception as e:
+            logger.warning(f"Failed to initiate vector storage: {e}")
+            # Don't raise error - vector storage is not critical for main functionality
 
 
 # Global agent instance

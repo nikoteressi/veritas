@@ -1,15 +1,16 @@
 """
 WebSocket connection manager for real-time updates.
 """
-import json
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from uuid import uuid4
 
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+
+from app.json_utils import safe_json_dumps
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class ConnectionManager:
         await self.send_message(session_id, {
             "type": "connection_established",
             "data": {"session_id": session_id},
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
         return session_id
@@ -82,7 +83,7 @@ class ConnectionManager:
         if session_id in self.active_connections:
             try:
                 websocket = self.active_connections[session_id]
-                await websocket.send_text(json.dumps(message))
+                await websocket.send_text(safe_json_dumps(message))
             except Exception as e:
                 logger.error(f"Failed to send message to {session_id}: {e}")
                 # Remove broken connection
@@ -102,7 +103,7 @@ class ConnectionManager:
         disconnected = []
         for session_id, websocket in self.active_connections.items():
             try:
-                await websocket.send_text(json.dumps(message))
+                await websocket.send_text(safe_json_dumps(message))
             except Exception as e:
                 logger.error(f"Failed to broadcast to {session_id}: {e}")
                 disconnected.append(session_id)
@@ -133,7 +134,7 @@ class ConnectionManager:
                 "step": step,
                 "progress": progress,
                 "details": details,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         }
         
@@ -144,7 +145,7 @@ class ConnectionManager:
             self.verification_sessions[session_id].update({
                 "current_step": step,
                 "progress": progress,
-                "last_update": datetime.utcnow()
+                "last_update": datetime.now(timezone.utc)
             })
     
     async def send_verification_result(
@@ -162,7 +163,7 @@ class ConnectionManager:
         message = {
             "type": "verification_result",
             "data": result,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         await self.send_message(session_id, message)
@@ -172,7 +173,7 @@ class ConnectionManager:
             self.verification_sessions[session_id].update({
                 "status": "completed",
                 "result": result,
-                "completed_at": datetime.utcnow()
+                "completed_at": datetime.now(timezone.utc)
             })
     
     async def send_error(
@@ -194,7 +195,7 @@ class ConnectionManager:
             "data": {
                 "message": error_message,
                 "code": error_code,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         }
         
@@ -205,7 +206,7 @@ class ConnectionManager:
             self.verification_sessions[session_id].update({
                 "status": "failed",
                 "error": error_message,
-                "failed_at": datetime.utcnow()
+                "failed_at": datetime.now(timezone.utc)
             })
     
     def start_verification_session(
@@ -222,7 +223,7 @@ class ConnectionManager:
         """
         self.verification_sessions[session_id] = {
             "status": "started",
-            "started_at": datetime.utcnow(),
+            "started_at": datetime.now(timezone.utc),
             "current_step": "initializing",
             "progress": 0,
             "data": verification_data
