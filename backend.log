@@ -1,179 +1,400 @@
-C:\Users\mtereschenko\Documents\augment-projects\veritas>docker-compose logs -f backend         
+C:\Users\mtereschenko\Documents\augment-projects\veritas>docker-compose logs -f backend
 veritas-backend  | INFO:     Started server process [1]
 veritas-backend  | INFO:     Waiting for application startup.
-veritas-backend  | 2025-06-25 17:45:09,314 - app.main - INFO - Starting Veritas application...
-veritas-backend  | 2025-06-25 17:45:09,424 INFO sqlalchemy.engine.Engine select pg_catalog.version()
-veritas-backend  | 2025-06-25 17:45:09,424 INFO sqlalchemy.engine.Engine [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,424 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
-veritas-backend  | 2025-06-25 17:45:09,424 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,427 INFO sqlalchemy.engine.Engine select current_schema()
-veritas-backend  | 2025-06-25 17:45:09,427 INFO sqlalchemy.engine.Engine [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,427 - sqlalchemy.engine.Engine - INFO - select current_schema()
-veritas-backend  | 2025-06-25 17:45:09,427 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,429 INFO sqlalchemy.engine.Engine show standard_conforming_strings
-veritas-backend  | 2025-06-25 17:45:09,429 INFO sqlalchemy.engine.Engine [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,429 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
-veritas-backend  | 2025-06-25 17:45:09,429 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
-veritas-backend  | 2025-06-25 17:45:09,430 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:45:09,430 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:45:09,433 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-06-25 19:15:44,953 - app.main - INFO - Starting Veritas application...
+veritas-backend  | 2025-06-25 19:15:45,056 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+veritas-backend  | 2025-06-25 19:15:45,056 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,056 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+veritas-backend  | 2025-06-25 19:15:45,056 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,059 - sqlalchemy.engine.Engine - INFO - select current_schema()
+veritas-backend  | 2025-06-25 19:15:45,059 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,059 INFO sqlalchemy.engine.Engine select current_schema()
+veritas-backend  | 2025-06-25 19:15:45,059 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,061 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+veritas-backend  | 2025-06-25 19:15:45,061 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+veritas-backend  | 2025-06-25 19:15:45,061 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,061 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 19:15:45,062 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:15:45,062 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:15:45,065 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
-veritas-backend  | 2025-06-25 17:45:09,433 - sqlalchemy.engine.Engine - INFO - [generated in 0.00020s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
-veritas-backend  | 2025-06-25 17:45:09,433 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-06-25 19:15:45,065 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
-veritas-backend  | 2025-06-25 17:45:09,433 INFO sqlalchemy.engine.Engine [generated in 0.00020s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
-veritas-backend  | 2025-06-25 17:45:09,445 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-06-25 19:15:45,065 INFO sqlalchemy.engine.Engine [generated in 0.00029s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 19:15:45,065 - sqlalchemy.engine.Engine - INFO - [generated in 0.00029s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 19:15:45,073 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
-veritas-backend  | 2025-06-25 17:45:09,445 - sqlalchemy.engine.Engine - INFO - [cached since 0.01174s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
-veritas-backend  | 2025-06-25 17:45:09,445 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-06-25 19:15:45,073 INFO sqlalchemy.engine.Engine [cached since 0.008237s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 19:15:45,073 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
-veritas-backend  | 2025-06-25 17:45:09,445 INFO sqlalchemy.engine.Engine [cached since 0.01174s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
-veritas-backend  | 2025-06-25 17:45:09,446 INFO sqlalchemy.engine.Engine COMMIT
-veritas-backend  | 2025-06-25 17:45:09,446 - sqlalchemy.engine.Engine - INFO - COMMIT
-veritas-backend  | 2025-06-25 17:45:09,447 - app.database - INFO - Asynchronous database initialized
-veritas-backend  | 2025-06-25 17:45:09,447 - app.main - INFO - Database initialized
+veritas-backend  | 2025-06-25 19:15:45,073 - sqlalchemy.engine.Engine - INFO - [cached since 0.008237s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 19:15:45,074 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 19:15:45,074 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 19:15:45,075 - app.database - INFO - Asynchronous database initialized
+veritas-backend  | 2025-06-25 19:15:45,075 - app.main - INFO - Database initialized
 veritas-backend  | INFO:     Application startup complete.
 veritas-backend  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-veritas-backend  | INFO:     127.0.0.1:55706 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | INFO:     127.0.0.1:54666 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | INFO:     ('172.18.0.1', 33222) - "WebSocket /ws" [accepted]
-veritas-backend  | 2025-06-25 17:46:07,522 - app.websocket_manager - INFO - WebSocket connected: e8dc261c-f511-450e-b624-48f75f7e4ccb
-veritas-backend  | INFO:     connection closed
-veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - ERROR - Failed to send message to e8dc261c-f511-450e-b624-48f75f7e4ccb:
-veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - INFO - WebSocket disconnected: e8dc261c-f511-450e-b624-48f75f7e4ccb
-veritas-backend  | 2025-06-25 17:46:07,523 - app.main - ERROR - WebSocket error: WebSocket is not connected. Need to call "accept" first.
-veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - INFO - WebSocket disconnected: e8dc261c-f511-450e-b624-48f75f7e4ccb
-veritas-backend  | INFO:     ('172.18.0.1', 33228) - "WebSocket /ws" [accepted]
-veritas-backend  | 2025-06-25 17:46:07,526 - app.websocket_manager - INFO - WebSocket connected: cb4344e5-f7af-456b-815a-8bca29baabe5
+veritas-backend  | INFO:     ('172.18.0.1', 52784) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 19:15:53,423 - app.websocket_manager - INFO - WebSocket connected: d7cb1753-89f9-41b1-8008-6742b6f084a9
 veritas-backend  | INFO:     connection open
-veritas-backend  | 2025-06-25 17:46:08,529 - app.main - INFO - WebSocket client disconnected: cb4344e5-f7af-456b-815a-8bca29baabe5
-veritas-backend  | 2025-06-25 17:46:08,529 - app.websocket_manager - INFO - WebSocket disconnected: cb4344e5-f7af-456b-815a-8bca29baabe5
+veritas-backend  | INFO:     127.0.0.1:49390 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 19:16:24,396 - app.main - INFO - Received WebSocket message from d7cb1753-89f9-41b1-8008-6742b6f084a9: {"type":"ping","timestamp":"2025-06-25T19:15:59.849Z"}
+veritas-backend  | 2025-06-25 19:16:25,958 - app.main - INFO - WebSocket client disconnected: d7cb1753-89f9-41b1-8008-6742b6f084a9
+veritas-backend  | 2025-06-25 19:16:25,958 - app.websocket_manager - INFO - WebSocket disconnected: d7cb1753-89f9-41b1-8008-6742b6f084a9
 veritas-backend  | INFO:     connection closed
-veritas-backend  | INFO:     ('172.18.0.1', 33244) - "WebSocket /ws" [accepted]
-veritas-backend  | 2025-06-25 17:46:08,535 - app.websocket_manager - INFO - WebSocket connected: b2132e0b-5ade-46e5-9340-75733092a88f
+veritas-backend  | INFO:     ('172.18.0.1', 54144) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 19:16:27,532 - app.websocket_manager - INFO - WebSocket connected: 5a81a8d0-124a-4b8d-a447-85e718f291f1
 veritas-backend  | INFO:     connection open
-veritas-backend  | INFO:     127.0.0.1:44380 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | 2025-06-25 17:46:28,354 - app.routers.verification - INFO - Received verification request: signal-2025-05-23-002445_002.jpeg, prompt: Check if that actual info for now...
-veritas-backend  | 2025-06-25 17:46:28,354 - app.websocket_manager - INFO - Started verification session: b2132e0b-5ade-46e5-9340-75733092a88f
-veritas-backend  | INFO:     172.18.0.1:47774 - "POST /api/v1/verify-post HTTP/1.1" 200 OK
-veritas-backend  | 2025-06-25 17:46:28,357 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Analyzing image content... (10%)
-veritas-backend  | 2025-06-25 17:46:28,408 - agent.llm - INFO - Resized image from original size to (460, 1024)
-veritas-backend  | 2025-06-25 17:46:28,411 - agent.llm - INFO - Encoded image to base64 (size: 93996 chars)
-veritas-backend  | 2025-06-25 17:46:39,403 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:46:14.855Z"}
-veritas-backend  | INFO:     127.0.0.1:43238 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | 2025-06-25 17:46:42,944 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-06-25 17:46:57,125 - agent.llm - INFO - Successfully invoked multimodal LLM
-veritas-backend  | 2025-06-25 17:46:57,125 - agent.core - INFO - Image analysis completed
-veritas-backend  | 2025-06-25 17:46:57,125 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Extracting claims and user information... (25%)
-veritas-backend  | 2025-06-25 17:46:57,125 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Checking user reputation... (35%)
-veritas-backend  | 2025-06-25 17:46:57,128 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:46:57,128 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:46:57,204 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-06-25 19:16:27,537 - app.main - INFO - WebSocket client disconnected: 5a81a8d0-124a-4b8d-a447-85e718f291f1
+veritas-backend  | 2025-06-25 19:16:27,538 - app.websocket_manager - INFO - WebSocket disconnected: 5a81a8d0-124a-4b8d-a447-85e718f291f1
+veritas-backend  | INFO:     connection closed
+veritas-backend  | INFO:     ('172.18.0.1', 54154) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 19:16:27,561 - app.websocket_manager - INFO - WebSocket connected: 5fab18a0-7d43-4841-9899-7e3166cd7272
+veritas-backend  | INFO:     connection open
+veritas-backend  | 2025-06-25 19:16:28,539 - app.main - INFO - WebSocket client disconnected: 5fab18a0-7d43-4841-9899-7e3166cd7272
+veritas-backend  | 2025-06-25 19:16:28,539 - app.websocket_manager - INFO - WebSocket disconnected: 5fab18a0-7d43-4841-9899-7e3166cd7272
+veritas-backend  | INFO:     connection closed
+veritas-backend  | INFO:     ('172.18.0.1', 54158) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 19:16:28,555 - app.websocket_manager - INFO - WebSocket connected: 0b98e37a-2733-4343-a27a-002fd46b4659
+veritas-backend  | INFO:     connection open
+veritas-backend  | 2025-06-25 19:16:42,497 - app.routers.verification - INFO - Received verification request: signal-2025-05-23-002445_002.jpeg, prompt: Check if that actual info...
+veritas-backend  | 2025-06-25 19:16:42,497 - app.websocket_manager - INFO - Started verification session: 0b98e37a-2733-4343-a27a-002fd46b4659
+veritas-backend  | INFO:     172.18.0.1:41144 - "POST /api/v1/verify-post HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 19:16:42,498 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Analyzing image content... (10%)
+veritas-backend  | 2025-06-25 19:16:42,533 - agent.llm - INFO - Resized image from original size to (460, 1024)
+veritas-backend  | 2025-06-25 19:16:42,535 - agent.llm - INFO - Encoded image to base64 (size: 93996 chars)
+veritas-backend  | INFO:     127.0.0.1:52870 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 19:16:46,885 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 19:16:57,978 - agent.llm - INFO - Successfully invoked multimodal LLM
+veritas-backend  | 2025-06-25 19:16:57,979 - agent.core - INFO - Image analysis completed
+veritas-backend  | 2025-06-25 19:16:57,979 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Extracting claims and user information... (25%)
+veritas-backend  | 2025-06-25 19:16:57,981 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Checking user reputation... (35%)
+veritas-backend  | 2025-06-25 19:16:57,982 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:16:57,982 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:16:57,988 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.nickname = $1::VARCHAR
-veritas-backend  | 2025-06-25 17:46:57,204 - sqlalchemy.engine.Engine - INFO - [generated in 0.00026s] ('unknown',)
-veritas-backend  | 2025-06-25 17:46:57,204 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-06-25 19:16:57,988 - sqlalchemy.engine.Engine - INFO - [generated in 0.00040s] ('the',)
+veritas-backend  | 2025-06-25 19:16:57,988 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.nickname = $1::VARCHAR
-veritas-backend  | 2025-06-25 17:46:57,204 INFO sqlalchemy.engine.Engine [generated in 0.00026s] ('unknown',)
-veritas-backend  | 2025-06-25 17:46:57,222 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Fact-checking claims... (50%)
-veritas-backend  | 2025-06-25 17:47:02,605 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-06-25 17:47:07,612 - agent.tools - INFO - SearxNG search completed: 5 results for '"BlackRock bought 4,970 BTC worth $530.6 million on May 21." fact check'
-veritas-backend  | 2025-06-25 17:47:08,849 - agent.tools - INFO - SearxNG search completed: 5 results for '"BlackRock bought 4,970 BTC worth $530.6 million on May 21." verification'
-veritas-backend  | 2025-06-25 17:47:10,445 - agent.tools - INFO - SearxNG search completed: 5 results for 'BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence'
-veritas-backend  | 2025-06-25 17:47:10,445 - agent.tools - INFO - Fact-checking completed for claim in general domain
-veritas-backend  | 2025-06-25 17:47:10,446 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:46:44.862Z"}
-veritas-backend  | 
+veritas-backend  | 2025-06-25 19:16:57,988 INFO sqlalchemy.engine.Engine [generated in 0.00040s] ('the',)
+veritas-backend  | 2025-06-25 19:16:57,999 INFO sqlalchemy.engine.Engine INSERT INTO users (nickname, true_count, partially_true_count, false_count, ironic_count, total_posts_checked, created_at, last_checked_date, warning_issued, notification_issued) VALUES ($1::VARCHAR, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::TIMESTAMP WITHOUT TIME ZONE, $8::TIMESTAMP WITHOUT TIME ZONE, $9::BOOLEAN, $10::BOOLEAN) RETURNING users.id
+veritas-backend  | 2025-06-25 19:16:57,999 - sqlalchemy.engine.Engine - INFO - INSERT INTO users (nickname, true_count, partially_true_count, false_count, ironic_count, total_posts_checked, created_at, last_checked_date, warning_issued, notification_issued) VALUES ($1::VARCHAR, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::TIMESTAMP WITHOUT TIME ZONE, $8::TIMESTAMP WITHOUT TIME ZONE, $9::BOOLEAN, $10::BOOLEAN) RETURNING users.id
+veritas-backend  | 2025-06-25 19:16:58,000 - sqlalchemy.engine.Engine - INFO - [generated in 0.00100s] ('the', 0, 0, 0, 0, 0, datetime.datetime(2025, 6, 25, 19, 16, 57, 999439), datetime.datetime(2025, 6, 25, 19, 16, 57, 999444), False, False)
+veritas-backend  | 2025-06-25 19:16:58,000 INFO sqlalchemy.engine.Engine [generated in 0.00100s] ('the', 0, 0, 0, 0, 0, datetime.datetime(2025, 6, 25, 19, 16, 57, 999439), datetime.datetime(2025, 6, 25, 19, 16, 57, 999444), False, False)
+veritas-backend  | 2025-06-25 19:16:58,005 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 19:16:58,005 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 19:16:58,019 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:16:58,019 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:16:58,022 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.id = $1::INTEGER
+veritas-backend  | 2025-06-25 19:16:58,022 - sqlalchemy.engine.Engine - INFO - [generated in 0.00059s] (4,)
+veritas-backend  | 2025-06-25 19:16:58,022 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.id = $1::INTEGER
+veritas-backend  | 2025-06-25 19:16:58,022 INFO sqlalchemy.engine.Engine [generated in 0.00059s] (4,)
+veritas-backend  | 2025-06-25 19:16:58,025 - app.crud - INFO - Created new user: the
+veritas-backend  | 2025-06-25 19:16:58,026 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Analyzing temporal context... (40%)
+veritas-backend  | 2025-06-25 19:16:58,027 - agent.temporal_analysis - INFO - Temporal analysis completed: none mismatch detected
+veritas-backend  | 2025-06-25 19:16:58,028 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Fact-checking claims... (50%)
+veritas-backend  | 2025-06-25 19:16:58,583 - app.main - INFO - Received WebSocket message from 0b98e37a-2733-4343-a27a-002fd46b4659: {"type":"ping","timestamp":"2025-06-25T19:16:34.026Z"}
+veritas-backend  | 2025-06-25 19:17:01,660 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 19:17:01,663 - agent.tools - INFO - Executing search query: "this is the largest institutional Bitcoin stash ever." fact check verification
+veritas-backend  | 2025-06-25 19:17:04,572 - agent.tools - INFO - SearxNG search completed: 5 results for '"this is the largest institutional Bitcoin stash ever." fact check verification'
+veritas-backend  | 2025-06-25 19:17:04,572 - agent.tools - INFO - Found 5 sources for query: "this is the largest institutional Bitcoin stash ever." fact check verification
+veritas-backend  | 2025-06-25 19:17:04,572 - agent.tools - INFO - Executing search query: "this is the largest institutional Bitcoin stash ever." debunked false true
+veritas-backend  | 2025-06-25 19:17:05,774 - agent.tools - INFO - SearxNG search completed: 5 results for '"this is the largest institutional Bitcoin stash ever." debunked false true'
+veritas-backend  | 2025-06-25 19:17:05,774 - agent.tools - INFO - Found 5 sources for query: "this is the largest institutional Bitcoin stash ever." debunked false true
+veritas-backend  | 2025-06-25 19:17:05,774 - agent.tools - INFO - Executing search query: this is the largest institutional Bitcoin stash ever. evidence sources
+veritas-backend  | 2025-06-25 19:17:07,394 - agent.tools - INFO - SearxNG search completed: 5 results for 'this is the largest institutional Bitcoin stash ever. evidence sources'
+veritas-backend  | 2025-06-25 19:17:07,395 - agent.tools - INFO - Found 5 sources for query: this is the largest institutional Bitcoin stash ever. evidence sources
+veritas-backend  | 2025-06-25 19:17:07,395 - agent.tools - INFO - Executing search query: this is the largest institutional Bitcoin stash ever. contradictory evidence opposing view
+veritas-backend  | 2025-06-25 19:17:08,929 - agent.tools - INFO - SearxNG search completed: 5 results for 'this is the largest institutional Bitcoin stash ever. contradictory evidence opposing view'
+veritas-backend  | 2025-06-25 19:17:08,929 - agent.tools - INFO - Found 5 sources for query: this is the largest institutional Bitcoin stash ever. contradictory evidence opposing view
+veritas-backend  | 2025-06-25 19:17:08,929 - agent.tools - INFO - Executing search query: this is the largest institutional Bitcoin stash ever. alternative explanation different perspective
+veritas-backend  | 2025-06-25 19:17:10,096 - agent.tools - INFO - SearxNG search completed: 5 results for 'this is the largest institutional Bitcoin stash ever. alternative explanation different perspective'
+veritas-backend  | 2025-06-25 19:17:10,097 - agent.tools - INFO - Found 5 sources for query: this is the largest institutional Bitcoin stash ever. alternative explanation different perspective
+veritas-backend  | 2025-06-25 19:17:10,097 - agent.tools - INFO - Executing search query: this is the largest institutional Bitcoin stash ever. context background full story
+veritas-backend  | 2025-06-25 19:17:11,579 - agent.tools - INFO - SearxNG search completed: 5 results for 'this is the largest institutional Bitcoin stash ever. context background full story'
+veritas-backend  | 2025-06-25 19:17:11,579 - agent.tools - INFO - Found 5 sources for query: this is the largest institutional Bitcoin stash ever. context background full story
+veritas-backend  | 2025-06-25 19:17:11,580 - agent.tools - INFO - Fact-checking completed for claim in financial domain. Examined 30 sources.
+veritas-backend  |
 veritas-backend  |
 veritas-backend  | > Entering new AgentExecutor chain...
 veritas-backend  |
-veritas-backend  | Invoking: `fact_checking` with `{'claim': 'BlackRock bought 4,970 BTC worth $530.6 million on May 21.', 'context': 'The post claims BlackRock purchased 4,970 BTC worth $530.6 million on May 21, bringing their total Bitcoin holdings to 643,974 BTC, valued at over $67 billion.', 'domain': 'general'}`
+veritas-backend  | Invoking: `fact_checking` with `{'claim': 'this is the largest institutional Bitcoin stash ever.', 'context': 'BlackRock', 'domain': 'financial'}`
 veritas-backend  |
 veritas-backend  |
 veritas-backend  | {
-veritas-backend  |   "claim": "BlackRock bought 4,970 BTC worth $530.6 million on May 21.",
-veritas-backend  |   "domain": "general",
+veritas-backend  |   "claim": "this is the largest institutional Bitcoin stash ever.",
+veritas-backend  |   "domain": "www.linkedin.com",
 veritas-backend  |   "search_queries_used": [
-veritas-backend  |     "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" fact check",
-veritas-backend  |     "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" verification",
-veritas-backend  |     "BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence"
+veritas-backend  |     "\"this is the largest institutional Bitcoin stash ever.\" fact check verification",
+veritas-backend  |     "\"this is the largest institutional Bitcoin stash ever.\" debunked false true",
+veritas-backend  |     "this is the largest institutional Bitcoin stash ever. evidence sources",
+veritas-backend  |     "this is the largest institutional Bitcoin stash ever. contradictory evidence opposing view",
+veritas-backend  |     "this is the largest institutional Bitcoin stash ever. alternative explanation different perspective",
+veritas-backend  |     "this is the largest institutional Bitcoin stash ever. context background full story"
 veritas-backend  |   ],
-veritas-backend  |   "total_sources_found": 5634,
+veritas-backend  |   "total_sources_found": 30,
+veritas-backend  |   "credible_sources": 0,
+veritas-backend  |   "fact_check_sources": 0,
+veritas-backend  |   "supporting_evidence": 1,
+veritas-backend  |   "contradicting_evidence": 1,
 veritas-backend  |   "preliminary_assessment": "requires_human_review",
-veritas-backend  |   "confidence": "low",
+veritas-backend  |   "confidence_score": 10,
+veritas-backend  |   "confidence_factors": [
+veritas-backend  |     "Evidence clarity: 0.00",
+veritas-backend  |     "Sufficient sources found"
+veritas-backend  |   ],
+veritas-backend  |   "temporal_analysis": {
+veritas-backend  |     "raw_context": "BlackRock"
+veritas-backend  |   },
+veritas-backend  |   "temporal_flags": [],
+veritas-backend  |   "processed_sources": [
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.investopedia.com/news/how-us-government-handles-its-stash-bitcoins/",
+veritas-backend  |       "title": "How The US Government Handles Its Massive Stash Of Bitcoins",
+veritas-backend  |       "domain": "www.investopedia.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.cryptotimes.io/2025/05/21/fact-check-is-gamestop-hodling-bitcoin-stash-of-34000-btc/",
+veritas-backend  |       "title": "Fact Check: Is GameStop HODLing Bitcoin Stash of 34,000 BTC?",
+veritas-backend  |       "domain": "www.cryptotimes.io",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 2,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.reddit.com/r/CoinBase/comments/1lba0u4/something_is_likely_very_wrong_at_coinbase_caveat/",
+veritas-backend  |       "title": "Something is likely very wrong at Coinbase, caveat emptor",
+veritas-backend  |       "domain": "www.reddit.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://dfpi.ca.gov/consumers/crypto/crypto-scam-tracker/",
+veritas-backend  |       "title": "Crypto Scam Tracker - DFPI",
+veritas-backend  |       "domain": "dfpi.ca.gov",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://openexo.com/l/2a144b86",
+veritas-backend  |       "title": "Czech Government Survives $45M Bitcoin Scandal as ...",
+veritas-backend  |       "domain": "openexo.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://blockworks.co/news/bitcoins-21-million-limit-myth",
+veritas-backend  |       "title": "Bitcoin's 21 million limit is a boomer myth",
+veritas-backend  |       "domain": "blockworks.co",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.truthdig.com/articles/is-crypto-the-greatest-scam-in-history/",
+veritas-backend  |       "title": "Is Crypto the Greatest Scam in History?",
+veritas-backend  |       "domain": "www.truthdig.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.reddit.com/r/Buttcoin/comments/1ebp9q0/in_what_way_exactly_do_you_think_bitcoin_is_a_scam/",
+veritas-backend  |       "title": "In what way exactly do you think bitcoin is a scam?",
+veritas-backend  |       "domain": "www.reddit.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 1,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.wired.com/story/27-year-old-codebreaker-busted-myth-bitcoins-anonymity/",
+veritas-backend  |       "title": "How a 27-Year-Old Codebreaker Busted the Myth of ...",
+veritas-backend  |       "domain": "www.wired.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "url": "https://www.vox.com/money/378108/bitcoin-satoshi-nakamoto-peter-todd-money-electric",
+veritas-backend  |       "title": "The $1.3 trillion question we may never answer - Vox",
+veritas-backend  |       "domain": "www.vox.com",
+veritas-backend  |       "credible": false,
+veritas-backend  |       "verification_score": 0,
+veritas-backend  |       "debunking_score": 0,
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true"
+veritas-backend  |     }
+veritas-backend  |   ],
 veritas-backend  |   "sources": [
 veritas-backend  |     {
-veritas-backend  |       "query": "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" fact check",
-veritas-backend  |       "results": "[\n  {\n    \"title\": \"Fadesire Temitope AQUARIUS (@playwitcrown) / X\",\n    \"url\": \"https://twitter.com/playwitcrown\",\n    \"content\": \"JUST IN: BlackRock buys 4,970 BTC worth $530.6 million. Image. 149 ... May 21. -Magpie -Liver bird -Eagle -Cockerel It was the year of the bird in ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Fadesire Temitope AQUARIUS (@playwitcrown) ...\",\n    \"url\": \"https://twitter.com/playwitcrown?lang=gl\",\n    \"content\": \"JUST IN: BlackRock buys 4,970 BTC worth $530.6 million.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock is Selling $429 Million in Bitcoin: Fact Check\",\n    \"url\": \"https://www.cryptotimes.io/2025/06/02/blackrock-is-selling-429-million-in-bitcoin-fact-check/\",\n    \"content\": \"3 weeks ago - For now, it looks like just another case of crypto rumors getting ahead of reality. BlackRock has made no official confirmation of selling bitcoin.\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"EOF\",\n    \"url\": \"http://www.google.com/search?hl=en&q=%22BlackRock+bought+4%2C970+BTC+worth+%24530.6+million+on+May+21.%22+fact+check\",\n    \"content\": \"\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"In a significant move, BlackRock has purchased $600 million worth of Bitcoin, marking its largest acquisition in 2025. This purchase brings the firm\\u2019s iShares Bitcoin Trust to a total of 559,262 BTC, currently valued at approximately $58.51 billion.\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" fact check verification",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"How The US Government Handles Its Massive Stash Of Bitcoins\",\n    \"url\": \"https://www.investopedia.com/news/how-us-government-handles-its-stash-bitcoins/\",\n    \"content\": \"At least $1 billion worth of digital coins and possibly much more has spent time in the custody of U.S. law enforcement. As a result, the U.S. Marshals Service, ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Fact Check: Is GameStop HODLing Bitcoin Stash of 34,000 BTC?\",\n    \"url\": \"https://www.cryptotimes.io/2025/05/21/fact-check-is-gamestop-hodling-bitcoin-stash-of-34000-btc/\",\n    \"content\": \"A rumor linked GameStop to a 34,000 BTC wallet, after confirming it will hold Bitcoin as a treasury asset. However, the amount it planned to buy wasn't confirmed.\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"Something is likely very wrong at Coinbase, caveat emptor\",\n    \"url\": \"https://www.reddit.com/r/CoinBase/comments/1lba0u4/something_is_likely_very_wrong_at_coinbase_caveat/\",\n    \"content\": \"Coinbase has been the number one exchange in the U.S. and custodians of most BTC and eth ETF's. They are not going anywhere whether you like it ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Crypto Scam Tracker - DFPI\",\n    \"url\": \"https://dfpi.ca.gov/consumers/crypto/crypto-scam-tracker/\",\n    \"content\": \"Bitcoin Mining Scam \\u2013 A scam that involves the promotion of a fraudulent investment opportunity related to bitcoin mining. This involves a scammer soliciting an investment opportunity involving the development of a bitcoin mining operation. Scammers will typical purport that invested funds ...\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"Czech Government Survives $45M Bitcoin Scandal as ...\",\n    \"url\": \"https://openexo.com/l/2a144b86\",\n    \"content\": \"6 days ago \\u2014 For those new to the space, Bitcoin (BTC) is a decentralized digital currency running on a blockchain\\u2014a public, unalterable ledger of every ...\",\n    \"engine\": \"google\"\n  }\n]"
 veritas-backend  |     },
 veritas-backend  |     {
-veritas-backend  |       "query": "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" verification",
-veritas-backend  |       "results": "[\n  {\n    \"title\": \"EOF\",\n    \"url\": \"http://www.google.com/search?hl=en&q=%22BlackRock+bought+4%2C970+BTC+worth+%24530.6+million+on+May+21.%22+verification\",\n    \"content\": \"\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"BlackRock Bitcoin purchase Flash News List\",\n    \"url\": \"https://blockchain.news/flashnews/BlackRock%20Bitcoin%20purchase\",\n    \"content\": \"According to @AltcoinGordon on Twitter, BlackRock has purchased 4,970 Bitcoin for $530.6 million, marking one of the largest recent institutional acquisitions ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"In a significant move, BlackRock has purchased $600 million worth of Bitcoin, marking its largest acquisition in 2025. This purchase brings the firm\\u2019s iShares Bitcoin Trust to a total of 559,262 BTC, currently valued at approximately $58.51 billion.\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"BlackRock Boosts Bitcoin Holdings to 643974 BTC, Worth Over ...\",\n    \"url\": \"https://www.newsbreak.com/news/4018566033237-blackrock-boosts-bitcoin-holdings-to-643-974-btc-worth-over-67b-as-james-wynn-s-1-1b-position-surges\",\n    \"content\": \"BlackRock Inc. has significantly increased its Bitcoin holdings, purchasing 4970 BTC valued at approximately $530.6 million on May 21, bringing its total.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock Bought $1B Worth of BTC on the Eve of the Dip\",\n    \"url\": \"https://crypto.news/blackrock-bought-1-billion-worth-of-btc-right-on/\",\n    \"content\": \"Investing $1 billion in Bitcoin on the eve of the 13% downfall may seem like fatal misfortune. That's exactly what BlackRock did! Is this a problem for BlackRock?\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |       "query": "\"this is the largest institutional Bitcoin stash ever.\" debunked false true",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Bitcoin's 21 million limit is a boomer myth\",\n    \"url\": \"https://blockworks.co/news/bitcoins-21-million-limit-myth\",\n    \"content\": \"Mar 12, 2024 \\u2014 Reassessing bitcoin's 21 million. The largest stash of bitcoin in the world belongs to its creator, Satoshi Nakamoto. Thanks to on-chain ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Is Crypto the Greatest Scam in History?\",\n    \"url\": \"https://www.truthdig.com/articles/is-crypto-the-greatest-scam-in-history/\",\n    \"content\": \"Nov 14, 2023 \\u2014 One of the biggest institutional investors of Bitcoin is billionaire Michael Saylor, co-founder of a company called MicroStrategy. He's the ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"In what way exactly do you think bitcoin is a scam?\",\n    \"url\": \"https://www.reddit.com/r/Buttcoin/comments/1ebp9q0/in_what_way_exactly_do_you_think_bitcoin_is_a_scam/\",\n    \"content\": \"The prices are rigged, the trades are fake, the prices are propped up by printing the stable coins out of thin air. It's a one way money pit.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"How a 27-Year-Old Codebreaker Busted the Myth of ...\",\n    \"url\": \"https://www.wired.com/story/27-year-old-codebreaker-busted-myth-bitcoins-anonymity/\",\n    \"content\": \"Jan 17, 2024 \\u2014 A young, puzzle-loving mathematician named Sarah Meiklejohn started to pull out traceable patterns in the apparent noise of Bitcoin's blockchain.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"The $1.3 trillion question we may never answer - Vox\",\n    \"url\": \"https://www.vox.com/money/378108/bitcoin-satoshi-nakamoto-peter-todd-money-electric\",\n    \"content\": \"Oct 17, 2024 \\u2014 Early this year, an unknown person sent 26.9 bitcoins (worth approximately $1.8 million today) to Nakamoto's dormant wallet, firing up fresh ...\",\n    \"engine\": \"google\"\n  }\n]"
 veritas-backend  |     },
 veritas-backend  |     {
-veritas-backend  |       "query": "BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence",
-veritas-backend  |       "results": "[\n  {\n    \"title\": \"Posts with replies by Jonika Silas (@JonikaSila98275) / ...\",\n    \"url\": \"https://twitter.com/JonikaSila98275/with_replies\",\n    \"content\": \"May 22. BlackRock Just Made the Biggest Bitcoin Move of 2024 #BlackRock just bought 4,970 $BTC worth $530.6M on May 21 They now hold 643,974 BTC valued at ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock Bought $1B Worth of BTC on the Eve of the Dip\",\n    \"url\": \"https://crypto.news/blackrock-bought-1-billion-worth-of-btc-right-on/\",\n    \"content\": \"Investing $1 billion in Bitcoin on the eve of the 13% downfall may seem like fatal misfortune. That's exactly what BlackRock did! Is this a problem for BlackRock?\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"BlackRock Boosts Bitcoin Holdings to 643,974 BTC, Worth Over $67B, as ...\",\n    \"url\": \"https://thedefiant.io/news/markets/blackrock-boosts-bitcoin-holdings-to-643974-btc-worth-over-67b-james-wynn-s-1-1b-af2cc5f0\",\n    \"content\": \"BlackRock Inc. has significantly increased its Bitcoin holdings, purchasing 4,970 BTC valued at approximately $530.6 million on May 21, bringing its total to around 643,974 BTC, worth over $67 billion. This positions BlackRock's iShares Bitcoin Trust (IBIT) as the second-largest holder of Bitcoin, only behind the pseudonymous creator Satoshi Nakamoto. In addition to its Bitcoin investments ...\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"Larry Fink, CEO of BlackRock, predicted that the global crypto ...\",\n    \"url\": \"https://www.instagram.com/p/DJeMjR4u4nw/\",\n    \"content\": \"Today's BlackRock alpha move: they just bought 4,970 $BTC worth about $530.6M, and followed it up with 9,869 $ETH worth $24.9M. As of now, BlackRock owns 2 ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"The purchase increases the holdings of the iShares Bitcoin Trust to 559,262 BTC, valued at approximately $58.51 billion, and reflects growing institutional interest in Bitcoin as a long-term investment.\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |       "query": "this is the largest institutional Bitcoin stash ever. evidence sources",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Who Owns the Most Bitcoin: The Largest Bitcoin Wallet Addresses\",\n    \"url\": \"https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses\",\n    \"content\": \"Mar 22, 2024 ... By late 2024, it held over 201,000 BTC, ranking it among the top ETF holders. Fidelity's reputation and focus on institutional investors suggest\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Top 10 Bitcoin Holders You Should Know - Securities.io\",\n    \"url\": \"https://www.securities.io/top-bitcoin-holders/\",\n    \"content\": \"Nov 27, 2023 ... The US government is next on the list with a healthy stash of 205,515 Bitcoins worth over $5B. The US government may not have intended to become\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"How a 27-Year-Old Codebreaker Busted the Myth of Bitcoin's ...\",\n    \"url\": \"https://www.wired.com/story/27-year-old-codebreaker-busted-myth-bitcoins-anonymity/\",\n    \"content\": \"Jan 17, 2024 ... This is the story of the revelation in late 2013 that Bitcoin was, in fact, the opposite of untraceable\\u2014that its blockchain would actually allow\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Is Crypto the Greatest Scam in History? - Truthdig\",\n    \"url\": \"https://www.truthdig.com/articles/is-crypto-the-greatest-scam-in-history/\",\n    \"content\": \"Nov 14, 2023 ... They had the bright idea to throw open the doors to Bitcoin miners and outfits that can come in and pay very little for energy. Now they're all\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Trevor McAleenan, Michael Lane\",\n    \"url\": \"https://servicetoamericamedals.org/honorees/trevor-mcaleenan-and-michael-lane/\",\n    \"content\": \"For years, the theft remained one of the largest cryptocurrency crimes in the world\\u2014that is, until two IRS criminal investigators, Trevor McAleenan and Michael\\u00a0...\",\n    \"engine\": \"google\"\n  }\n]"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "query": "this is the largest institutional Bitcoin stash ever. contradictory evidence opposing view",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Why Bitcoin is Stupid - Mr. Money Mustache\",\n    \"url\": \"https://www.mrmoneymustache.com/2018/01/02/why-bitcoin-is-stupid/\",\n    \"content\": \"Jan 2, 2018 ... OK, But What if Bitcoin Becomes the World Currency? The other argument for Bitcoin's \\u201cvalue\\u201d is that there will only ever be 21 million of them,\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Thoughts on this ? Not able to put a finger to it but ...\",\n    \"url\": \"https://www.reddit.com/r/Bitcoin/comments/xjzok4/thoughts_on_this_not_able_to_put_a_finger_to_it/\",\n    \"content\": \"The company's long-term value remains the same, but the market values it less because one of its assets' immediate value has dropped.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"I don't like being my own bank. : r/Bitcoin - Reddit\",\n    \"url\": \"https://www.reddit.com/r/Bitcoin/comments/jxmi85/i_dont_like_being_my_own_bank/\",\n    \"content\": \"Nov 20, 2020 ... 722 votes, 367 comments. I expect this to be controversial, and I expect to get downvoted, but that's okay. This is a throwaway because I\\u00a0...\",\n    \"engine\": \"startpage\"\n  },\n  {\n    \"title\": \"A Flood of A.I. Slop + Searching for Satoshi + the Hot Mess Express ...\",\n    \"url\": \"https://www.nytimes.com/2024/10/11/podcasts/ai-slop-bitcoin-hot-mess.html\",\n    \"content\": \"Oct 11, 2024 \\u2014 This week, in the wake of recent natural disasters, we dig into the rise of A.I.-generated slop that's polluting the internet and disrupting ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"The Crypto Quandary: Is Bankruptcy Ready? - Scholarly Commons\",\n    \"url\": \"https://scholarlycommons.law.northwestern.edu/cgi/viewcontent.cgi?article=1290&context=nulr_online\",\n    \"content\": \"by M McDermott \\u00b7 2020 \\u00b7 Cited by 23 \\u2014 ABSTRACT\\u2014As the United States grapples with how best to manage a global pandemic, bankruptcy courts are bracing for the inevitable fallout from COVID-19.\",\n    \"engine\": \"google\"\n  }\n]"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "query": "this is the largest institutional Bitcoin stash ever. alternative explanation different perspective",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Who Owns the Most Bitcoin in 2025? - River\",\n    \"url\": \"https://river.com/learn/who-owns-the-most-bitcoin/\",\n    \"content\": \"The largest holder in this category is BlackRock's iShares Bitcoin Trust, which has approximately 530,831 BTC under management. \\u27a4 Learn more about bitcoin ETFs.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Who Owns the Most Bitcoin: The Largest Bitcoin Wallet Addresses\",\n    \"url\": \"https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses\",\n    \"content\": \"Mar 22, 2024 ... By late 2024, it held over 201,000 BTC, ranking it among the top ETF holders. Fidelity's reputation and focus on institutional investors suggest\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Top 10 Biggest Holders of Bitcoin and the Billions They Are Worth\",\n    \"url\": \"https://www.ccn.com/top-10-biggest-bitcoin-holders/\",\n    \"content\": \"May 27, 2025 ... Individuals With the Largest Bitcoin Holdings \\u00b7 Satoshi Nakamoto: ~1.1 million BTC \\u00b7 The Winklevoss twins: ~70,000 BTC \\u00b7 Tim Draper: ~29,656 BTC.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"59.9B in Bitcoin Unmasked: Arkham Traces 97% of Strategy's Secret ...\",\n    \"url\": \"https://www.cryptoninjas.net/news/59-9b-in-bitcoin-unmasked-arkham-traces-97-of-strategys-secret-wallets/\",\n    \"content\": \"May 30, 2025 \\u2014 This analysis confirms that Strategy's actual Bitcoin stash may be significantly larger than the 214,400 BTC publicly disclosed by the firm.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"The 10 Public Companies With the Biggest Bitcoin Portfolios - Decrypt\",\n    \"url\": \"https://decrypt.co/47061/public-companies-biggest-bitcoin-portfolios\",\n    \"content\": \"Strategy, a prominent business analytics platform turned Bitcoin treasury company, has adopted BTC as its primary reserve asset. The company is perhaps better\\u00a0...\",\n    \"engine\": \"google\"\n  }\n]"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "query": "this is the largest institutional Bitcoin stash ever. context background full story",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Who Owns the Most Bitcoin: The Largest Bitcoin Wallet Addresses\",\n    \"url\": \"https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses\",\n    \"content\": \"Mar 22, 2024 ... By late 2024, it held over 201,000 BTC, ranking it among the top ETF holders. Fidelity's reputation and focus on institutional investors suggest\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Who Owns the Most Bitcoin? Unveiling the Top Bitcoin Holders\",\n    \"url\": \"https://coincodex.com/article/27901/who-owns-the-most-bitcoin/\",\n    \"content\": \"May 31, 2023 ... MicroStrategy is the largest public investor in Bitcoin, sitting on a $3.8 billion BTC stash. The company's executive chairman Michael Saylor\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"What If Bitcoin Creator Satoshi Nakamoto Was Just a Jerk?\",\n    \"url\": \"https://nymag.com/intelligencer/article/bitcoin-satoshi-nakamoto-benjamin-wallace-book-excerpt.html\",\n    \"content\": \"Mar 17, 2025 ... At the heart of Nakamoto's creation was something called the blockchain, an ever-lengthening record of all transactions (buy, sell, etc.) that\\u00a0...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"What Is a Strategic Bitcoin Reserve That Trump Supports? - BitDegree\",\n    \"url\": \"https://www.bitdegree.org/crypto/tutorials/what-is-strategic-bitcoin-reserve\",\n    \"content\": \"May 16, 2025 \\u2014 The idea behind the Trump Bitcoin Strategic Reserve is that the US government would buy, hold, and potentially sell crypto to strengthen the ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Stephanie Leung's Post - LinkedIn\",\n    \"url\": \"https://www.linkedin.com/posts/stephanie-leung-hk_ciomusings-bitcoin-assetallocaiton-activity-7270450175892959232-hu0-\",\n    \"content\": \"Dec 5, 2024 ... Bitcoin ETFs: The Fastest Growing in History Bitcoin ... leading institutional holder of Bitcoin, overtaking Grayscale's GBTC.\",\n    \"engine\": \"startpage\"\n  }\n]"
 veritas-backend  |     }
+veritas-backend  |   ],
+veritas-backend  |   "examined_sources": [
+veritas-backend  |     "https://www.investopedia.com/news/how-us-government-handles-its-stash-bitcoins/",
+veritas-backend  |     "https://www.cryptotimes.io/2025/05/21/fact-check-is-gamestop-hodling-bitcoin-stash-of-34000-btc/",
+veritas-backend  |     "https://www.reddit.com/r/CoinBase/comments/1lba0u4/something_is_likely_very_wrong_at_coinbase_caveat/",
+veritas-backend  |     "https://dfpi.ca.gov/consumers/crypto/crypto-scam-tracker/",
+veritas-backend  |     "https://openexo.com/l/2a144b86",
+veritas-backend  |     "https://blockworks.co/news/bitcoins-21-million-limit-myth",
+veritas-backend  |     "https://www.truthdig.com/articles/is-crypto-the-greatest-scam-in-history/",
+veritas-backend  |     "https://www.reddit.com/r/Buttcoin/comments/1ebp9q0/in_what_way_exactly_do_you_think_bitcoin_is_a_scam/",
+veritas-backend  |     "https://www.wired.com/story/27-year-old-codebreaker-busted-myth-bitcoins-anonymity/",
+veritas-backend  |     "https://www.vox.com/money/378108/bitcoin-satoshi-nakamoto-peter-todd-money-electric",
+veritas-backend  |     "https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses",
+veritas-backend  |     "https://www.securities.io/top-bitcoin-holders/",
+veritas-backend  |     "https://www.wired.com/story/27-year-old-codebreaker-busted-myth-bitcoins-anonymity/",
+veritas-backend  |     "https://www.truthdig.com/articles/is-crypto-the-greatest-scam-in-history/",
+veritas-backend  |     "https://servicetoamericamedals.org/honorees/trevor-mcaleenan-and-michael-lane/",
+veritas-backend  |     "https://www.mrmoneymustache.com/2018/01/02/why-bitcoin-is-stupid/",
+veritas-backend  |     "https://www.reddit.com/r/Bitcoin/comments/xjzok4/thoughts_on_this_not_able_to_put_a_finger_to_it/",
+veritas-backend  |     "https://www.reddit.com/r/Bitcoin/comments/jxmi85/i_dont_like_being_my_own_bank/",
+veritas-backend  |     "https://www.nytimes.com/2024/10/11/podcasts/ai-slop-bitcoin-hot-mess.html",
+veritas-backend  |     "https://scholarlycommons.law.northwestern.edu/cgi/viewcontent.cgi?article=1290&context=nulr_online",
+veritas-backend  |     "https://river.com/learn/who-owns-the-most-bitcoin/",
+veritas-backend  |     "https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses",
+veritas-backend  |     "https://www.ccn.com/top-10-biggest-bitcoin-holders/",
+veritas-backend  |     "https://www.cryptoninjas.net/news/59-9b-in-bitcoin-unmasked-arkham-traces-97-of-strategys-secret-wallets/",
+veritas-backend  |     "https://decrypt.co/47061/public-companies-biggest-bitcoin-portfolios",
+veritas-backend  |     "https://www.ledger.com/academy/topics/crypto/who-owns-the-most-bitcoin-the-largest-bitcoin-wallet-addresses",
+veritas-backend  |     "https://coincodex.com/article/27901/who-owns-the-most-bitcoin/",
+veritas-backend  |     "https://nymag.com/intelligencer/article/bitcoin-satoshi-nakamoto-benjamin-wallace-book-excerpt.html",
+veritas-backend  |     "https://www.bitdegree.org/crypto/tutorials/what-is-strategic-bitcoin-reserve",
+veritas-backend  |     "https://www.linkedin.com/posts/stephanie-leung-hk_ciomusings-bitcoin-assetallocaiton-activity-7270450175892959232-hu0-"
 veritas-backend  |   ]
-veritas-backend  | }INFO:     127.0.0.1:46088 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | 2025-06-25 17:47:17,253 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-06-25 17:47:17,257 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Generating final verdict... (80%)
-veritas-backend  | 2025-06-25 17:47:18,299 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-06-25 17:47:22,444 - agent.llm - INFO - Successfully invoked text-only LLM
-veritas-backend  | 2025-06-25 17:47:22,445 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Updating user reputation... (90%)
-veritas-backend  | 2025-06-25 17:47:22,446 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
-veritas-backend  | The information provided in the social media post about BlackRock's purchase of 4,970 BTC worth $530.6 million on May 21, 2024, requires verification. Based on the search results, it appears that this information could not be confirmed through the available sources. Therefore, the claim's accuracy is uncertain and needs further verification from reliable financial news sources or official statements from BlackRock.
+veritas-backend  | }INFO:     127.0.0.1:44204 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 19:17:28,573 - app.main - INFO - Received WebSocket message from 0b98e37a-2733-4343-a27a-002fd46b4659: {"type":"ping","timestamp":"2025-06-25T19:17:04.017Z"}
+veritas-backend  | 2025-06-25 19:17:29,741 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 19:17:29,744 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Generating final verdict... (80%)
+veritas-backend  | 2025-06-25 19:17:31,338 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 19:17:36,592 - agent.llm - INFO - Successfully invoked text-only LLM
+veritas-backend  | 2025-06-25 19:17:36,592 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Updating user reputation... (90%)
+veritas-backend  | 2025-06-25 19:17:36,594 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
+veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | The provided information appears to be a search query or a collection of search results related to Bitcoin, its ownership, and various aspects of the cryptocurrency. Here's a summary of the information:
+veritas-backend  | 
+veritas-backend  | **Ownership and Holdings:**
 veritas-backend  |
-veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | * The largest holders of Bitcoin include institutional investors, governments, and individuals.
+veritas-backend  | * Some of the top holders include:
+veritas-backend  |      + MicroStrategy: 105,000 BTC
+veritas-backend  |      + Grayscale: 1% of BTC
+veritas-backend  |      + Winklevoss twins: 70,000 BTC
+veritas-backend  |      + Tim Draper: 29,000 BTC
+veritas-backend  | * Governments and institutions also hold significant amounts of Bitcoin.
+veritas-backend  |
+veritas-backend  | **Context and Background:**
+veritas-backend  |
+veritas-backend  | * The search results provide information on the context and background of Bitcoin ownership.
+veritas-backend  | * Some articles discuss the history of Bitcoin, its development, and the impact of institutional investors.
+veritas-backend  | * Others provide insights into the strategies and motivations of large-scale Bitcoin holders.
+veritas-backend  |
+veritas-backend  | **Key Players and Companies:**
+veritas-backend  |
+veritas-backend  | * Some key players and companies mentioned in the search results include:
+veritas-backend  |      + Coinbase
+veritas-backend  |      + GameStop
+veritas-backend  |      + BlackRock
+veritas-backend  |      + Fidelity
+veritas-backend  |      + Grayscale
+veritas-backend  |      + MicroStrategy
+veritas-backend  |
+veritas-backend  | **Trends and Insights:**
+veritas-backend  |
+veritas-backend  | * The search results suggest that there is a growing trend of institutional investors entering the Bitcoin market.
+veritas-backend  | * Some articles discuss the potential impact of this trend on the price of Bitcoin and the overall cryptocurrency market.
+veritas-backend  |
+veritas-backend  | **Regulation and Security:**
+veritas-backend  |
+veritas-backend  | * Some of the search results mention regulatory aspects and security concerns related to Bitcoin and cryptocurrency.
+veritas-backend  |
+veritas-backend  | Overall, the search results provide a comprehensive overview of the current state of the Bitcoin market, including ownership, trends, and insights.
+veritas-backend  |
 veritas-backend  | > Finished chain.
-veritas-backend  | 2025-06-25 17:47:22,446 - sqlalchemy.engine.Engine - INFO - [cached since 24.67s ago] ('unknown',)
-veritas-backend  | 2025-06-25 17:47:22,446 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-06-25 19:17:36,594 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.nickname = $1::VARCHAR
-veritas-backend  | 2025-06-25 17:47:22,446 INFO sqlalchemy.engine.Engine [cached since 24.67s ago] ('unknown',)
-veritas-backend  | 2025-06-25 17:47:22,448 - sqlalchemy.engine.Engine - INFO - UPDATE users SET false_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,448 - sqlalchemy.engine.Engine - INFO - [generated in 0.00021s] (1, 2, datetime.datetime(2025, 6, 25, 17, 47, 22, 447285), 2)
-veritas-backend  | 2025-06-25 17:47:22,448 INFO sqlalchemy.engine.Engine UPDATE users SET false_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,448 INFO sqlalchemy.engine.Engine [generated in 0.00021s] (1, 2, datetime.datetime(2025, 6, 25, 17, 47, 22, 447285), 2)
-veritas-backend  | 2025-06-25 17:47:22,456 INFO sqlalchemy.engine.Engine COMMIT
-veritas-backend  | 2025-06-25 17:47:22,456 - sqlalchemy.engine.Engine - INFO - COMMIT
-veritas-backend  | 2025-06-25 17:47:22,459 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:47:22,459 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:47:22,460 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-06-25 19:17:36,595 - sqlalchemy.engine.Engine - INFO - [cached since 38.06s ago] ('the',)
+veritas-backend  | 2025-06-25 19:17:36,595 INFO sqlalchemy.engine.Engine [cached since 38.06s ago] ('the',)
+veritas-backend  | 2025-06-25 19:17:36,601 INFO sqlalchemy.engine.Engine UPDATE users SET true_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
+veritas-backend  | 2025-06-25 19:17:36,601 INFO sqlalchemy.engine.Engine [generated in 0.00034s] (1, 1, datetime.datetime(2025, 6, 25, 19, 17, 36, 598436), 4)
+veritas-backend  | 2025-06-25 19:17:36,601 - sqlalchemy.engine.Engine - INFO - UPDATE users SET true_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
+veritas-backend  | 2025-06-25 19:17:36,601 - sqlalchemy.engine.Engine - INFO - [generated in 0.00034s] (1, 1, datetime.datetime(2025, 6, 25, 19, 17, 36, 598436), 4)
+veritas-backend  | 2025-06-25 19:17:36,604 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 19:17:36,604 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 19:17:36,607 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:17:36,607 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:17:36,608 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.id = $1::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,460 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (2,)
-veritas-backend  | 2025-06-25 17:47:22,460 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-06-25 19:17:36,608 INFO sqlalchemy.engine.Engine [cached since 38.04s ago] (4,)
+veritas-backend  | 2025-06-25 19:17:36,608 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.id = $1::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,460 - sqlalchemy.engine.Engine - INFO - [generated in 0.00017s] (2,)
-veritas-backend  | 2025-06-25 17:47:22,462 - app.crud - INFO - Updated reputation for unknown: false
-veritas-backend  | 2025-06-25 17:47:22,462 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Saving results... (95%)
-veritas-backend  | 2025-06-25 17:47:22,464 INFO sqlalchemy.engine.Engine INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
-veritas-backend  | 2025-06-25 17:47:22,464 INFO sqlalchemy.engine.Engine [generated in 0.00025s] ('unknown', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1891 characters truncated) ... to verify such financial transactions through official channels or reputable financial news sources for the most accurate and up-to-date information.', 'Check if that actual info for now', 'general', '[]', 'false', '**Verdict:** false\n**Confidence Score:** 90\n**Justification:** The claim about BlackRock purchasing 4,970 BTC worth $530.6 million on May 21, 2024, ... (441 characters truncated) ... ecency of the event. Further investigation by reliable financial news sources or official statements from BlackRock is necessary to verify the claim.', 75, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 17, 47, 22, 464768))
-veritas-backend  | 2025-06-25 17:47:22,464 - sqlalchemy.engine.Engine - INFO - INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
-veritas-backend  | 2025-06-25 17:47:22,464 - sqlalchemy.engine.Engine - INFO - [generated in 0.00025s] ('unknown', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1891 characters truncated) ... to verify such financial transactions through official channels or reputable financial news sources for the most accurate and up-to-date information.', 'Check if that actual info for now', 'general', '[]', 'false', '**Verdict:** false\n**Confidence Score:** 90\n**Justification:** The claim about BlackRock purchasing 4,970 BTC worth $530.6 million on May 21, 2024, ... (441 characters truncated) ... ecency of the event. Further investigation by reliable financial news sources or official statements from BlackRock is necessary to verify the claim.', 75, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 17, 47, 22, 464768))
-veritas-backend  | 2025-06-25 17:47:22,473 - sqlalchemy.engine.Engine - INFO - COMMIT
-veritas-backend  | 2025-06-25 17:47:22,473 INFO sqlalchemy.engine.Engine COMMIT
-veritas-backend  | 2025-06-25 17:47:22,475 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:47:22,475 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
-veritas-backend  | 2025-06-25 17:47:22,476 INFO sqlalchemy.engine.Engine SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at 
+veritas-backend  | 2025-06-25 19:17:36,608 - sqlalchemy.engine.Engine - INFO - [cached since 38.04s ago] (4,)
+veritas-backend  | 2025-06-25 19:17:36,609 - app.crud - INFO - Updated reputation for the: true
+veritas-backend  | 2025-06-25 19:17:36,610 - app.websocket_manager - INFO - Progress update [0b98e37a-2733-4343-a27a-002fd46b4659]: Saving results... (95%)
+veritas-backend  | 2025-06-25 19:17:36,613 - sqlalchemy.engine.Engine - INFO - INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
+veritas-backend  | 2025-06-25 19:17:36,613 - sqlalchemy.engine.Engine - INFO - [generated in 0.00055s] ('the', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1410 characters truncated) ... purchases, and the numbers appear to be accurate. However, it\'s always essential to verify information through reputable sources to ensure accuracy.', 'Check if that actual info', 'financial', '["this is the largest institutional Bitcoin stash ever."]', 'true', "**Verdict:** Partially True\n**Confidence Score:** 80\n**Justification:** The provided information offers a general overview of Bitcoin ownership and ... (654 characters truncated) ... ly volatile, and ownership figures can change rapidly.\n- The provided information might not reflect the current market situation or emerging trends.", 80, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 19, 17, 36, 613191))
+veritas-backend  | 2025-06-25 19:17:36,613 INFO sqlalchemy.engine.Engine INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
+veritas-backend  | 2025-06-25 19:17:36,613 INFO sqlalchemy.engine.Engine [generated in 0.00055s] ('the', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1410 characters truncated) ... purchases, and the numbers appear to be accurate. However, it\'s always essential to verify information through reputable sources to ensure accuracy.', 'Check if that actual info', 'financial', '["this is the largest institutional Bitcoin stash ever."]', 'true', "**Verdict:** Partially True\n**Confidence Score:** 80\n**Justification:** The provided information offers a general overview of Bitcoin ownership and ... (654 characters truncated) ... ly volatile, and ownership figures can change rapidly.\n- The provided information might not reflect the current market situation or emerging trends.", 80, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 19, 17, 36, 613191))
+veritas-backend  | 2025-06-25 19:17:36,618 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 19:17:36,618 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 19:17:36,622 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:17:36,622 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 19:17:36,624 INFO sqlalchemy.engine.Engine SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at 
 veritas-backend  | FROM verification_results
 veritas-backend  | WHERE verification_results.id = $1::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,476 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (8,)
-veritas-backend  | 2025-06-25 17:47:22,476 - sqlalchemy.engine.Engine - INFO - SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at
+veritas-backend  | 2025-06-25 19:17:36,625 INFO sqlalchemy.engine.Engine [generated in 0.00034s] (10,)
+veritas-backend  | 2025-06-25 19:17:36,624 - sqlalchemy.engine.Engine - INFO - SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at
 veritas-backend  | FROM verification_results
 veritas-backend  | WHERE verification_results.id = $1::INTEGER
-veritas-backend  | 2025-06-25 17:47:22,476 - sqlalchemy.engine.Engine - INFO - [generated in 0.00017s] (8,)
-veritas-backend  | 2025-06-25 17:47:22,478 - app.crud - INFO - Created verification result for unknown: false
-veritas-backend  | 2025-06-25 17:47:22,478 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Verification complete! (100%)
-veritas-backend  | 2025-06-25 17:47:22,478 - agent.core - INFO - Verification completed in 54s: false
-veritas-backend  | 2025-06-25 17:47:22,478 - app.websocket_manager - INFO - Verification completed [b2132e0b-5ade-46e5-9340-75733092a88f]
-veritas-backend  | 2025-06-25 17:47:38,550 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:47:14.019Z"}
-veritas-backend  | INFO:     127.0.0.1:60616 - "GET /health HTTP/1.1" 200 OK
-veritas-backend  | 2025-06-25 17:48:09,393 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:47:44.856Z"}
+veritas-backend  | 2025-06-25 19:17:36,625 - sqlalchemy.engine.Engine - INFO - [generated in 0.00034s] (10,)
+veritas-backend  | 2025-06-25 19:17:36,627 - app.crud - INFO - Created verification result for the: true
+veritas-backend  | 2025-06-25 19:17:38,339 - httpx - INFO - HTTP Request: GET https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz "HTTP/1.1 200 OK"
