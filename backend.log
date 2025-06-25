@@ -1,0 +1,179 @@
+C:\Users\mtereschenko\Documents\augment-projects\veritas>docker-compose logs -f backend         
+veritas-backend  | INFO:     Started server process [1]
+veritas-backend  | INFO:     Waiting for application startup.
+veritas-backend  | 2025-06-25 17:45:09,314 - app.main - INFO - Starting Veritas application...
+veritas-backend  | 2025-06-25 17:45:09,424 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+veritas-backend  | 2025-06-25 17:45:09,424 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,424 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+veritas-backend  | 2025-06-25 17:45:09,424 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,427 INFO sqlalchemy.engine.Engine select current_schema()
+veritas-backend  | 2025-06-25 17:45:09,427 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,427 - sqlalchemy.engine.Engine - INFO - select current_schema()
+veritas-backend  | 2025-06-25 17:45:09,427 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,429 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+veritas-backend  | 2025-06-25 17:45:09,429 INFO sqlalchemy.engine.Engine [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,429 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+veritas-backend  | 2025-06-25 17:45:09,429 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+veritas-backend  | 2025-06-25 17:45:09,430 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:45:09,430 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:45:09,433 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
+veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
+veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+veritas-backend  | 2025-06-25 17:45:09,433 - sqlalchemy.engine.Engine - INFO - [generated in 0.00020s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 17:45:09,433 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
+veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
+veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+veritas-backend  | 2025-06-25 17:45:09,433 INFO sqlalchemy.engine.Engine [generated in 0.00020s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 17:45:09,445 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname
+veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
+veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+veritas-backend  | 2025-06-25 17:45:09,445 - sqlalchemy.engine.Engine - INFO - [cached since 0.01174s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 17:45:09,445 INFO sqlalchemy.engine.Engine SELECT pg_catalog.pg_class.relname
+veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
+veritas-backend  | WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+veritas-backend  | 2025-06-25 17:45:09,445 INFO sqlalchemy.engine.Engine [cached since 0.01174s ago] ('verification_results', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+veritas-backend  | 2025-06-25 17:45:09,446 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 17:45:09,446 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 17:45:09,447 - app.database - INFO - Asynchronous database initialized
+veritas-backend  | 2025-06-25 17:45:09,447 - app.main - INFO - Database initialized
+veritas-backend  | INFO:     Application startup complete.
+veritas-backend  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+veritas-backend  | INFO:     127.0.0.1:55706 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | INFO:     127.0.0.1:54666 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | INFO:     ('172.18.0.1', 33222) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 17:46:07,522 - app.websocket_manager - INFO - WebSocket connected: e8dc261c-f511-450e-b624-48f75f7e4ccb
+veritas-backend  | INFO:     connection closed
+veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - ERROR - Failed to send message to e8dc261c-f511-450e-b624-48f75f7e4ccb:
+veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - INFO - WebSocket disconnected: e8dc261c-f511-450e-b624-48f75f7e4ccb
+veritas-backend  | 2025-06-25 17:46:07,523 - app.main - ERROR - WebSocket error: WebSocket is not connected. Need to call "accept" first.
+veritas-backend  | 2025-06-25 17:46:07,523 - app.websocket_manager - INFO - WebSocket disconnected: e8dc261c-f511-450e-b624-48f75f7e4ccb
+veritas-backend  | INFO:     ('172.18.0.1', 33228) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 17:46:07,526 - app.websocket_manager - INFO - WebSocket connected: cb4344e5-f7af-456b-815a-8bca29baabe5
+veritas-backend  | INFO:     connection open
+veritas-backend  | 2025-06-25 17:46:08,529 - app.main - INFO - WebSocket client disconnected: cb4344e5-f7af-456b-815a-8bca29baabe5
+veritas-backend  | 2025-06-25 17:46:08,529 - app.websocket_manager - INFO - WebSocket disconnected: cb4344e5-f7af-456b-815a-8bca29baabe5
+veritas-backend  | INFO:     connection closed
+veritas-backend  | INFO:     ('172.18.0.1', 33244) - "WebSocket /ws" [accepted]
+veritas-backend  | 2025-06-25 17:46:08,535 - app.websocket_manager - INFO - WebSocket connected: b2132e0b-5ade-46e5-9340-75733092a88f
+veritas-backend  | INFO:     connection open
+veritas-backend  | INFO:     127.0.0.1:44380 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 17:46:28,354 - app.routers.verification - INFO - Received verification request: signal-2025-05-23-002445_002.jpeg, prompt: Check if that actual info for now...
+veritas-backend  | 2025-06-25 17:46:28,354 - app.websocket_manager - INFO - Started verification session: b2132e0b-5ade-46e5-9340-75733092a88f
+veritas-backend  | INFO:     172.18.0.1:47774 - "POST /api/v1/verify-post HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 17:46:28,357 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Analyzing image content... (10%)
+veritas-backend  | 2025-06-25 17:46:28,408 - agent.llm - INFO - Resized image from original size to (460, 1024)
+veritas-backend  | 2025-06-25 17:46:28,411 - agent.llm - INFO - Encoded image to base64 (size: 93996 chars)
+veritas-backend  | 2025-06-25 17:46:39,403 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:46:14.855Z"}
+veritas-backend  | INFO:     127.0.0.1:43238 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 17:46:42,944 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 17:46:57,125 - agent.llm - INFO - Successfully invoked multimodal LLM
+veritas-backend  | 2025-06-25 17:46:57,125 - agent.core - INFO - Image analysis completed
+veritas-backend  | 2025-06-25 17:46:57,125 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Extracting claims and user information... (25%)
+veritas-backend  | 2025-06-25 17:46:57,125 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Checking user reputation... (35%)
+veritas-backend  | 2025-06-25 17:46:57,128 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:46:57,128 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:46:57,204 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | 2025-06-25 17:46:57,204 - sqlalchemy.engine.Engine - INFO - [generated in 0.00026s] ('unknown',)
+veritas-backend  | 2025-06-25 17:46:57,204 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | 2025-06-25 17:46:57,204 INFO sqlalchemy.engine.Engine [generated in 0.00026s] ('unknown',)
+veritas-backend  | 2025-06-25 17:46:57,222 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Fact-checking claims... (50%)
+veritas-backend  | 2025-06-25 17:47:02,605 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 17:47:07,612 - agent.tools - INFO - SearxNG search completed: 5 results for '"BlackRock bought 4,970 BTC worth $530.6 million on May 21." fact check'
+veritas-backend  | 2025-06-25 17:47:08,849 - agent.tools - INFO - SearxNG search completed: 5 results for '"BlackRock bought 4,970 BTC worth $530.6 million on May 21." verification'
+veritas-backend  | 2025-06-25 17:47:10,445 - agent.tools - INFO - SearxNG search completed: 5 results for 'BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence'
+veritas-backend  | 2025-06-25 17:47:10,445 - agent.tools - INFO - Fact-checking completed for claim in general domain
+veritas-backend  | 2025-06-25 17:47:10,446 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:46:44.862Z"}
+veritas-backend  | 
+veritas-backend  |
+veritas-backend  | > Entering new AgentExecutor chain...
+veritas-backend  |
+veritas-backend  | Invoking: `fact_checking` with `{'claim': 'BlackRock bought 4,970 BTC worth $530.6 million on May 21.', 'context': 'The post claims BlackRock purchased 4,970 BTC worth $530.6 million on May 21, bringing their total Bitcoin holdings to 643,974 BTC, valued at over $67 billion.', 'domain': 'general'}`
+veritas-backend  |
+veritas-backend  |
+veritas-backend  | {
+veritas-backend  |   "claim": "BlackRock bought 4,970 BTC worth $530.6 million on May 21.",
+veritas-backend  |   "domain": "general",
+veritas-backend  |   "search_queries_used": [
+veritas-backend  |     "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" fact check",
+veritas-backend  |     "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" verification",
+veritas-backend  |     "BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence"
+veritas-backend  |   ],
+veritas-backend  |   "total_sources_found": 5634,
+veritas-backend  |   "preliminary_assessment": "requires_human_review",
+veritas-backend  |   "confidence": "low",
+veritas-backend  |   "sources": [
+veritas-backend  |     {
+veritas-backend  |       "query": "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" fact check",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Fadesire Temitope AQUARIUS (@playwitcrown) / X\",\n    \"url\": \"https://twitter.com/playwitcrown\",\n    \"content\": \"JUST IN: BlackRock buys 4,970 BTC worth $530.6 million. Image. 149 ... May 21. -Magpie -Liver bird -Eagle -Cockerel It was the year of the bird in ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"Fadesire Temitope AQUARIUS (@playwitcrown) ...\",\n    \"url\": \"https://twitter.com/playwitcrown?lang=gl\",\n    \"content\": \"JUST IN: BlackRock buys 4,970 BTC worth $530.6 million.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock is Selling $429 Million in Bitcoin: Fact Check\",\n    \"url\": \"https://www.cryptotimes.io/2025/06/02/blackrock-is-selling-429-million-in-bitcoin-fact-check/\",\n    \"content\": \"3 weeks ago - For now, it looks like just another case of crypto rumors getting ahead of reality. BlackRock has made no official confirmation of selling bitcoin.\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"EOF\",\n    \"url\": \"http://www.google.com/search?hl=en&q=%22BlackRock+bought+4%2C970+BTC+worth+%24530.6+million+on+May+21.%22+fact+check\",\n    \"content\": \"\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"In a significant move, BlackRock has purchased $600 million worth of Bitcoin, marking its largest acquisition in 2025. This purchase brings the firm\\u2019s iShares Bitcoin Trust to a total of 559,262 BTC, currently valued at approximately $58.51 billion.\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "query": "\"BlackRock bought 4,970 BTC worth $530.6 million on May 21.\" verification",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"EOF\",\n    \"url\": \"http://www.google.com/search?hl=en&q=%22BlackRock+bought+4%2C970+BTC+worth+%24530.6+million+on+May+21.%22+verification\",\n    \"content\": \"\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"BlackRock Bitcoin purchase Flash News List\",\n    \"url\": \"https://blockchain.news/flashnews/BlackRock%20Bitcoin%20purchase\",\n    \"content\": \"According to @AltcoinGordon on Twitter, BlackRock has purchased 4,970 Bitcoin for $530.6 million, marking one of the largest recent institutional acquisitions ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"In a significant move, BlackRock has purchased $600 million worth of Bitcoin, marking its largest acquisition in 2025. This purchase brings the firm\\u2019s iShares Bitcoin Trust to a total of 559,262 BTC, currently valued at approximately $58.51 billion.\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"BlackRock Boosts Bitcoin Holdings to 643974 BTC, Worth Over ...\",\n    \"url\": \"https://www.newsbreak.com/news/4018566033237-blackrock-boosts-bitcoin-holdings-to-643-974-btc-worth-over-67b-as-james-wynn-s-1-1b-position-surges\",\n    \"content\": \"BlackRock Inc. has significantly increased its Bitcoin holdings, purchasing 4970 BTC valued at approximately $530.6 million on May 21, bringing its total.\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock Bought $1B Worth of BTC on the Eve of the Dip\",\n    \"url\": \"https://crypto.news/blackrock-bought-1-billion-worth-of-btc-right-on/\",\n    \"content\": \"Investing $1 billion in Bitcoin on the eve of the 13% downfall may seem like fatal misfortune. That's exactly what BlackRock did! Is this a problem for BlackRock?\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |     },
+veritas-backend  |     {
+veritas-backend  |       "query": "BlackRock bought 4,970 BTC worth $530.6 million on May 21. evidence",
+veritas-backend  |       "results": "[\n  {\n    \"title\": \"Posts with replies by Jonika Silas (@JonikaSila98275) / ...\",\n    \"url\": \"https://twitter.com/JonikaSila98275/with_replies\",\n    \"content\": \"May 22. BlackRock Just Made the Biggest Bitcoin Move of 2024 #BlackRock just bought 4,970 $BTC worth $530.6M on May 21 They now hold 643,974 BTC valued at ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock Bought $1B Worth of BTC on the Eve of the Dip\",\n    \"url\": \"https://crypto.news/blackrock-bought-1-billion-worth-of-btc-right-on/\",\n    \"content\": \"Investing $1 billion in Bitcoin on the eve of the 13% downfall may seem like fatal misfortune. That's exactly what BlackRock did! Is this a problem for BlackRock?\",\n    \"engine\": \"brave\"\n  },\n  {\n    \"title\": \"BlackRock Boosts Bitcoin Holdings to 643,974 BTC, Worth Over $67B, as ...\",\n    \"url\": \"https://thedefiant.io/news/markets/blackrock-boosts-bitcoin-holdings-to-643974-btc-worth-over-67b-james-wynn-s-1-1b-af2cc5f0\",\n    \"content\": \"BlackRock Inc. has significantly increased its Bitcoin holdings, purchasing 4,970 BTC valued at approximately $530.6 million on May 21, bringing its total to around 643,974 BTC, worth over $67 billion. This positions BlackRock's iShares Bitcoin Trust (IBIT) as the second-largest holder of Bitcoin, only behind the pseudonymous creator Satoshi Nakamoto. In addition to its Bitcoin investments ...\",\n    \"engine\": \"duckduckgo\"\n  },\n  {\n    \"title\": \"Larry Fink, CEO of BlackRock, predicted that the global crypto ...\",\n    \"url\": \"https://www.instagram.com/p/DJeMjR4u4nw/\",\n    \"content\": \"Today's BlackRock alpha move: they just bought 4,970 $BTC worth about $530.6M, and followed it up with 9,869 $ETH worth $24.9M. As of now, BlackRock owns 2 ...\",\n    \"engine\": \"google\"\n  },\n  {\n    \"title\": \"BlackRock buys $600 million worth of Bitcoin | Digital Watch Observatory\",\n    \"url\": \"https://dig.watch/updates/blackrock-buys-600-million-worth-of-bitcoin\",\n    \"content\": \"The purchase increases the holdings of the iShares Bitcoin Trust to 559,262 BTC, valued at approximately $58.51 billion, and reflects growing institutional interest in Bitcoin as a long-term investment.\",\n    \"engine\": \"brave\"\n  }\n]"
+veritas-backend  |     }
+veritas-backend  |   ]
+veritas-backend  | }INFO:     127.0.0.1:46088 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 17:47:17,253 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 17:47:17,257 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Generating final verdict... (80%)
+veritas-backend  | 2025-06-25 17:47:18,299 - httpx - INFO - HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-06-25 17:47:22,444 - agent.llm - INFO - Successfully invoked text-only LLM
+veritas-backend  | 2025-06-25 17:47:22,445 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Updating user reputation... (90%)
+veritas-backend  | 2025-06-25 17:47:22,446 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | The information provided in the social media post about BlackRock's purchase of 4,970 BTC worth $530.6 million on May 21, 2024, requires verification. Based on the search results, it appears that this information could not be confirmed through the available sources. Therefore, the claim's accuracy is uncertain and needs further verification from reliable financial news sources or official statements from BlackRock.
+veritas-backend  | FROM users
+veritas-backend  |
+veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | > Finished chain.
+veritas-backend  | 2025-06-25 17:47:22,446 - sqlalchemy.engine.Engine - INFO - [cached since 24.67s ago] ('unknown',)
+veritas-backend  | 2025-06-25 17:47:22,446 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.nickname = $1::VARCHAR
+veritas-backend  | 2025-06-25 17:47:22,446 INFO sqlalchemy.engine.Engine [cached since 24.67s ago] ('unknown',)
+veritas-backend  | 2025-06-25 17:47:22,448 - sqlalchemy.engine.Engine - INFO - UPDATE users SET false_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,448 - sqlalchemy.engine.Engine - INFO - [generated in 0.00021s] (1, 2, datetime.datetime(2025, 6, 25, 17, 47, 22, 447285), 2)
+veritas-backend  | 2025-06-25 17:47:22,448 INFO sqlalchemy.engine.Engine UPDATE users SET false_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,448 INFO sqlalchemy.engine.Engine [generated in 0.00021s] (1, 2, datetime.datetime(2025, 6, 25, 17, 47, 22, 447285), 2)
+veritas-backend  | 2025-06-25 17:47:22,456 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 17:47:22,456 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 17:47:22,459 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:47:22,459 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:47:22,460 INFO sqlalchemy.engine.Engine SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.id = $1::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,460 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (2,)
+veritas-backend  | 2025-06-25 17:47:22,460 - sqlalchemy.engine.Engine - INFO - SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | FROM users
+veritas-backend  | WHERE users.id = $1::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,460 - sqlalchemy.engine.Engine - INFO - [generated in 0.00017s] (2,)
+veritas-backend  | 2025-06-25 17:47:22,462 - app.crud - INFO - Updated reputation for unknown: false
+veritas-backend  | 2025-06-25 17:47:22,462 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Saving results... (95%)
+veritas-backend  | 2025-06-25 17:47:22,464 INFO sqlalchemy.engine.Engine INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
+veritas-backend  | 2025-06-25 17:47:22,464 INFO sqlalchemy.engine.Engine [generated in 0.00025s] ('unknown', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1891 characters truncated) ... to verify such financial transactions through official channels or reputable financial news sources for the most accurate and up-to-date information.', 'Check if that actual info for now', 'general', '[]', 'false', '**Verdict:** false\n**Confidence Score:** 90\n**Justification:** The claim about BlackRock purchasing 4,970 BTC worth $530.6 million on May 21, 2024, ... (441 characters truncated) ... ecency of the event. Further investigation by reliable financial news sources or official statements from BlackRock is necessary to verify the claim.', 75, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 17, 47, 22, 464768))
+veritas-backend  | 2025-06-25 17:47:22,464 - sqlalchemy.engine.Engine - INFO - INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
+veritas-backend  | 2025-06-25 17:47:22,464 - sqlalchemy.engine.Engine - INFO - [generated in 0.00025s] ('unknown', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'The image presents a social media post from "cryptopatel" about BlackRock\'s recent Bitcoin purchase. Here\'s a breakdown of the information:\n\n**Po ... (1891 characters truncated) ... to verify such financial transactions through official channels or reputable financial news sources for the most accurate and up-to-date information.', 'Check if that actual info for now', 'general', '[]', 'false', '**Verdict:** false\n**Confidence Score:** 90\n**Justification:** The claim about BlackRock purchasing 4,970 BTC worth $530.6 million on May 21, 2024, ... (441 characters truncated) ... ecency of the event. Further investigation by reliable financial news sources or official statements from BlackRock is necessary to verify the claim.', 75, 0, 'llama4', '["agent_executor"]', datetime.datetime(2025, 6, 25, 17, 47, 22, 464768))
+veritas-backend  | 2025-06-25 17:47:22,473 - sqlalchemy.engine.Engine - INFO - COMMIT
+veritas-backend  | 2025-06-25 17:47:22,473 INFO sqlalchemy.engine.Engine COMMIT
+veritas-backend  | 2025-06-25 17:47:22,475 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:47:22,475 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+veritas-backend  | 2025-06-25 17:47:22,476 INFO sqlalchemy.engine.Engine SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at 
+veritas-backend  | FROM verification_results
+veritas-backend  | WHERE verification_results.id = $1::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,476 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (8,)
+veritas-backend  | 2025-06-25 17:47:22,476 - sqlalchemy.engine.Engine - INFO - SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at
+veritas-backend  | FROM verification_results
+veritas-backend  | WHERE verification_results.id = $1::INTEGER
+veritas-backend  | 2025-06-25 17:47:22,476 - sqlalchemy.engine.Engine - INFO - [generated in 0.00017s] (8,)
+veritas-backend  | 2025-06-25 17:47:22,478 - app.crud - INFO - Created verification result for unknown: false
+veritas-backend  | 2025-06-25 17:47:22,478 - app.websocket_manager - INFO - Progress update [b2132e0b-5ade-46e5-9340-75733092a88f]: Verification complete! (100%)
+veritas-backend  | 2025-06-25 17:47:22,478 - agent.core - INFO - Verification completed in 54s: false
+veritas-backend  | 2025-06-25 17:47:22,478 - app.websocket_manager - INFO - Verification completed [b2132e0b-5ade-46e5-9340-75733092a88f]
+veritas-backend  | 2025-06-25 17:47:38,550 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:47:14.019Z"}
+veritas-backend  | INFO:     127.0.0.1:60616 - "GET /health HTTP/1.1" 200 OK
+veritas-backend  | 2025-06-25 17:48:09,393 - app.main - INFO - Received WebSocket message from b2132e0b-5ade-46e5-9340-75733092a88f: {"type":"ping","timestamp":"2025-06-25T17:47:44.856Z"}
