@@ -1,6 +1,0 @@
-@echo off
-echo Starting Veritas Frontend...
-cd frontend
-echo Starting development server...
-npm run dev
-pause
