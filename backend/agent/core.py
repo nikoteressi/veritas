@@ -131,7 +131,9 @@ class VeritasAgent:
             if progress_callback:
                 await progress_callback("Generating final verdict...", 80)
             
-            verdict_result = await self._generate_verdict(fact_check_result)
+            verdict_result = await self._generate_verdict(
+                fact_check_result, user_prompt, extracted_info.get("temporal_analysis", {})
+            )
             
             # Step 6: Update user reputation
             if progress_callback:
@@ -223,9 +225,8 @@ class VeritasAgent:
                 "current_date": current_date,
                 "user_prompt": user_prompt
             }
-            # backward compatibility
-            parsed_output["nickname"] = parsed_output.get("username", "unknown")
 
+            logger.debug(f"Image analysis result: {json.dumps(parsed_output, indent=2)}")
             logger.info("Image analysis completed and JSON extracted")
             return parsed_output
             
@@ -292,45 +293,82 @@ class VeritasAgent:
                 "tools_used": []
             }
     
-    async def _generate_verdict(self, fact_check_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate final verdict based on fact-checking results."""
+    async def _generate_verdict(
+        self, 
+        fact_check_result: Dict[str, Any],
+        user_prompt: str,
+        temporal_analysis: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Generate the final verdict based on fact-checking results."""
         try:
-            prompt_text = VERDICT_GENERATION_PROMPT.format_messages(
-                research_results=fact_check_result["research_results"]
-            )[1].content
+            # Prepare the research summary
+            research_summary = self._summarize_fact_check(fact_check_result)
             
-            result = await llm_manager.invoke_text_only(prompt_text)
+            # Format the prompt
+            prompt = await VERDICT_GENERATION_PROMPT.aformat(
+                research_results=research_summary,
+                user_prompt=user_prompt,
+                temporal_analysis=json.dumps(temporal_analysis, indent=2)
+            )
             
-            # Parse verdict (simplified)
-            verdict = "partially_true"  # Default
-            confidence = 50  # Default
+            # Invoke the LLM
+            llm_response = await llm_manager.invoke_text_only(prompt)
             
-            # Simple parsing (in practice, you'd use more sophisticated extraction)
-            if "true" in result.lower() and "false" not in result.lower():
-                verdict = "true"
-                confidence = 80
-            elif "false" in result.lower():
-                verdict = "false"
-                confidence = 75
-            elif "ironic" in result.lower() or "satirical" in result.lower():
-                verdict = "ironic"
-                confidence = 90
+            # Parse the response to get structured verdict
+            parsed_verdict = self._parse_verdict_response(llm_response)
             
-            return {
-                "verdict": verdict,
-                "justification": result,
-                "confidence_score": confidence,
-                "sources": fact_check_result.get("tools_used", [])
-            }
+            logger.info(f"Generated verdict: {parsed_verdict.get('verdict')}")
+            return parsed_verdict
             
         except Exception as e:
-            logger.error(f"Verdict generation failed: {e}")
+            logger.error(f"Failed to generate verdict: {e}", exc_info=True)
             return {
                 "verdict": "partially_true",
-                "justification": f"Verdict generation failed: {e}",
-                "confidence_score": 0,
-                "sources": []
+                "justification": "Could not generate a definitive verdict due to an internal error.",
+                "confidence_score": 0
             }
+    
+    def _summarize_fact_check(self, fact_check_result: Dict[str, Any]) -> str:
+        """Create a concise summary of the fact-checking results."""
+        summary_parts = []
+        
+        assessment = fact_check_result.get('preliminary_assessment', 'N/A')
+        summary_parts.append(f"- Preliminary Assessment: {assessment}")
+
+        confidence = fact_check_result.get('confidence_score', 'N/A')
+        summary_parts.append(f"- Confidence Score: {confidence}")
+
+        supporting = fact_check_result.get('supporting_evidence', 0)
+        contradicting = fact_check_result.get('contradicting_evidence', 0)
+        summary_parts.append(f"- Evidence: Found {supporting} supporting and {contradicting} contradicting pieces of evidence.")
+
+        credible_sources = fact_check_result.get('credible_sources', 0)
+        summary_parts.append(f"- Sources: Utilized {credible_sources} credible sources out of {fact_check_result.get('total_sources_found', 0)} total.")
+
+        if 'confidence_factors' in fact_check_result:
+            factors = ", ".join(fact_check_result['confidence_factors'])
+            summary_parts.append(f"- Confidence Factors: {factors}")
+
+        return "\n".join(summary_parts)
+
+    def _parse_verdict_response(self, response: str) -> Dict[str, Any]:
+        """Parse the structured verdict from the LLM's text response."""
+        verdict_match = re.search(r"^\s*\*\*Verdict(?: Classification)?:\*\*\s*(true|partially_true|false|ironic)", response, re.IGNORECASE | re.MULTILINE)
+        confidence_match = re.search(r"\*\*Confidence Score:\*\*\s*(\d+)", response, re.IGNORECASE | re.MULTILINE)
+        justification_match = re.search(r"\*\*Justification:\*\*\s*(.*?)(\*\*Key Sources:\*\*|\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
+        sources_match = re.search(r"\*\*Key Sources:\*\*\s*(.*?)(\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
+
+        verdict = verdict_match.group(1).lower() if verdict_match else "partially_true"
+        confidence = int(confidence_match.group(1)) if confidence_match else 50
+        justification = justification_match.group(1).strip() if justification_match else "No justification provided."
+        sources_str = sources_match.group(1).strip() if sources_match else "No sources cited."
+
+        return {
+            "verdict": verdict,
+            "confidence_score": confidence,
+            "justification": justification,
+            "sources": sources_str
+        }
     
     async def _update_user_reputation(
         self, 

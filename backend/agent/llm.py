@@ -146,7 +146,9 @@ class OllamaLLMManager:
             LLM response text
         """
         try:
+            logger.debug(f"Invoking text-only LLM with prompt:\n---PROMPT START---\n{text}\n---PROMPT END---")
             response = await self.llm.ainvoke([HumanMessage(content=text)], **kwargs)
+            logger.debug(f"LLM text-only response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---")
             logger.info("Successfully invoked text-only LLM")
             return response.content
         except Exception as e:

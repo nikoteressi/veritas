@@ -120,14 +120,18 @@ Be careful to distinguish between preliminary research and established science.
 VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
         "You are tasked with generating a final verdict based on fact-checking research. "
-        "Synthesize all the evidence and provide a clear, concise conclusion."
+        "Synthesize all the evidence and provide a clear, concise conclusion. "
+        "Pay close attention to the user's original question and any temporal context."
     ),
     HumanMessagePromptTemplate.from_template(
-        "Based on the following fact-checking research:\n\n{research_results}\n\n"
+        "Based on the following information:\n\n"
+        "**User's Original Question:**\n{user_prompt}\n\n"
+        "**Temporal Analysis:**\n{temporal_analysis}\n\n"
+        "**Fact-Checking Research Summary:**\n{research_results}\n\n"
         "Provide a final verdict (true/partially_true/false/ironic) with:\n"
         "1. A clear verdict classification\n"
         "2. A confidence score (0-100)\n"
-        "3. A brief justification (2-3 sentences)\n"
+        "3. A brief justification (2-3 sentences) that directly addresses the user's question and temporal context.\n"
         "4. Key sources that support your conclusion\n"
         "5. Any important caveats or limitations"
     )
