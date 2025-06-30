@@ -59,6 +59,15 @@ class TemporalAnalyzer:
                 post_timestamp, referenced_dates, extracted_info
             )
             
+            # Convert datetimes to strings for JSON serialization
+            if isinstance(analysis.get("post_timestamp"), datetime):
+                analysis["post_timestamp"] = analysis["post_timestamp"].isoformat()
+
+            if "referenced_dates" in analysis:
+                analysis["referenced_dates"] = [
+                    (claim, date.isoformat()) for claim, date in analysis["referenced_dates"]
+                ]
+
             logger.info(f"Temporal analysis completed: {analysis['mismatch_severity']} mismatch detected")
             return analysis
             

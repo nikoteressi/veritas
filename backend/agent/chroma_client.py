@@ -3,6 +3,7 @@ Custom ChromaDB client wrapper that prevents external model downloads
 and ensures all collections use Ollama embeddings.
 """
 import logging
+import os
 from typing import Optional, Dict, Any
 import chromadb
 from chromadb.config import Settings
@@ -18,13 +19,16 @@ class OllamaChromaClient:
     and prevents fallback to default embedding functions.
     """
     
-    def __init__(self, persist_directory: str = "./chroma_db"):
+    def __init__(self, persist_directory: str = None):
         """
         Initialize ChromaDB client with Ollama embeddings only.
         
         Args:
             persist_directory: Directory to persist ChromaDB data
         """
+        if persist_directory is None:
+            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+            
         self.persist_directory = persist_directory
         self.embedding_function = None
         self.client = None

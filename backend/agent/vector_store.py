@@ -4,6 +4,7 @@ Uses Ollama server for embeddings to avoid external model downloads.
 """
 import logging
 import hashlib
+import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from agent.chroma_client import OllamaChromaClient
@@ -15,8 +16,11 @@ logger = logging.getLogger(__name__)
 class VectorStore:
     """Vector database for storing and retrieving verification results."""
 
-    def __init__(self, persist_directory: str = "./chroma_db", lazy_init: bool = True):
+    def __init__(self, persist_directory: str = None, lazy_init: bool = True):
         """Initialize ChromaDB client with optional lazy initialization."""
+        if persist_directory is None:
+            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+        
         self.persist_directory = persist_directory
         self.lazy_init = lazy_init
         self.client = None

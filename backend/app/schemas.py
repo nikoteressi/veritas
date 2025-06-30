@@ -2,7 +2,7 @@
 Pydantic schemas for API request/response models.
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 
@@ -26,6 +26,9 @@ class UserReputationResponse(BaseModel):
 class VerificationRequest(BaseModel):
     """Request model for post verification."""
     prompt: str = Field(..., min_length=1, max_length=1000, description="User's question or prompt")
+    message: str
+    verification_id: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class VerificationResponse(BaseModel):
@@ -79,3 +82,41 @@ class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ImageAnalysisResult(BaseModel):
+    """Pydantic model for structured image analysis results."""
+    username: Optional[str] = Field(
+        default="unknown",
+        description="The username of the person who posted the content. Should be 'unknown' if not identifiable."
+    )
+    post_date: Optional[str] = Field(
+        default=None,
+        description="The timestamp of the post, e.g., 'May 21, 2024' or '15 hours ago'."
+    )
+    mentioned_dates: List[str] = Field(
+        default_factory=list,
+        description="A list of any other dates or time references found in the text."
+    )
+    extracted_text: str = Field(
+        description="A verbatim transcription of all visible text from the image."
+    )
+    claims: List[str] = Field(
+        default_factory=list,
+        description="A list of specific, verifiable statements or factual claims made in the post."
+    )
+    primary_topic: str = Field(
+        default="general",
+        description="The primary topic, chosen from: financial, medical, political, scientific, technology, entertainment, general, humorous/ironic."
+    )
+    irony_assessment: str = Field(
+        default="not_ironic",
+        description="Assessment of irony, chosen from: not_ironic, potentially_ironic, clearly_ironic."
+    )
+    visual_elements_summary: str = Field(
+        description="A brief summary of key visual elements like charts, graphs, or UI components."
+    )
+    contextual_information: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Contextual info, including the current_date and the user_prompt."
+    )

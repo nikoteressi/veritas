@@ -9,8 +9,10 @@ import re
 import logging
 import hashlib
 import time
+from datetime import datetime
 from typing import Dict, Any, AsyncGenerator, Optional, List
 
+from langchain_core.output_parsers import JsonOutputParser
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.messages import HumanMessage
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +30,7 @@ from agent.prompts import (
 from app.crud import UserCRUD, VerificationResultCRUD
 from app.config import settings
 from app.exceptions import LLMError, AgentError, ServiceUnavailableError
+from app.schemas import ImageAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -97,18 +100,16 @@ class VeritasAgent:
             
             analysis_result = await self._analyze_image(image_bytes, user_prompt)
             
-            # Step 2: Extract key information
-            if progress_callback:
-                await progress_callback("Extracting claims and user information...", 25)
-            
-            extracted_info = self._extract_key_information(analysis_result)
+            # The new _analyze_image returns a dictionary, so no extraction is needed.
+            # We can use the result directly as extracted_info.
+            extracted_info = analysis_result
             
             # Step 3: Get user reputation
             if progress_callback:
                 await progress_callback("Checking user reputation...", 35)
 
             user_reputation = await self._get_user_reputation(
-                db, extracted_info.get("nickname", "unknown")
+                db, extracted_info.get("username", "unknown")
             )
 
             # Step 3.5: Temporal analysis
@@ -137,7 +138,7 @@ class VeritasAgent:
                 await progress_callback("Updating user reputation...", 90)
             
             updated_reputation = await self._update_user_reputation(
-                db, extracted_info.get("nickname", "unknown"), verdict_result["verdict"]
+                db, extracted_info.get("username", "unknown"), verdict_result["verdict"]
             )
             
             # Step 7: Save verification result
@@ -158,7 +159,7 @@ class VeritasAgent:
                 "status": "success",
                 "message": "Verification completed successfully",
                 "verification_id": str(verification_record.id),  # Convert to string for consistency
-                "user_nickname": extracted_info.get("nickname"),
+                "user_nickname": extracted_info.get("username"),
                 "extracted_text": extracted_info.get("extracted_text"),
                 "primary_topic": extracted_info.get("primary_topic"),
                 "identified_claims": extracted_info.get("claims", []),
@@ -196,165 +197,44 @@ class VeritasAgent:
             
         except Exception as e:
             logger.error(f"Verification failed: {e}", exc_info=True)
-
-            # Attempt graceful degradation
-            processing_time = int(time.time() - start_time)
-
-            # Try to provide partial results if possible
-            try:
-                if progress_callback:
-                    await progress_callback("Error occurred, attempting fallback analysis...", 50)
-
-                # Basic fallback analysis
-                fallback_result = await self._fallback_analysis(image_bytes, user_prompt, db)
-                fallback_result.update({
-                    "status": "partial_success",
-                    "message": f"Primary analysis failed, fallback analysis completed. Error: {str(e)}",
-                    "processing_time_seconds": processing_time,
-                    "warnings": ["Analysis completed with limited functionality due to service issues"]
-                })
-
-                if progress_callback:
-                    await progress_callback("Fallback analysis completed", 100)
-
-                return fallback_result
-
-            except Exception as fallback_error:
-                logger.error(f"Fallback analysis also failed: {fallback_error}")
-
-                return {
-                    "status": "error",
-                    "message": f"Verification failed: {str(e)}",
-                    "processing_time_seconds": processing_time,
-                    "error_details": {
-                        "primary_error": str(e),
-                        "fallback_error": str(fallback_error)
-                    }
-                }
+            raise  # Re-raise the exception to be handled by global error handlers
     
-    async def _analyze_image(self, image_bytes: bytes, user_prompt: str) -> str:
-        """Analyze the image using multimodal LLM."""
+    async def _analyze_image(self, image_bytes: bytes, user_prompt: str) -> Dict[str, Any]:
+        """Analyze the image using multimodal LLM and return a structured dictionary."""
+        
+        output_parser = JsonOutputParser(pydantic_object=ImageAnalysisResult)
+
         try:
-            # Create the analysis prompt
-            prompt_text = MULTIMODAL_ANALYSIS_PROMPT.format_messages(
-                user_prompt=user_prompt
-            )[1].content
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+            prompt = MULTIMODAL_ANALYSIS_PROMPT.partial(
+                format_instructions=output_parser.get_format_instructions()
+            )
             
-            # Invoke multimodal LLM
-            result = await llm_manager.invoke_multimodal(prompt_text, image_bytes)
+            # Format the final prompt with user input
+            final_prompt = await prompt.aformat(user_prompt=user_prompt)
             
-            logger.info("Image analysis completed")
-            return result
+            llm_output = await llm_manager.invoke_multimodal(final_prompt, image_bytes)
+            
+            parsed_output = await output_parser.aparse(llm_output)
+
+            # Inject additional context that wasn't part of the initial model analysis
+            parsed_output['contextual_information'] = {
+                "current_date": current_date,
+                "user_prompt": user_prompt
+            }
+            # backward compatibility
+            parsed_output["nickname"] = parsed_output.get("username", "unknown")
+
+            logger.info("Image analysis completed and JSON extracted")
+            return parsed_output
             
         except Exception as e:
-            logger.error(f"Image analysis failed: {e}")
-            raise
-    
-    def _extract_key_information(self, analysis_result: str) -> Dict[str, Any]:
-        """Extract structured information from analysis result using improved parsing."""
-        import re
-
-        extracted = {
-            "extracted_text": "",
-            "nickname": "unknown",
-            "primary_topic": "general",
-            "claims": [],
-            "irony_assessment": "not_ironic"
-        }
-
-        # Enhanced parsing with multiple strategies
-        lines = analysis_result.split('\n')
-        text_lower = analysis_result.lower()
-
-        # 1. Enhanced username/nickname extraction with better entity distinction
-        username_patterns = [
-            # High priority patterns - likely to be actual authors
-            r'(?:nickname|username|handle|user|posted by|author):\s*([^\n\r,]+)',
-            r'@([a-zA-Z0-9_]+)(?:\s|$)',  # @ symbol followed by space or end
-            r'(?:^|\n)([a-zA-Z0-9_]+)\s*•',  # Username followed by bullet point (common in social media)
-            r'(?:by|from)\s+@?([a-zA-Z0-9_]+)(?:\s|$)',
-            r'user(?:name)?:\s*([^\n\r,]+)',
-            r'posted by:\s*([^\n\r,]+)'
-        ]
-
-        # Extract potential usernames and validate them
-        potential_usernames = []
-        for pattern in username_patterns:
-            match = re.search(pattern, analysis_result, re.IGNORECASE)
-            if match:
-                username = match.group(1).strip().strip('"\'')
-                if username and username.lower() not in ['unknown', 'user', 'author']:
-                    potential_usernames.append(username)
-
-        # Filter out common false positives (entities mentioned in content)
-        content_entities = ['blackrock', 'bitcoin', 'btc', 'crypto', 'news', 'breaking', 'million', 'billion']
-        valid_usernames = []
-        for username in potential_usernames:
-            if username.lower() not in content_entities and not username.isdigit():
-                valid_usernames.append(username)
-
-        if valid_usernames:
-            extracted["nickname"] = valid_usernames[0]  # Take the first valid one
-        elif potential_usernames:
-            # Fallback to first potential username if no valid ones found
-            extracted["nickname"] = potential_usernames[0]
-
-        # 2. Enhanced topic classification with financial keywords
-        financial_keywords = [
-            'bitcoin', 'btc', 'cryptocurrency', 'crypto', 'blackrock', 'investment',
-            'trading', 'finance', 'financial', 'money', 'dollar', 'million', 'billion',
-            'stock', 'market', 'economy', 'economic', 'fund', 'etf', 'portfolio'
-        ]
-
-        medical_keywords = [
-            'medical', 'health', 'doctor', 'medicine', 'treatment', 'disease',
-            'vaccine', 'drug', 'hospital', 'clinical', 'patient', 'therapy'
-        ]
-
-        political_keywords = [
-            'political', 'politics', 'government', 'election', 'vote', 'policy',
-            'president', 'congress', 'senate', 'law', 'legislation', 'democrat', 'republican'
-        ]
-
-        scientific_keywords = [
-            'scientific', 'science', 'research', 'study', 'experiment', 'data',
-            'analysis', 'theory', 'hypothesis', 'peer-reviewed', 'journal'
-        ]
-
-        # Count keyword matches for each category
-        topic_scores = {
-            'financial': sum(1 for keyword in financial_keywords if keyword in text_lower),
-            'medical': sum(1 for keyword in medical_keywords if keyword in text_lower),
-            'political': sum(1 for keyword in political_keywords if keyword in text_lower),
-            'scientific': sum(1 for keyword in scientific_keywords if keyword in text_lower)
-        }
-
-        # Assign topic based on highest score
-        if max(topic_scores.values()) > 0:
-            extracted["primary_topic"] = max(topic_scores, key=topic_scores.get)
-
-        # 3. Enhanced claims extraction
-        claim_patterns = [
-            r'(?:claim|statement|assertion):\s*([^\n\r]+)',
-            r'(?:fact|statistic|number):\s*([^\n\r]+)',
-            r'(?:alleges|states|claims)\s+(?:that\s+)?([^\n\r]+)'
-        ]
-
-        claims = []
-        for pattern in claim_patterns:
-            matches = re.findall(pattern, analysis_result, re.IGNORECASE)
-            claims.extend([claim.strip() for claim in matches if claim.strip()])
-
-        extracted["claims"] = claims[:5]  # Limit to 5 claims
-
-        # 4. Irony/sarcasm detection
-        irony_indicators = ['joke', 'sarcasm', 'ironic', 'satirical', 'humor', 'meme', 'funny']
-        if any(indicator in text_lower for indicator in irony_indicators):
-            extracted["irony_assessment"] = "potentially_ironic"
-
-        extracted["extracted_text"] = analysis_result
-
-        return extracted
+            logger.error(f"Image analysis failed: {e}", exc_info=True)
+            raise LLMError(
+                f"Image analysis failed during parsing: {e}", 
+                error_code="IMAGE_ANALYSIS_FAILED"
+            )
     
     async def _get_user_reputation(self, db: AsyncSession, nickname: str) -> Any:
         """Get user reputation from database."""
@@ -470,123 +350,45 @@ class VeritasAgent:
         verdict_result: Dict[str, Any]
     ) -> Any:
         """Save verification result to database."""
-        # Generate image hash
-        image_hash = hashlib.sha256(image_bytes).hexdigest()
-        
-        return await VerificationResultCRUD.create_verification_result(
-            db=db,
-            user_nickname=extracted_info.get("nickname", "unknown"),
-            image_hash=image_hash,
-            extracted_text=extracted_info.get("extracted_text", ""),
-            user_prompt=user_prompt,
-            primary_topic=extracted_info.get("primary_topic", "general"),
-            identified_claims=json.dumps(extracted_info.get("claims", [])),
-            verdict=verdict_result["verdict"],
-            justification=verdict_result["justification"],
-            confidence_score=verdict_result["confidence_score"],
-            processing_time_seconds=0,  # Will be updated
-            model_used=settings.ollama_model,
-            tools_used=json.dumps(verdict_result.get("sources", []))
-        )
-    
+        try:
+            # Generate image hash
+            image_hash = hashlib.sha256(image_bytes).hexdigest()
+            
+            verification_record = await VerificationResultCRUD.create_verification_result(
+                db=db,
+                user_nickname=extracted_info.get("username", "unknown"),
+                image_hash=image_hash,
+                extracted_text=extracted_info.get("extracted_text", ""),
+                user_prompt=user_prompt,
+                primary_topic=extracted_info.get("primary_topic", "general"),
+                identified_claims=json.dumps(extracted_info.get("claims", [])),
+                verdict=verdict_result["verdict"],
+                justification=verdict_result["justification"],
+                confidence_score=verdict_result["confidence_score"],
+                processing_time_seconds=0,  # Will be updated
+                model_used=settings.ollama_model,
+                tools_used=json.dumps(verdict_result.get("sources", []))
+            )
+            return verification_record
+        except Exception as e:
+            logger.error(f"Failed to save verification result: {e}", exc_info=True)
+            # Depending on requirements, you might want to raise an exception here
+            return None # Or handle it gracefully
+
     def _generate_warnings(self, user_reputation: Any) -> List[str]:
-        """Generate warning messages based on user reputation."""
+        """Generate warnings based on user's reputation."""
         warnings = []
         
-        if user_reputation.warning_issued and not user_reputation.notification_issued:
-            warnings.append(
-                f"Warning: This user has shared {user_reputation.false_count} "
-                f"false posts out of {user_reputation.total_posts_checked} total posts."
-            )
+        if user_reputation.total_posts_checked < 5:
+            warnings.append("User has a limited history, so their reputation may not be fully representative.")
         
-        if user_reputation.notification_issued:
-            warnings.append(
-                f"Alert: This user has a high rate of misinformation. "
-                f"{user_reputation.false_count} false posts out of "
-                f"{user_reputation.total_posts_checked} total posts."
-            )
+        if user_reputation.false_count > 3:
+            warnings.append("User has a history of posting false information.")
         
+        if user_reputation.warning_issued:
+            warnings.append("A warning has been previously issued to this user for spreading misinformation.")
+            
         return warnings
-
-    async def _fallback_analysis(
-        self,
-        image_bytes: bytes,
-        user_prompt: str,
-        db: AsyncSession
-    ) -> Dict[str, Any]:
-        """
-        Fallback analysis when primary verification fails.
-        Provides basic analysis with limited functionality.
-        """
-        try:
-            from app.image_processing import text_extractor
-
-            # Basic OCR text extraction
-            extracted_elements = text_extractor.extract_social_media_elements(image_bytes)
-
-            # Simple analysis without LLM
-            nickname = extracted_elements.get("username", "unknown")
-            extracted_text = extracted_elements.get("raw_text", "")
-
-            # Get user reputation
-            user_reputation = await self._get_user_reputation(db, nickname)
-
-            # Basic verdict (conservative approach)
-            verdict = "partially_true"  # Conservative default
-            justification = (
-                "Analysis completed with limited functionality. "
-                "Primary AI services were unavailable. "
-                "This is a conservative assessment - manual verification recommended."
-            )
-
-            # Save basic verification result
-            verification_record = await self._save_verification_result(
-                db, image_bytes, user_prompt,
-                {
-                    "nickname": nickname,
-                    "extracted_text": extracted_text,
-                    "primary_topic": "general",
-                    "claims": []
-                },
-                {
-                    "verdict": verdict,
-                    "justification": justification,
-                    "confidence_score": 25,  # Low confidence
-                    "sources": ["fallback_analysis"]
-                }
-            )
-
-            return {
-                "status": "partial_success",
-                "message": "Analysis completed with limited functionality",
-                "verification_id": str(verification_record.id),  # Convert to string for consistency
-                "user_nickname": nickname,
-                "extracted_text": extracted_text,
-                "primary_topic": "general",
-                "identified_claims": [],
-                "verdict": verdict,
-                "justification": justification,
-                "confidence_score": 25,
-                "user_reputation": {
-                    "nickname": user_reputation.nickname,
-                    "true_count": user_reputation.true_count,
-                    "partially_true_count": user_reputation.partially_true_count,
-                    "false_count": user_reputation.false_count,
-                    "ironic_count": user_reputation.ironic_count,
-                    "total_posts_checked": user_reputation.total_posts_checked,
-                    "warning_issued": user_reputation.warning_issued,
-                    "notification_issued": user_reputation.notification_issued
-                },
-                "warnings": [
-                    "Analysis completed with limited functionality",
-                    "Manual verification recommended",
-                    "AI services were temporarily unavailable"
-                ]
-            }
-
-        except Exception as e:
-            logger.error(f"Fallback analysis failed: {e}")
-            raise AgentError(f"Both primary and fallback analysis failed: {e}")
 
     async def _store_in_vector_db(
         self,
@@ -603,7 +405,7 @@ class VeritasAgent:
                 try:
                     # Prepare data for vector storage
                     vector_data = {
-                        "nickname": extracted_info.get("nickname"),
+                        "nickname": extracted_info.get("username"),
                         "extracted_text": extracted_info.get("extracted_text"),
                         "claims": extracted_info.get("claims", []),
                         "temporal_analysis": extracted_info.get("temporal_analysis", {}),

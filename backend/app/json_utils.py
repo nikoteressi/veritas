@@ -3,9 +3,10 @@ JSON utilities for handling datetime serialization and other custom types.
 """
 import json
 import logging
+import re
 from datetime import datetime, date, time
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional, Dict
 from uuid import UUID
 
 logger = logging.getLogger(__name__)

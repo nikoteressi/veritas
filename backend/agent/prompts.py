@@ -6,82 +6,17 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 
 # System prompt for initial multimodal analysis
 MULTIMODAL_ANALYSIS_SYSTEM_PROMPT = """
-You are an expert AI analyst specializing in social media content verification. Your task is to analyze images of social media posts and extract key information for fact-checking.
+You are an expert AI analyst specializing in social media content verification. Your task is to analyze an image of a social media post and extract key information into a structured JSON format.
 
-CRITICAL: Pay special attention to distinguishing between the POST AUTHOR and entities MENTIONED in the content.
+CRITICAL: Respond with a single, valid JSON object that conforms to the provided schema. Do not include any text, code block markers, or formatting before or after the JSON object.
 
-When analyzing an image, you must provide a structured analysis with the following sections:
-
-**USERNAME/NICKNAME:**
-- CRITICAL: Identify the username of the person who POSTED this content, NOT entities mentioned in the post
-- Look for usernames in these specific locations (in order of priority):
-  1. Near profile pictures or avatars (usually top-left of post)
-  2. In author/poster identification lines (usually at the top)
-  3. In handle/username fields (often with @ symbol)
-- IGNORE usernames that appear in:
-  - The main content/text of the post
-  - Comments or replies
-  - Quoted or referenced content
-  - News headlines or article titles
-- Example: If post shows "@cryptopatel" as author but mentions "BlackRock" in content, return "cryptopatel"
-- Format: Extract only the username without @ symbols or additional formatting
-
-**EXTRACTED TEXT:**
-- Transcribe ALL visible text verbatim, including:
-  - Main post content and captions
-  - User names/handles and display names
-  - Timestamps and dates (CRITICAL: extract exact timestamp format)
-  - Comments and replies (if visible)
-  - Text within images, graphics, or screenshots
-  - Hashtags and mentions
-  - Any watermarks or attribution text
-
-**TEMPORAL INFORMATION:**
-- Extract the post timestamp (e.g., "15 hours ago", "May 21, 2024", "2 days ago")
-- Identify any dates mentioned in the content being discussed
-- Note if the post references recent vs. historical events
-- Flag if there's a temporal mismatch between post time and referenced events
-
-**VISUAL ELEMENTS:**
-- Describe charts, graphs, infographics, or data visualizations
-- Note photos, images, or multimedia content
-- Identify platform-specific UI elements (Twitter, Facebook, Instagram, etc.)
-- Describe layout, design, and formatting
-
-**FACTUAL CLAIMS:**
-- List specific, verifiable statements that can be fact-checked
-- Include statistics, numbers, dates, and quantitative data
-- Note historical claims, news events, or current affairs
-- Identify scientific, medical, or technical assertions
-- Separate opinions from factual claims
-
-**TOPIC CLASSIFICATION:**
-Choose the most appropriate primary topic:
-- financial (investments, markets, economics, cryptocurrency, banking, trading)
-- medical (health, medicine, treatments, diseases, vaccines, clinical studies)
-- political (government, elections, policies, legislation, political figures)
-- scientific (research, studies, technology, environment, space, physics)
-- technology (software, hardware, AI, social media, internet)
-- entertainment (movies, music, celebrities, sports, gaming)
-- general (news, social issues, everyday topics)
-- humorous/ironic (memes, jokes, satirical content)
-
-**IRONY/SARCASM ASSESSMENT:**
-- Evaluate if the content appears to be:
-  - Serious factual content
-  - Satirical or humorous
-  - Potentially ironic or sarcastic
-  - Meme or joke format
-- Look for context clues, exaggerated language, or obvious humor indicators
-
-Format your response with clear section headers and detailed information for each category.
+{format_instructions}
 """
 
 MULTIMODAL_ANALYSIS_PROMPT = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(MULTIMODAL_ANALYSIS_SYSTEM_PROMPT),
     HumanMessagePromptTemplate.from_template(
-        "Please analyze this social media post image and the user's question: {user_prompt}\n\n"
-        "Provide a detailed analysis following the guidelines above."
+        "Please analyze this social media post image and the user's question: {user_prompt}"
     )
 ])
 
