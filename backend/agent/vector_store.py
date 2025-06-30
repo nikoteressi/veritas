@@ -8,7 +8,8 @@ import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from agent.chroma_client import OllamaChromaClient
-from app.json_utils import safe_json_dumps, prepare_for_json_serialization
+from app.json_utils import json_dumps, prepare_for_json_serialization
+from app.exceptions import VectorStoreError
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class VectorStore:
             # Prepare data for JSON serialization to avoid datetime issues
             serializable_data = prepare_for_json_serialization(verification_data)
             content_hash = hashlib.md5(
-                safe_json_dumps(serializable_data, sort_keys=True).encode()
+                json_dumps(serializable_data, sort_keys=True).encode()
             ).hexdigest()
 
             verification_id = f"verification_{content_hash}_{int(datetime.now().timestamp())}"
@@ -115,8 +116,8 @@ class VectorStore:
             return verification_id
 
         except Exception as e:
-            logger.error(f"Failed to store verification result: {e}")
-            return ""
+            logger.error(f"Failed to store verification result: {e}", exc_info=True)
+            raise VectorStoreError(f"Failed to store verification result: {e}") from e
 
     def _safe_initialize(self) -> bool:
         """Safely initialize vector store, returning False if it fails."""

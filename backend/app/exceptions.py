@@ -54,6 +54,11 @@ class AgentError(VeritasException):
     pass
 
 
+class VectorStoreError(VeritasException):
+    """Exception raised for vector store operations."""
+    pass
+
+
 class ToolError(VeritasException):
     """Exception raised when tool operations fail."""
     pass

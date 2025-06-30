@@ -46,9 +46,9 @@ class DateTimeJSONEncoder(json.JSONEncoder):
             return super().default(obj)
 
 
-def safe_json_dumps(obj: Any, **kwargs) -> str:
+def json_dumps(obj: Any, **kwargs) -> str:
     """
-    Safely serialize an object to JSON string with datetime support.
+    Serialize an object to JSON string with support for custom types.
     
     Args:
         obj: Object to serialize
@@ -57,21 +57,16 @@ def safe_json_dumps(obj: Any, **kwargs) -> str:
     Returns:
         JSON string representation
     """
-    try:
-        # Use our custom encoder by default
-        if 'cls' not in kwargs:
-            kwargs['cls'] = DateTimeJSONEncoder
-        
-        return json.dumps(obj, **kwargs)
-    except Exception as e:
-        logger.error(f"Failed to serialize object to JSON: {e}")
-        # Return a safe fallback
-        return json.dumps({"error": "serialization_failed", "message": str(e)})
+    # Use our custom encoder by default
+    if 'cls' not in kwargs:
+        kwargs['cls'] = DateTimeJSONEncoder
+    
+    return json.dumps(obj, **kwargs)
 
 
-def safe_json_loads(json_str: str, **kwargs) -> Any:
+def json_loads(json_str: str, **kwargs) -> Any:
     """
-    Safely deserialize a JSON string to Python object.
+    Deserialize a JSON string to Python object.
     
     Args:
         json_str: JSON string to deserialize
@@ -80,11 +75,7 @@ def safe_json_loads(json_str: str, **kwargs) -> Any:
     Returns:
         Deserialized Python object
     """
-    try:
-        return json.loads(json_str, **kwargs)
-    except Exception as e:
-        logger.error(f"Failed to deserialize JSON string: {e}")
-        return {"error": "deserialization_failed", "message": str(e)}
+    return json.loads(json_str, **kwargs)
 
 
 def prepare_for_json_serialization(obj: Any) -> Any:

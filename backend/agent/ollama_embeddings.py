@@ -37,37 +37,27 @@ class OllamaEmbeddingFunction(EmbeddingFunction):
         self._test_connection()
     
     def _test_connection(self):
-        """Test connection to Ollama server."""
+        """Test connection to Ollama server and availability of the model."""
         try:
             response = requests.get(f"{self.ollama_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                models = response.json().get('models', [])
-                model_names = [model.get('name', '') for model in models]
-                
-                # Check if our embedding model is available
-                available_embedding_models = [
-                    name for name in model_names 
-                    if any(embed_keyword in name.lower() for embed_keyword in ['embed', 'embedding'])
-                ]
-                
-                if available_embedding_models:
-                    # Use the first available embedding model if our preferred one isn't available
-                    if not any(self.model_name in name for name in model_names):
-                        self.model_name = available_embedding_models[0]
-                        logger.info(f"Using available embedding model: {self.model_name}")
-                    
-                    logger.info(f"Ollama embedding function initialized with model: {self.model_name}")
-                else:
-                    # Fallback to a general model that might support embeddings
-                    if model_names:
-                        self.model_name = model_names[0]  # Use first available model
-                        logger.warning(f"No dedicated embedding model found, using: {self.model_name}")
-                    else:
-                        logger.error("No models available on Ollama server")
-                        
+            response.raise_for_status()  # Raise an exception for bad status codes
+            
+            models = response.json().get('models', [])
+            model_names = [model.get('name', '') for model in models]
+
+            if not any(self.model_name in name for name in model_names):
+                error_message = f"Model '{self.model_name}' not found on Ollama server at {self.ollama_url}. Available models: {model_names}"
+                logger.error(error_message)
+                raise ValueError(error_message)
+            
+            logger.info(f"Ollama embedding function initialized with model: {self.model_name}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Could not connect to Ollama server at {self.ollama_url}: {e}")
+            raise ConnectionError(f"Could not connect to Ollama server at {self.ollama_url}") from e
         except Exception as e:
-            logger.warning(f"Could not connect to Ollama server at {self.ollama_url}: {e}")
-            logger.info("Will attempt to use embedding function anyway")
+            logger.error(f"An unexpected error occurred during connection test: {e}")
+            raise
     
     def __call__(self, input: Documents) -> Embeddings:
         """
@@ -78,42 +68,30 @@ class OllamaEmbeddingFunction(EmbeddingFunction):
             
         Returns:
             List of embedding vectors
+            
+        Raises:
+            ValueError: If embedding generation fails for a document.
         """
-        try:
-            embeddings = []
+        embeddings = []
+        
+        for document in input:
+            # Try embedding endpoint first (if available)
+            embedding = self._get_embedding_via_embed_endpoint(document)
             
-            for document in input:
-                # Prepare the request for Ollama
-                payload = {
-                    "model": self.model_name,
-                    "prompt": document,
-                    "options": {
-                        "temperature": 0,  # Deterministic embeddings
-                        "num_predict": 1   # We only need embeddings, not text generation
-                    }
-                }
-                
-                # Try embedding endpoint first (if available)
-                embedding = self._get_embedding_via_embed_endpoint(document)
-                
-                if embedding is None:
-                    # Fallback to generate endpoint with special prompt
-                    embedding = self._get_embedding_via_generate_endpoint(document)
-                
-                if embedding is not None:
-                    embeddings.append(embedding)
-                else:
-                    # Final fallback: create a simple hash-based embedding
-                    logger.warning(f"Could not generate embedding for document, using fallback")
-                    embeddings.append(self._create_fallback_embedding(document))
+            if embedding is None:
+                # Fallback to generate endpoint with special prompt
+                logger.debug("Embedding with 'embed' endpoint failed, trying 'generate' endpoint.")
+                embedding = self._get_embedding_via_generate_endpoint(document)
             
-            logger.debug(f"Generated {len(embeddings)} embeddings")
-            return embeddings
-            
-        except Exception as e:
-            logger.error(f"Error generating embeddings: {e}")
-            # Return fallback embeddings to prevent system failure
-            return [self._create_fallback_embedding(doc) for doc in input]
+            if embedding is not None:
+                embeddings.append(embedding)
+            else:
+                error_message = f"Failed to generate embedding for document: '{document[:100]}...'"
+                logger.error(error_message)
+                raise ValueError(error_message)
+        
+        logger.debug(f"Generated {len(embeddings)} embeddings")
+        return embeddings
     
     def _get_embedding_via_embed_endpoint(self, text: str) -> List[float]:
         """Try to get embedding using Ollama's embed endpoint."""
@@ -169,32 +147,6 @@ class OllamaEmbeddingFunction(EmbeddingFunction):
             logger.debug(f"Generate endpoint failed: {e}")
         
         return None
-    
-    def _create_fallback_embedding(self, text: str, dimension: int = 384) -> List[float]:
-        """
-        Create a simple fallback embedding based on text hash.
-        This ensures the system continues working even if Ollama is unavailable.
-        """
-        import hashlib
-        import struct
-        
-        # Create a deterministic hash of the text
-        text_hash = hashlib.sha256(text.encode()).digest()
-        
-        # Convert hash to float values
-        embedding = []
-        for i in range(0, min(len(text_hash), dimension * 4), 4):
-            if i + 4 <= len(text_hash):
-                # Convert 4 bytes to float
-                float_val = struct.unpack('f', text_hash[i:i+4])[0]
-                # Normalize to [-1, 1] range
-                embedding.append(max(-1.0, min(1.0, float_val)))
-        
-        # Pad or truncate to desired dimension
-        while len(embedding) < dimension:
-            embedding.append(0.0)
-        
-        return embedding[:dimension]
 
 
 def create_ollama_embedding_function(

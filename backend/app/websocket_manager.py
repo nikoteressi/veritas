@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from app.json_utils import safe_json_dumps
+from app.json_utils import json_dumps
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +81,23 @@ class ConnectionManager:
             message: Message to send
         """
         if session_id in self.active_connections:
+            websocket = self.active_connections[session_id]
             try:
-                websocket = self.active_connections[session_id]
-                await websocket.send_text(safe_json_dumps(message))
+                json_message = json_dumps(message)
+                await websocket.send_text(json_message)
+            except TypeError as e:
+                logger.error(f"Failed to serialize message for {session_id}: {e}\\nMessage: {message}")
+                # Try to send a fallback error message
+                try:
+                    await websocket.send_text(json_dumps({
+                        "type": "error",
+                        "data": {
+                            "message": "Internal server error: could not serialize response.",
+                            "code": "SERIALIZATION_ERROR"
+                        }
+                    }))
+                except Exception:
+                    pass  # Can't do much if this fails
             except Exception as e:
                 logger.error(f"Failed to send message to {session_id}: {e}")
                 # Remove broken connection
@@ -98,12 +112,18 @@ class ConnectionManager:
         """
         if not self.active_connections:
             return
+
+        try:
+            json_message = json_dumps(message)
+        except TypeError as e:
+            logger.error(f"Failed to serialize broadcast message: {e}\\nMessage: {message}")
+            return  # Cannot send to anyone
         
         # Send to all connections
         disconnected = []
         for session_id, websocket in self.active_connections.items():
             try:
-                await websocket.send_text(safe_json_dumps(message))
+                await websocket.send_text(json_message)
             except Exception as e:
                 logger.error(f"Failed to broadcast to {session_id}: {e}")
                 disconnected.append(session_id)

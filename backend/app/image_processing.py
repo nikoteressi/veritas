@@ -9,6 +9,8 @@ from typing import Tuple, Optional, Dict, Any
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
 
+from app.exceptions import ImageProcessingError
+
 logger = logging.getLogger(__name__)
 
 
@@ -95,8 +97,8 @@ class ImageProcessor:
                 return processed_bytes
                 
         except Exception as e:
-            logger.error(f"Image preprocessing failed: {e}")
-            return image_bytes  # Return original if preprocessing fails
+            logger.error(f"Image preprocessing failed: {e}", exc_info=True)
+            raise ImageProcessingError(f"Image preprocessing failed: {e}") from e
     
     def _enhance_for_ocr(self, img: Image.Image) -> Image.Image:
         """
@@ -108,23 +110,18 @@ class ImageProcessor:
         Returns:
             Enhanced PIL Image object
         """
-        try:
-            # Increase contrast
-            enhancer = ImageEnhance.Contrast(img)
-            img = enhancer.enhance(1.2)
-            
-            # Increase sharpness
-            enhancer = ImageEnhance.Sharpness(img)
-            img = enhancer.enhance(1.1)
-            
-            # Apply slight noise reduction
-            img = img.filter(ImageFilter.MedianFilter(size=3))
-            
-            return img
-            
-        except Exception as e:
-            logger.error(f"Image enhancement failed: {e}")
-            return img
+        # Increase contrast
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.2)
+        
+        # Increase sharpness
+        enhancer = ImageEnhance.Sharpness(img)
+        img = enhancer.enhance(1.1)
+        
+        # Apply slight noise reduction
+        img = img.filter(ImageFilter.MedianFilter(size=3))
+        
+        return img
     
     def extract_text_ocr(self, image_bytes: bytes) -> str:
         """
@@ -151,8 +148,8 @@ class ImageProcessor:
                 return text
                 
         except Exception as e:
-            logger.error(f"OCR text extraction failed: {e}")
-            return ""
+            logger.error(f"OCR text extraction failed: {e}", exc_info=True)
+            raise ImageProcessingError(f"OCR text extraction failed: {e}") from e
     
     def _clean_ocr_text(self, text: str) -> str:
         """
@@ -219,7 +216,7 @@ class ImageProcessor:
                 
         except Exception as e:
             logger.error(f"Thumbnail creation failed: {e}")
-            return image_bytes
+            raise ImageProcessingError(f"Thumbnail creation failed: {e}") from e
     
     def detect_image_type(self, image_bytes: bytes) -> str:
         """

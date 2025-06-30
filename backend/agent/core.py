@@ -271,26 +271,35 @@ class VeritasAgent:
             # Extract JSON from the response
             json_match = re.search(r'\{.*\}', response.content, re.DOTALL)
             if not json_match:
-                logger.error(f"No JSON found in LLM response for query generation: {response.content}")
-                return [claim] # Fallback to the claim itself as a query
+                raise LLMError(
+                    f"No JSON found in LLM response for query generation: {response.content}",
+                    error_code="QUERY_GENERATION_NO_JSON"
+                )
             
             json_str = json_match.group(0)
             queries_data = json.loads(json_str)
             
             queries = queries_data.get("search_queries", [])
             if not queries:
-                logger.warning(f"LLM returned no search queries for claim: {claim}")
-                return [claim]
+                raise LLMError(
+                    f"LLM returned no search queries for claim: {claim}",
+                    error_code="QUERY_GENERATION_NO_QUERIES"
+                )
                 
             logger.info(f"Generated {len(queries)} search queries for claim: '{claim}'")
             return queries
 
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error during query generation: {e}\nResponse was: {response.content}")
-            return [claim]
+            raise LLMError(
+                f"JSON decode error during query generation: {e}\nResponse was: {response.content}",
+                error_code="QUERY_GENERATION_JSON_DECODE_ERROR"
+            ) from e
         except Exception as e:
             logger.error(f"Failed to generate search queries: {e}", exc_info=True)
-            return [claim] # Fallback
+            raise LLMError(
+                f"An unexpected error occurred during query generation: {e}",
+                error_code="QUERY_GENERATION_FAILED"
+            ) from e
             
     async def _fact_check_claims(
         self, 
