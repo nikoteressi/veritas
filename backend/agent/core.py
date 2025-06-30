@@ -10,7 +10,7 @@ import logging
 import hashlib
 import time
 from datetime import datetime
-from typing import Dict, Any, AsyncGenerator, Optional, List
+from typing import Dict, Any, AsyncGenerator, Optional, List, Type
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -25,14 +25,25 @@ from agent.prompts import (
     MULTIMODAL_ANALYSIS_PROMPT,
     FACT_CHECKING_PROMPT,
     VERDICT_GENERATION_PROMPT,
-    DOMAIN_SPECIFIC_PROMPTS
+    DOMAIN_SPECIFIC_PROMPTS,
+    QUERY_GENERATION_PROMPT
 )
 from app.crud import UserCRUD, VerificationResultCRUD
 from app.config import settings
 from app.exceptions import LLMError, AgentError, ServiceUnavailableError
 from app.schemas import ImageAnalysisResult
+from agent.fact_checkers.general_checker import GeneralFactChecker
+from agent.fact_checkers.financial_checker import FinancialFactChecker
+from agent.fact_checkers.base import BaseFactChecker
 
 logger = logging.getLogger(__name__)
+
+
+# A mapping of domain names to checker classes
+FACT_CHECKER_REGISTRY: Dict[str, Type[BaseFactChecker]] = {
+    "general": GeneralFactChecker,
+    "financial": FinancialFactChecker,
+}
 
 
 class VeritasAgent:
@@ -241,134 +252,253 @@ class VeritasAgent:
         """Get user reputation from database."""
         return await UserCRUD.get_or_create_user(db, nickname)
     
+    async def _generate_search_queries(
+        self,
+        claim: str,
+        role_description: str,
+        temporal_context: Dict[str, Any]
+    ) -> List[str]:
+        """Generate search queries using the LLM."""
+        try:
+            prompt = await QUERY_GENERATION_PROMPT.aformat(
+                claim=claim,
+                role_description=role_description,
+                temporal_context=json.dumps(temporal_context, indent=2)
+            )
+            
+            response = await self.llm.ainvoke(prompt)
+            
+            # Extract JSON from the response
+            json_match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if not json_match:
+                logger.error(f"No JSON found in LLM response for query generation: {response.content}")
+                return [claim] # Fallback to the claim itself as a query
+            
+            json_str = json_match.group(0)
+            queries_data = json.loads(json_str)
+            
+            queries = queries_data.get("search_queries", [])
+            if not queries:
+                logger.warning(f"LLM returned no search queries for claim: {claim}")
+                return [claim]
+                
+            logger.info(f"Generated {len(queries)} search queries for claim: '{claim}'")
+            return queries
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error during query generation: {e}\nResponse was: {response.content}")
+            return [claim]
+        except Exception as e:
+            logger.error(f"Failed to generate search queries: {e}", exc_info=True)
+            return [claim] # Fallback
+            
     async def _fact_check_claims(
         self, 
         extracted_info: Dict[str, Any], 
         user_prompt: str,
         progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
-        """Perform fact-checking using available tools."""
-        try:
-            # Create fact-checking prompt
-            domain = extracted_info.get("primary_topic", "general")
-            
-            # Add domain-specific instructions if available
-            domain_prompt = DOMAIN_SPECIFIC_PROMPTS.get(domain, "")
-            
-            fact_check_input = {
-                "post_analysis": extracted_info["extracted_text"],
-                "claims": extracted_info.get("claims", []),
-                "user_prompt": user_prompt,
-                "domain": domain,
-                "temporal_context": json.dumps(extracted_info.get("temporal_analysis", {}))
-            }
-            
-            # Use the agent executor for fact-checking
-            if self.agent_executor:
-                result = await self.agent_executor.ainvoke({
-                    "input": f"Fact-check this social media post: {json.dumps(fact_check_input)}"
-                })
-                
-                return {
-                    "domain": domain,
-                    "research_results": result.get("output", ""),
-                    "tools_used": ["agent_executor"]
-                }
-            else:
-                # Fallback to direct LLM call
-                prompt_text = f"Fact-check this content: {extracted_info['extracted_text']}"
-                result = await llm_manager.invoke_text_only(prompt_text)
-                
-                return {
-                    "domain": domain,
-                    "research_results": result,
-                    "tools_used": ["direct_llm"]
-                }
-                
-        except Exception as e:
-            logger.error(f"Fact-checking failed: {e}")
+        """
+        Fact-checks claims by generating queries with an LLM and executing them with a fact-checker.
+        """
+        claims = extracted_info.get("claims", [])
+        primary_topic = extracted_info.get("primary_topic", "general")
+        temporal_context = extracted_info.get("temporal_analysis", {})
+
+        if not claims:
+            logger.warning("No claims were extracted for fact-checking.")
             return {
-                "domain": "general",
-                "research_results": f"Fact-checking failed: {e}",
-                "tools_used": []
+                "results": [],
+                "examined_sources": [],
+                "search_queries_used": [],
+                "total_sources_found": 0,
+                "credible_sources": 0,
+                "supporting_evidence": 0,
+                "contradicting_evidence": 0
             }
-    
+
+        # Dynamically select the fact-checker based on the primary topic
+        search_tool = next((t for t in self.tools if t.name == "searxng_search"), None)
+        if not search_tool:
+            raise ServiceUnavailableError("Search tool is not available.")
+            
+        CheckerClass = FACT_CHECKER_REGISTRY.get(primary_topic.lower(), GeneralFactChecker)
+        fact_checker = CheckerClass(search_tool=search_tool)
+        role_description = fact_checker.role_description
+
+        all_results = []
+        all_examined_sources = set()
+        all_search_queries = []
+        
+        total_claims = len(claims)
+        for i, claim_text in enumerate(claims):
+            if progress_callback:
+                progress = 50 + int((i / total_claims) * 30)
+                await progress_callback(f"Fact-checking claim {i+1}/{total_claims}: '{claim_text[:50]}...'", progress)
+
+            logger.info(f"Fact-checking claim: '{claim_text}' with {CheckerClass.__name__}")
+            
+            # Step 1: Generate search queries with the LLM
+            search_queries = await self._generate_search_queries(
+                claim=claim_text,
+                role_description=role_description,
+                temporal_context=temporal_context
+            )
+            all_search_queries.extend(search_queries)
+
+            # Step 2: Execute the searches and analyze results using the selected fact-checker
+            fact_check_json = await asyncio.to_thread(
+                fact_checker.check,
+                claim=claim_text,
+                search_queries=search_queries, # Pass generated queries
+                temporal_context=temporal_context
+            )
+            
+            try:
+                result = json.loads(fact_check_json)
+                all_results.append(result)
+                all_examined_sources.update(result.get("examined_sources", []))
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode fact-check result: {e}")
+                logger.debug(f"Invalid JSON string: {fact_check_json}")
+
+        # Aggregate results
+        total_sources_found = sum(r.get("total_sources_found", 0) for r in all_results)
+        credible_sources = sum(r.get("credible_sources", 0) for r in all_results)
+        supporting_evidence = sum(r.get("supporting_evidence", 0) for r in all_results)
+        contradicting_evidence = sum(r.get("contradicting_evidence", 0) for r in all_results)
+        
+        # Determine overall assessment and confidence
+        preliminary_assessment = "unverified"
+        if all_results:
+            # A simple way to aggregate: take the most severe assessment
+            assessments = [r.get("preliminary_assessment") for r in all_results if r.get("preliminary_assessment")]
+            if "likely_false" in assessments:
+                preliminary_assessment = "likely_false"
+            elif "unverified_low_quality_sources" in assessments:
+                preliminary_assessment = "unverified_low_quality_sources"
+            elif "likely_true" in assessments:
+                preliminary_assessment = "likely_true"
+
+        confidence_score = 0
+        if all_results:
+            # Average the confidence scores
+            confidence_scores = [r.get("confidence_score", 0) for r in all_results]
+            confidence_score = sum(confidence_scores) / len(confidence_scores)
+
+        return {
+            "results": all_results,
+            "examined_sources": list(all_examined_sources),
+            "search_queries_used": all_search_queries,
+            "total_sources_found": total_sources_found,
+            "credible_sources": credible_sources,
+            "supporting_evidence": supporting_evidence,
+            "contradicting_evidence": contradicting_evidence,
+            "preliminary_assessment": preliminary_assessment,
+            "confidence_score": confidence_score
+        }
+
     async def _generate_verdict(
         self, 
         fact_check_result: Dict[str, Any],
         user_prompt: str,
         temporal_analysis: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Generate the final verdict based on fact-checking results."""
-        try:
-            # Prepare the research summary
-            research_summary = self._summarize_fact_check(fact_check_result)
+        """Generate the final verdict using the aggregated fact-checking results."""
+        
+        fact_check_summary = self._summarize_fact_check(fact_check_result)
+        
+        prompt = await VERDICT_GENERATION_PROMPT.aformat(
+            user_prompt=user_prompt,
+            temporal_analysis=json.dumps(temporal_analysis, indent=2),
+            research_results=fact_check_summary
+        )
+
+        llm_response = await llm_manager.invoke_text_only(prompt)
+        
+        parsed_verdict = self._parse_verdict_response(llm_response)
+        
+        logger.info(f"Generated verdict: {parsed_verdict.get('verdict')}")
+        return parsed_verdict
+
+    def _summarize_fact_check(self, fact_check_result: Dict[str, Any]) -> str:
+        """Summarize the aggregated fact-checking results for the final verdict prompt."""
+        if not fact_check_result or not fact_check_result.get("results"):
+            return "No fact-checking was performed."
+
+        summaries = []
+        for result in fact_check_result["results"]:
+            claim = result.get('claim', 'N/A')
+            assessment = result.get('preliminary_assessment', 'unverified')
+            supporting = result.get('supporting_evidence', 0)
+            contradicting = result.get('contradicting_evidence', 0)
             
-            # Format the prompt
-            prompt = await VERDICT_GENERATION_PROMPT.aformat(
-                research_results=research_summary,
-                user_prompt=user_prompt,
-                temporal_analysis=json.dumps(temporal_analysis, indent=2)
+            summary = (
+                f"Claim: \"{claim}\"\n"
+                f"- Assessment: {assessment}\n"
+                f"- Evidence: {supporting} sources support, {contradicting} sources contradict."
             )
             
-            # Invoke the LLM
-            llm_response = await llm_manager.invoke_text_only(prompt)
+            # Add top 2-3 credible sources
+            credible_sources = [
+                s for s in result.get("processed_sources", []) if s.get("credible")
+            ]
+            if credible_sources:
+                summary += "\n- Key Credible Sources:"
+                for source in credible_sources[:2]:
+                    summary += f"\n  - \"{source.get('title')}\" ({source.get('url')})"
             
-            # Parse the response to get structured verdict
-            parsed_verdict = self._parse_verdict_response(llm_response)
+            summaries.append(summary)
+        
+        overall_assessment = fact_check_result.get('preliminary_assessment', 'unverified')
+        overall_confidence = fact_check_result.get('confidence_score', 0)
+
+        return (
+            "Overall Preliminary Assessment: "
+            f"{overall_assessment} (Confidence: {overall_confidence:.2f}%)\n\n"
+            "Detailed Claim Summaries:\n"
+            f"{chr(10).join(summaries)}"
+        )
+        
+    def _parse_verdict_response(self, response: str) -> Dict[str, Any]:
+        """Safely parse the final verdict from the LLM response."""
+        try:
+            # Attempt to find a JSON blob in the response
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                data = json.loads(json_str)
+                # Basic validation
+                if all(k in data for k in ["verdict", "confidence_score", "justification"]):
+                    logger.info("Successfully parsed verdict from JSON.")
+                    return data
             
-            logger.info(f"Generated verdict: {parsed_verdict.get('verdict')}")
-            return parsed_verdict
-            
-        except Exception as e:
-            logger.error(f"Failed to generate verdict: {e}", exc_info=True)
+            # Fallback to regex if JSON parsing fails or is incomplete
+            logger.warning("Falling back to regex for verdict parsing.")
+            verdict_match = re.search(r"^\s*\*\*Verdict(?: Classification)?:\*\*\s*(true|partially_true|false|ironic)", response, re.IGNORECASE | re.MULTILINE)
+            confidence_match = re.search(r"\*\*Confidence Score:\*\*\s*(\d+\.?\d*)", response, re.IGNORECASE | re.MULTILINE)
+            justification_match = re.search(r"\*\*Justification:\*\*\s*(.*?)(\*\*Key Sources:\*\*|\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
+            sources_match = re.search(r"\*\*Key Sources:\*\*\s*(.*?)(\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
+
+            verdict = verdict_match.group(1).lower() if verdict_match else "partially_true"
+            confidence = float(confidence_match.group(1)) if confidence_match else 50.0
+            justification = justification_match.group(1).strip() if justification_match else "No justification provided."
+            sources_str = sources_match.group(1).strip() if sources_match else "No sources cited."
+
+            return {
+                "verdict": verdict,
+                "confidence_score": confidence,
+                "justification": justification,
+                "sources": sources_str
+            }
+        except (json.JSONDecodeError, AttributeError, ValueError) as e:
+            logger.error(f"Failed to parse verdict response: {e}\nResponse: {response}", exc_info=True)
             return {
                 "verdict": "partially_true",
-                "justification": "Could not generate a definitive verdict due to an internal error.",
-                "confidence_score": 0
+                "justification": "Could not generate a definitive verdict due to an internal parsing error.",
+                "confidence_score": 0,
+                "sources": ""
             }
-    
-    def _summarize_fact_check(self, fact_check_result: Dict[str, Any]) -> str:
-        """Create a concise summary of the fact-checking results."""
-        summary_parts = []
-        
-        assessment = fact_check_result.get('preliminary_assessment', 'N/A')
-        summary_parts.append(f"- Preliminary Assessment: {assessment}")
-
-        confidence = fact_check_result.get('confidence_score', 'N/A')
-        summary_parts.append(f"- Confidence Score: {confidence}")
-
-        supporting = fact_check_result.get('supporting_evidence', 0)
-        contradicting = fact_check_result.get('contradicting_evidence', 0)
-        summary_parts.append(f"- Evidence: Found {supporting} supporting and {contradicting} contradicting pieces of evidence.")
-
-        credible_sources = fact_check_result.get('credible_sources', 0)
-        summary_parts.append(f"- Sources: Utilized {credible_sources} credible sources out of {fact_check_result.get('total_sources_found', 0)} total.")
-
-        if 'confidence_factors' in fact_check_result:
-            factors = ", ".join(fact_check_result['confidence_factors'])
-            summary_parts.append(f"- Confidence Factors: {factors}")
-
-        return "\n".join(summary_parts)
-
-    def _parse_verdict_response(self, response: str) -> Dict[str, Any]:
-        """Parse the structured verdict from the LLM's text response."""
-        verdict_match = re.search(r"^\s*\*\*Verdict(?: Classification)?:\*\*\s*(true|partially_true|false|ironic)", response, re.IGNORECASE | re.MULTILINE)
-        confidence_match = re.search(r"\*\*Confidence Score:\*\*\s*(\d+)", response, re.IGNORECASE | re.MULTILINE)
-        justification_match = re.search(r"\*\*Justification:\*\*\s*(.*?)(\*\*Key Sources:\*\*|\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
-        sources_match = re.search(r"\*\*Key Sources:\*\*\s*(.*?)(\*\*Caveats and Limitations:\*\*|$)", response, re.IGNORECASE | re.DOTALL)
-
-        verdict = verdict_match.group(1).lower() if verdict_match else "partially_true"
-        confidence = int(confidence_match.group(1)) if confidence_match else 50
-        justification = justification_match.group(1).strip() if justification_match else "No justification provided."
-        sources_str = sources_match.group(1).strip() if sources_match else "No sources cited."
-
-        return {
-            "verdict": verdict,
-            "confidence_score": confidence,
-            "justification": justification,
-            "sources": sources_str
-        }
     
     async def _update_user_reputation(
         self, 

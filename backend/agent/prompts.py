@@ -116,24 +116,40 @@ Be careful to distinguish between preliminary research and established science.
 }
 
 
-# Verdict generation prompt
-VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
+# Query Generation Prompt
+QUERY_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-        "You are tasked with generating a final verdict based on fact-checking research. "
-        "Synthesize all the evidence and provide a clear, concise conclusion. "
-        "Pay close attention to the user's original question and any temporal context."
+        "You are an expert search query generator. Your task is to create a list of diverse and effective search queries to fact-check a given claim. "
+        "Consider the claim's specific entities, the domain it belongs to, and any temporal context. "
+        "Generate a JSON object containing a list of 5-7 distinct search queries."
     ),
     HumanMessagePromptTemplate.from_template(
-        "Based on the following information:\n\n"
+        "Please generate search queries for the following claim:\n\n"
+        "**Claim:**\n{claim}\n\n"
+        "**Fact-Checker Role:**\n{role_description}\n\n"
+        "**Temporal Context:**\n{temporal_context}\n\n"
+        "Generate a JSON object with a single key 'search_queries' which is a list of strings. "
+        "For example: {{\"search_queries\": [\"query 1\", \"query 2\"]}}."
+    )
+])
+
+
+# Verdict Generation Prompt
+VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(
+        "You are a helpful AI assistant that synthesizes fact-checking results into a clear, direct, and conversational answer. "
+        "Your goal is to provide a final verdict that directly addresses the user's original question. "
+        "Base your answer on the provided research summary and temporal analysis. "
+        "ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', 'justification', and 'sources'."
+    ),
+    HumanMessagePromptTemplate.from_template(
+        "Please generate a final verdict based on the following information:\n\n"
         "**User's Original Question:**\n{user_prompt}\n\n"
         "**Temporal Analysis:**\n{temporal_analysis}\n\n"
         "**Fact-Checking Research Summary:**\n{research_results}\n\n"
-        "Provide a final verdict (true/partially_true/false/ironic) with:\n"
-        "1. A clear verdict classification\n"
-        "2. A confidence score (0-100)\n"
-        "3. A brief justification (2-3 sentences) that directly addresses the user's question and temporal context.\n"
-        "4. Key sources that support your conclusion\n"
-        "5. Any important caveats or limitations"
+        "Based on all the information, provide a final JSON response. "
+        "The 'justification' should be a 2-3 sentence, easy-to-understand explanation that directly answers the user's question. "
+        "The 'sources' should be a formatted string listing the key sources found."
     )
 ])
 
