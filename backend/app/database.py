@@ -56,7 +56,7 @@ class VerificationResult(Base):
     # Analysis results
     primary_topic = Column(String(100))
     identified_claims = Column(Text)  # JSON string of claims
-    verdict = Column(String(50))  # true, partially_true, false, ironic
+    verdict = Column(Text)  # true, partially_true, false, ironic
     justification = Column(Text)
     confidence_score = Column(Integer)  # 0-100
     

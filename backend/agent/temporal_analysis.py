@@ -39,7 +39,12 @@ class TemporalAnalyzer:
             }
             
             # Extract post timestamp
-            post_timestamp = self._extract_post_timestamp(extracted_info.get("extracted_text", ""))
+            post_date_str = extracted_info.get("post_date")
+            post_timestamp = self._extract_post_timestamp(post_date_str) if post_date_str else None
+            
+            if not post_timestamp:
+                post_timestamp = self._extract_post_timestamp(extracted_info.get("extracted_text", ""))
+
             if post_timestamp:
                 analysis["post_timestamp"] = post_timestamp
                 analysis["post_age_hours"] = self._calculate_age_hours(post_timestamp)

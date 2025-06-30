@@ -1,38 +1,41 @@
 # FastAPI and server dependencies
-fastapi==0.115.12
-uvicorn[standard]==0.32.1
-python-multipart==0.0.20
-websockets==14.1
+fastapi
+uvicorn[standard]
+python-multipart
+websockets
 
 # Database dependencies
-sqlalchemy==2.0.36
-psycopg2-binary==2.9.10
-asyncpg==0.30.0
-alembic==1.14.0
+sqlalchemy
+psycopg2-binary
+asyncpg
+alembic
 
 # LangChain and AI dependencies
-langchain==0.3.12
-langchain-community==0.3.12
-langchain-ollama==0.2.1
-langchain-core==0.3.28
+langchain
+langchain-community
+langchain-ollama
+langchain-core
 
 # Vector database
-chromadb==0.5.23
+chromadb
 
 # Image processing
-Pillow==11.0.0
-pytesseract==0.3.13
+Pillow
+pytesseract
 
 # HTTP requests and utilities
-requests==2.32.3
-python-dotenv==1.0.1
-pydantic==2.10.4
-pydantic-settings==2.7.0
+requests
+python-dotenv
+pydantic
+pydantic-settings
 
 # Development and testing
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.28.1
+pytest
+pytest-asyncio
+httpx
 
 # Logging and monitoring
-structlog==24.4.0
+structlog
+
+# New dependencies
+watchfiles
