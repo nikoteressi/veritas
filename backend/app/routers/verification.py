@@ -26,6 +26,7 @@ async def run_verification_with_websocket(
     session_id: str,
     image_content: bytes,
     prompt: str,
+    filename: str = None,
 ):
     """
     Run verification with WebSocket progress updates.
@@ -49,11 +50,26 @@ async def run_verification_with_websocket(
                 db=db,
                 progress_callback=progress_tracker.update,
                 session_id=session_id,
+                filename=filename,
             )
             logger.info(f"Background verification completed for session {session_id}, sending result")
-            # Send final result
-            await progress_tracker.complete(result)
-            logger.info(f"Final result sent successfully for session {session_id}")
+            
+            # Explicitly commit the database transaction
+            try:
+                await db.commit()
+                logger.info(f"Database transaction committed for session {session_id}")
+            except Exception as commit_error:
+                logger.error(f"Failed to commit database transaction for session {session_id}: {commit_error}", exc_info=True)
+                await db.rollback()
+                raise
+            
+            # Send final result - handle any WebSocket errors separately after DB commit
+            try:
+                await progress_tracker.complete(result)
+                logger.info(f"Final result sent successfully for session {session_id}")
+            except Exception as ws_error:
+                logger.error(f"Failed to send WebSocket result for session {session_id}: {ws_error}", exc_info=True)
+                # Don't raise the exception - the verification succeeded even if WebSocket failed
     except Exception as e:
         logger.error(f"WebSocket verification failed for session {session_id}: {e}", exc_info=True)
         await progress_tracker.error(str(e))
@@ -116,6 +132,7 @@ async def verify_post(
                 session_id,
                 image_content,
                 validated_data['prompt'],
+                file.filename,
             )
 
             return {
@@ -130,7 +147,8 @@ async def verify_post(
                 image_bytes=image_content,
                 user_prompt=validated_data['prompt'],
                 db=db,
-                session_id="sync"
+                session_id="sync",
+                filename=file.filename
             )
 
             return result

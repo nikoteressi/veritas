@@ -72,7 +72,17 @@ function VerificationResults({ result, isLoading, progressData }) {
           />
           <ProgressStep
             text="Extracting claims and user information..."
-            isActive={progressData && progressData.progress >= 25 && progressData.progress < 50}
+            isActive={progressData && progressData.progress >= 25 && progressData.progress < 40}
+            isComplete={progressData && progressData.progress >= 40}
+          />
+          <ProgressStep
+            text="Analyzing temporal context..."
+            isActive={progressData && progressData.progress >= 40 && progressData.progress < 45}
+            isComplete={progressData && progressData.progress >= 45}
+          />
+          <ProgressStep
+            text="Analyzing potential motives..."
+            isActive={progressData && progressData.progress >= 45 && progressData.progress < 50}
             isComplete={progressData && progressData.progress >= 50}
           />
           <ProgressStep
@@ -222,6 +232,76 @@ function VerificationResults({ result, isLoading, progressData }) {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Sources */}
+          {result.sources && result.sources.length > 0 && (
+            <div className="mb-4">
+              <h3 className="font-medium text-gray-800 mb-2">Sources Consulted</h3>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <ul className="space-y-2">
+                  {result.sources.map((source, index) => (
+                    <li key={index} className="text-sm">
+                      <a 
+                        href={source} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        {source}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Motives Analysis */}
+          {result.motives_analysis && (
+            <div className="mb-4">
+              <h3 className="font-medium text-gray-800 mb-2">Motives Analysis</h3>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">Primary Motive:</span>
+                    <span className="ml-2 capitalize">{result.motives_analysis.primary_motive?.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Confidence:</span>
+                    <span className="ml-2">{Math.round(result.motives_analysis.confidence_score * 100)}%</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Credibility:</span>
+                    <span className="ml-2 capitalize">{result.motives_analysis.credibility_assessment?.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Risk Level:</span>
+                    <span className={`ml-2 capitalize ${
+                      result.motives_analysis.risk_level === 'high' ? 'text-red-600' :
+                      result.motives_analysis.risk_level === 'moderate' ? 'text-yellow-600' :
+                      'text-green-600'
+                    }`}>
+                      {result.motives_analysis.risk_level}
+                    </span>
+                  </div>
+                </div>
+                
+                {result.motives_analysis.manipulation_indicators && result.motives_analysis.manipulation_indicators.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-medium text-gray-700 mb-2">Manipulation Indicators:</h4>
+                    <ul className="space-y-1">
+                      {result.motives_analysis.manipulation_indicators.slice(0, 5).map((indicator, index) => (
+                        <li key={index} className="text-sm text-gray-600 flex items-start">
+                          <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                          {indicator}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

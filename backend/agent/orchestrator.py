@@ -27,6 +27,7 @@ from agent.services.fact_checking import FactCheckingService
 from agent.services.verdict import verdict_service
 from agent.services.reputation import reputation_service
 from agent.services.storage import storage_service
+from agent.motives_analyzer import motives_analyzer
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,8 @@ class VerificationOrchestrator:
         user_prompt: str,
         db: AsyncSession,
         session_id: str,
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
+        filename: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Main method to verify a social media post.
@@ -85,42 +87,51 @@ class VerificationOrchestrator:
                 await progress_callback("Analyzing image content...", 10)
             analysis_result = await image_analysis_service.analyze(image_bytes, user_prompt)
             extracted_info = analysis_result.dict()
+            # Add filename for frontend display
+            if filename:
+                extracted_info["filename"] = filename
             
             # Step 2: Get user reputation
             if progress_callback:
-                await progress_callback("Checking user reputation...", 35)
+                await progress_callback("Extracting claims and user information...", 25)
             user_reputation = await reputation_service.get_or_create(
                 db, extracted_info.get("username", "unknown")
             )
 
             # Step 3: Temporal analysis
             if progress_callback:
-                await progress_callback("Analyzing temporal context...", 40)
+                await progress_callback("Extracting claims and user information...", 40)
             temporal_analysis = temporal_analyzer.analyze_temporal_context(extracted_info)
             extracted_info["temporal_analysis"] = temporal_analysis
 
-            # Step 4: Fact-checking
+            # Step 4: Motives analysis
             if progress_callback:
-                await progress_callback("Fact-checking claims...", 50)
+                await progress_callback("Extracting claims and user information...", 45)
+            motives_analysis = await motives_analyzer.analyze_motives(extracted_info)
+            extracted_info["motives_analysis"] = motives_analysis
+
+            # Step 5: Fact-checking
+            if progress_callback:
+                await progress_callback("Fact-checking with external sources...", 50)
             fact_check_result = await self.fact_checking_service.check(
                 extracted_info, user_prompt, progress_callback
             )
             
-            # Step 5: Generate final verdict
+            # Step 6: Generate final verdict
             if progress_callback:
                 await progress_callback("Generating final verdict...", 80)
             verdict_result = await verdict_service.generate(
-                fact_check_result, user_prompt, extracted_info.get("temporal_analysis", {})
+                fact_check_result, user_prompt, extracted_info.get("temporal_analysis", {}), extracted_info.get("motives_analysis", {})
             )
             
-            # Step 6: Update user reputation
+            # Step 7: Update user reputation
             if progress_callback:
                 await progress_callback("Updating user reputation...", 90)
             updated_reputation = await reputation_service.update(
                 db, extracted_info.get("username", "unknown"), verdict_result.verdict
             )
             
-            # Step 7: Save verification result
+            # Step 8: Save verification result
             if progress_callback:
                 await progress_callback("Saving results...", 95)
             
@@ -145,33 +156,74 @@ class VerificationOrchestrator:
                 reputation_data=reputation_data
             )
 
-            # Step 8: Compile final result BEFORE storing in vector DB
+            # Step 9: Compile final result BEFORE storing in vector DB
             processing_time = int(time.time() - start_time)
             warnings = reputation_service.generate_warnings(updated_reputation)
             
-            final_result = {
-                "status": "success",
-                "message": "Verification completed successfully",
-                "verification_id": str(verification_record.id),
-                "nickname": extracted_info.get("username"),
-                "extracted_text": analysis_result.extracted_text,
-                "primary_topic": analysis_result.primary_topic,
-                "claims": analysis_result.claims,
-                "verdict": verdict_result.verdict,
-                "reasoning": verdict_result.reasoning,
-                "confidence_score": verdict_result.confidence_score,
-                "processing_time_seconds": processing_time,
-                "temporal_analysis": extracted_info.get("temporal_analysis", {}),
-                "fact_check_results": {
-                    "examined_sources": fact_check_result.examined_sources,
-                    "search_queries_used": fact_check_result.search_queries_used,
-                    "summary": fact_check_result.summary.dict(),
-                },
-                "user_reputation": reputation_data,
-                "warnings": warnings
-            }
+            # Ensure all data is JSON serializable
+            try:
+                from app.json_utils import json_dumps, prepare_for_json_serialization
+                
+                # Prepare serializable versions of complex objects
+                serializable_temporal = prepare_for_json_serialization(extracted_info.get("temporal_analysis", {}))
+                serializable_motives = prepare_for_json_serialization(extracted_info.get("motives_analysis", {}))
+                
+                final_result = {
+                    "status": "success",
+                    "message": "Verification completed successfully",
+                    "verification_id": str(verification_record.id),
+                    "nickname": extracted_info.get("username"),
+                    "extracted_text": analysis_result.extracted_text,
+                    "primary_topic": analysis_result.primary_topic,
+                    "identified_claims": analysis_result.claims,
+                    "verdict": verdict_result.verdict,
+                    "justification": verdict_result.reasoning,
+                    "confidence_score": verdict_result.confidence_score,
+                    "processing_time_seconds": processing_time,
+                    "temporal_analysis": serializable_temporal,
+                    "motives_analysis": serializable_motives,
+                    "fact_check_results": {
+                        "examined_sources": fact_check_result.examined_sources,
+                        "search_queries_used": fact_check_result.search_queries_used,
+                        "summary": fact_check_result.summary.dict(),
+                    },
+                    "sources": verdict_result.sources or [],
+                    "user_reputation": reputation_data,
+                    "warnings": warnings,
+                    # Add fields that frontend expects
+                    "prompt": user_prompt,
+                    "filename": extracted_info.get("filename", "uploaded_image"),
+                    "file_size": len(image_bytes) if image_bytes else 0
+                }
+                
+                # Test JSON serialization to catch issues early
+                json_dumps(final_result)
+                
+            except Exception as serialization_error:
+                logger.error(f"JSON serialization error: {serialization_error}", exc_info=True)
+                # Fallback to basic result without complex objects
+                final_result = {
+                    "status": "success",
+                    "message": "Verification completed successfully",
+                    "verification_id": str(verification_record.id),
+                    "nickname": extracted_info.get("username"),
+                    "extracted_text": analysis_result.extracted_text,
+                    "primary_topic": analysis_result.primary_topic,
+                    "identified_claims": analysis_result.claims,
+                    "verdict": verdict_result.verdict,
+                    "justification": verdict_result.reasoning,
+                    "confidence_score": verdict_result.confidence_score,
+                    "processing_time_seconds": processing_time,
+                    "sources": verdict_result.sources or [],
+                    "user_reputation": reputation_data,
+                    "warnings": warnings or [],
+                    # Add fields that frontend expects
+                    "prompt": user_prompt,
+                    "filename": extracted_info.get("filename", "uploaded_image"),
+                    "file_size": len(image_bytes) if image_bytes else 0
+                }
 
-            # Step 9: Store the compiled result in the vector database
+            # Step 10: Store the compiled result in the vector database
             await storage_service.store_in_vector_db(final_result)
             
             if progress_callback:

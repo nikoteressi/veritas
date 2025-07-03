@@ -1,198 +1,215 @@
+veritas-backend has been recreated
 veritas-backend  | INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 veritas-backend  | INFO  [alembic.runtime.migration] Will assume transactional DDL.
-veritas-backend  | INFO:     Started server process [8]
+veritas-backend  | INFO:     Started server process [7]
 veritas-backend  | INFO:     Waiting for application startup.
-veritas-backend  | 2025-07-03 16:18:28 [app.main] [INFO] Starting Veritas application...
-veritas-backend  | 2025-07-03 16:18:28 [app.redis_client] [INFO] Initializing Redis connection pool at redis://redis:6379/0
-veritas-backend  | 2025-07-03 16:18:28 [app.redis_client] [INFO] Redis connection pool initialized successfully.
-veritas-backend  | 2025-07-03 16:18:28 [app.main] [INFO] Redis connection pool initialized.
-veritas-backend  | 2025-07-03 16:18:28 [app.database] [INFO] Creating database tables if they don't exist...
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] select pg_catalog.version()
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] select current_schema()
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] show standard_conforming_strings
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] BEGIN (implicit)
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-07-03 17:42:41 [app.main] [INFO] Starting Veritas application...
+veritas-backend  | 2025-07-03 17:42:41 [app.redis_client] [INFO] Initializing Redis connection pool at redis://redis:6379/0
+veritas-backend  | 2025-07-03 17:42:41 [app.redis_client] [INFO] Redis connection pool initialized successfully.
+veritas-backend  | 2025-07-03 17:42:41 [app.main] [INFO] Redis connection pool initialized.
+veritas-backend  | 2025-07-03 17:42:41 [app.database] [INFO] Creating database tables if they don't exist...
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] select pg_catalog.version()
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] select current_schema()
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] show standard_conforming_strings
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] [raw sql] {}
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] BEGIN (implicit)
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00025s] {'table_name': 'users', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] SELECT pg_catalog.pg_class.relname
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00022s] {'table_name': 'users', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] SELECT pg_catalog.pg_class.relname
 veritas-backend  | FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace
 veritas-backend  | WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] [cached since 0.007935s ago] {'table_name': 'verification_results', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
-veritas-backend  | 2025-07-03 16:18:28 [sqlalchemy.engine.Engine] [INFO] COMMIT
-veritas-backend  | 2025-07-03 16:18:28 [app.database] [INFO] Database tables created successfully.
-veritas-backend  | 2025-07-03 16:18:28 [app.main] [INFO] Vector store scheduled for lazy initialization.
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] [cached since 0.007121s ago] {'table_name': 'verification_results', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+veritas-backend  | 2025-07-03 17:42:41 [sqlalchemy.engine.Engine] [INFO] COMMIT
+veritas-backend  | 2025-07-03 17:42:41 [app.database] [INFO] Database tables created successfully.
+veritas-backend  | 2025-07-03 17:42:41 [app.main] [INFO] Vector store scheduled for lazy initialization.
 veritas-backend  | INFO:     Application startup complete.
 veritas-backend  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-veritas-backend  | INFO:     172.18.0.1:54150 - "WebSocket /ws" [accepted]
+veritas-backend  | INFO:     127.0.0.1:50382 - "GET /health HTTP/1.1" 200
+veritas-backend  | INFO:     172.18.0.1:44312 - "WebSocket /ws" [accepted]
 veritas-backend  | INFO:     connection open
-veritas-backend  | 2025-07-03 16:18:30 [app.websocket_manager] [INFO] WebSocket connected: 4b6f0faa-ca58-467c-9c0c-79acb025a994
-veritas-backend  | 2025-07-03 16:18:33 [app.routers.verification] [INFO] Received verification request: signal-2025-05-23-002445_002.jpeg, prompt: is that actual info?...
-veritas-backend  | 2025-07-03 16:18:33 [app.websocket_manager] [INFO] Started verification session: 4b6f0faa-ca58-467c-9c0c-79acb025a994
-veritas-backend  | INFO:     172.18.0.1:54164 - "POST /api/v1/verify-post HTTP/1.1" 200
-veritas-backend  | 2025-07-03 16:18:33 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Analyzing image content... (10%)
-veritas-backend  | 2025-07-03 16:18:33 [agent.llm] [INFO] Resized image from original size to (460, 1024)
-veritas-backend  | 2025-07-03 16:18:33 [agent.llm] [INFO] Encoded image to base64 (size: 93996 chars)
-veritas-backend  | 2025-07-03 16:18:39 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:18:47 [agent.llm] [INFO] Successfully invoked multimodal LLM
-veritas-backend  | 2025-07-03 16:18:47 [agent.services.image_analysis] [INFO] Image analysis completed and JSON extracted.
-veritas-backend  | 2025-07-03 16:18:47 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Checking user reputation... (35%)
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] select pg_catalog.version()
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] select current_schema()
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] show standard_conforming_strings
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] BEGIN (implicit)
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-07-03 17:42:45 [app.websocket_manager] [INFO] WebSocket connected: 8514dfc2-a8ed-447b-97f1-1145c896fba9
+veritas-backend  | 2025-07-03 17:42:45 [app.main] [INFO] WebSocket client disconnected: 8514dfc2-a8ed-447b-97f1-1145c896fba9
+veritas-backend  | INFO:     connection closed
+veritas-backend  | 2025-07-03 17:42:45 [app.websocket_manager] [INFO] WebSocket disconnected: 8514dfc2-a8ed-447b-97f1-1145c896fba9
+veritas-backend  | INFO:     172.18.0.1:44320 - "WebSocket /ws" [accepted]
+veritas-backend  | INFO:     connection open
+veritas-backend  | 2025-07-03 17:42:45 [app.websocket_manager] [INFO] WebSocket connected: ce3f1ca4-ef2f-4dd9-b507-2acec509cef3
+veritas-backend  | 2025-07-03 17:42:46 [app.main] [INFO] WebSocket client disconnected: ce3f1ca4-ef2f-4dd9-b507-2acec509cef3
+veritas-backend  | INFO:     connection closed
+veritas-backend  | 2025-07-03 17:42:46 [app.websocket_manager] [INFO] WebSocket disconnected: ce3f1ca4-ef2f-4dd9-b507-2acec509cef3
+veritas-backend  | INFO:     172.18.0.1:44330 - "WebSocket /ws" [accepted]
+veritas-backend  | INFO:     connection open
+veritas-backend  | 2025-07-03 17:42:46 [app.websocket_manager] [INFO] WebSocket connected: d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0
+veritas-backend  | 2025-07-03 17:42:56 [app.routers.verification] [INFO] Received verification request: signal-2025-05-23-002445_002.jpeg, prompt: is that actual info?...
+veritas-backend  | 2025-07-03 17:42:56 [app.websocket_manager] [INFO] Started verification session: d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0
+veritas-backend  | INFO:     172.18.0.1:42036 - "POST /api/v1/verify-post HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:42:56 [app.routers.verification] [INFO] Starting background verification for session d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0
+veritas-backend  | 2025-07-03 17:42:56 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Analyzing image content... (10%)
+veritas-backend  | 2025-07-03 17:42:56 [agent.llm] [INFO] Resized image from original size to (460, 1024)
+veritas-backend  | 2025-07-03 17:42:56 [agent.llm] [INFO] Encoded image to base64 (size: 93996 chars)
+veritas-backend  | 2025-07-03 17:43:01 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:43:10 [agent.llm] [INFO] Successfully invoked multimodal LLM
+veritas-backend  | 2025-07-03 17:43:10 [agent.services.image_analysis] [INFO] Image analysis completed and JSON extracted.
+veritas-backend  | 2025-07-03 17:43:10 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Extracting claims and user information... (25%)
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] select pg_catalog.version()
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] select current_schema()
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] show standard_conforming_strings
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] [raw sql] ()
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] BEGIN (implicit)
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.nickname = $1::VARCHAR
-veritas-backend  | 2025-07-03 16:18:47 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00016s] ('cryptopatell',)
-veritas-backend  | 2025-07-03 16:18:47 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Analyzing temporal context... (40%)
-veritas-backend  | 2025-07-03 16:18:47 [agent.temporal_analysis] [INFO] Temporal analysis completed: critical mismatch detected
-veritas-backend  | 2025-07-03 16:18:47 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Fact-checking claims... (50%)
-veritas-backend  | 2025-07-03 16:18:47 [agent.services.fact_checking] [INFO] Using 'financial' fact-checker.
-veritas-backend  | 2025-07-03 16:18:47 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Fact-checking claims... (50%)
-veritas-backend  | 2025-07-03 16:18:48 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:18:53 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:18:54 [agent.services.fact_checking] [INFO] Generated 7 search queries for claim: 'BlackRock bought 4,970 BTC worth $530.6M on May 21, 2024'
-veritas-backend  | 2025-07-03 16:18:54 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
-veritas-backend  | 2025-07-03 16:18:54 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC purchase May 21 2024
-veritas-backend  | 2025-07-03 16:18:58 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC purchase May 21 2024'
-veritas-backend  | 2025-07-03 16:18:58 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC purchase May 21 2024'
-veritas-backend  | 2025-07-03 16:18:58 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock $530.6M Bitcoin buy May 2024
-veritas-backend  | 2025-07-03 16:18:59 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock $530.6M Bitcoin buy May 2024'
-veritas-backend  | 2025-07-03 16:18:59 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock $530.6M Bitcoin buy May 2024'
-veritas-backend  | 2025-07-03 16:18:59 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock 4,970 BTC acquisition May 2024
-veritas-backend  | 2025-07-03 16:19:00 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock 4,970 BTC acquisition May 2024'
-veritas-backend  | 2025-07-03 16:19:00 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock 4,970 BTC acquisition May 2024'
-veritas-backend  | 2025-07-03 16:19:00 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin investment May 21 2024 news
-veritas-backend  | 2025-07-03 16:19:02 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin investment May 21 2024 news'
-veritas-backend  | 2025-07-03 16:19:02 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin investment May 21 2024 news'
-veritas-backend  | 2025-07-03 16:19:02 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC market activity May 2024 report
-veritas-backend  | 2025-07-03 16:19:05 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC market activity May 2024 report'
-veritas-backend  | 2025-07-03 16:19:05 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC market activity May 2024 report'
-veritas-backend  | 2025-07-03 16:19:05 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock official statement BTC purchase May 2024
-veritas-backend  | 2025-07-03 16:19:07 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock official statement BTC purchase May 2024'
-veritas-backend  | 2025-07-03 16:19:07 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock official statement BTC purchase May 2024'
-veritas-backend  | 2025-07-03 16:19:07 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock financial filing BTC May 2024
-veritas-backend  | 2025-07-03 16:19:09 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock financial filing BTC May 2024'
-veritas-backend  | 2025-07-03 16:19:09 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock financial filing BTC May 2024'
-veritas-backend  | INFO:     127.0.0.1:49880 - "GET /health HTTP/1.1" 200
-veritas-backend  | 2025-07-03 16:19:09 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:18:20.509Z"}
-veritas-backend  | 2025-07-03 16:19:17 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:19:19 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:19:19 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 21 sources.
-veritas-backend  | 2025-07-03 16:19:19 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Fact-checking claims... (60%)
-veritas-backend  | 2025-07-03 16:19:21 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:19:30 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:18:49.938Z"}
-veritas-backend  | 2025-07-03 16:19:30 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:19:30 [agent.services.fact_checking] [INFO] Generated 10 search queries for claim: 'BlackRock now holds 643,974 BTC valued at over $67B'
-veritas-backend  | 2025-07-03 16:19:30 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
-veritas-backend  | 2025-07-03 16:19:30 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin holdings 2025
-veritas-backend  | 2025-07-03 16:19:33 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin holdings 2025'
-veritas-backend  | 2025-07-03 16:19:33 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin holdings 2025'
-veritas-backend  | 2025-07-03 16:19:33 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC portfolio value July 2025
-veritas-backend  | 2025-07-03 16:19:33 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC portfolio value July 2025'
-veritas-backend  | 2025-07-03 16:19:33 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC portfolio value July 2025'
-veritas-backend  | 2025-07-03 16:19:33 [agent.fact_checkers.base] [INFO] Executing search query: 643,974 BTC BlackRock purchase records
-veritas-backend  | 2025-07-03 16:19:34 [agent.tools] [INFO] SearxNG search completed: 5 results for '643,974 BTC BlackRock purchase records'
-veritas-backend  | 2025-07-03 16:19:34 [agent.fact_checkers.base] [INFO] Found 5 sources for query: '643,974 BTC BlackRock purchase records'
-veritas-backend  | 2025-07-03 16:19:34 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock official statements on Bitcoin holdings
-veritas-backend  | 2025-07-03 16:19:36 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock official statements on Bitcoin holdings'
-veritas-backend  | 2025-07-03 16:19:36 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock official statements on Bitcoin holdings'
-veritas-backend  | 2025-07-03 16:19:36 [agent.fact_checkers.base] [INFO] Executing search query: Financial reports on BlackRock Bitcoin investments 2024-2025
-veritas-backend  | 2025-07-03 16:19:37 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Financial reports on BlackRock Bitcoin investments 2024-2025'
-veritas-backend  | 2025-07-03 16:19:37 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Financial reports on BlackRock Bitcoin investments 2024-2025'
-veritas-backend  | 2025-07-03 16:19:37 [agent.fact_checkers.base] [INFO] Executing search query: Market analysis BlackRock BTC valuation $67B
-veritas-backend  | 2025-07-03 16:19:40 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Market analysis BlackRock BTC valuation $67B'
-veritas-backend  | 2025-07-03 16:19:40 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Market analysis BlackRock BTC valuation $67B'
-veritas-backend  | 2025-07-03 16:19:40 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock cryptocurrency investment strategy 2025
-veritas-backend  | 2025-07-03 16:19:43 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock cryptocurrency investment strategy 2025'
-veritas-backend  | 2025-07-03 16:19:43 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock cryptocurrency investment strategy 2025'
-veritas-backend  | 2025-07-03 16:19:43 [agent.fact_checkers.base] [INFO] Executing search query: Recent news on BlackRock Bitcoin holdings
-veritas-backend  | 2025-07-03 16:19:44 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Recent news on BlackRock Bitcoin holdings'
-veritas-backend  | 2025-07-03 16:19:44 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Recent news on BlackRock Bitcoin holdings'
-veritas-backend  | 2025-07-03 16:19:44 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock financial statements 2024 Q2
-veritas-backend  | 2025-07-03 16:19:46 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock financial statements 2024 Q2'
-veritas-backend  | 2025-07-03 16:19:46 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock financial statements 2024 Q2'
-veritas-backend  | 2025-07-03 16:19:46 [agent.fact_checkers.base] [INFO] Executing search query: Experts' analysis on BlackRock's Bitcoin market impact
-veritas-backend  | 2025-07-03 16:19:47 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Experts' analysis on BlackRock's Bitcoin market impact'
-veritas-backend  | 2025-07-03 16:19:47 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Experts' analysis on BlackRock's Bitcoin market impact'
-veritas-backend  | INFO:     127.0.0.1:38820 - "GET /health HTTP/1.1" 200
-veritas-backend  | 2025-07-03 16:19:54 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:19:59 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:19:59 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 36 sources.
-veritas-backend  | 2025-07-03 16:19:59 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Fact-checking claims... (70%)
-veritas-backend  | 2025-07-03 16:20:00 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:19:19.941Z"}
-veritas-backend  | 2025-07-03 16:20:00 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:20:06 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:20:06 [agent.services.fact_checking] [INFO] Generated 7 search queries for claim: 'This is the largest institutional Bitcoin stash ever'
-veritas-backend  | 2025-07-03 16:20:06 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
-veritas-backend  | 2025-07-03 16:20:06 [agent.fact_checkers.base] [INFO] Executing search query: largest institutional Bitcoin holdings 2024
-veritas-backend  | 2025-07-03 16:20:08 [agent.tools] [INFO] SearxNG search completed: 5 results for 'largest institutional Bitcoin holdings 2024'
-veritas-backend  | 2025-07-03 16:20:08 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'largest institutional Bitcoin holdings 2024'
-veritas-backend  | 2025-07-03 16:20:08 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin ETF holdings May 2024
-veritas-backend  | 2025-07-03 16:20:09 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin ETF holdings May 2024'
-veritas-backend  | 2025-07-03 16:20:09 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin ETF holdings May 2024'
-veritas-backend  | 2025-07-03 16:20:09 [agent.fact_checkers.base] [INFO] Executing search query: institutional Bitcoin stash rankings
-veritas-backend  | 2025-07-03 16:20:11 [agent.tools] [INFO] SearxNG search completed: 5 results for 'institutional Bitcoin stash rankings'
-veritas-backend  | 2025-07-03 16:20:11 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'institutional Bitcoin stash rankings'
-veritas-backend  | 2025-07-03 16:20:11 [agent.fact_checkers.base] [INFO] Executing search query: Bitcoin institutional investment trends 2024
-veritas-backend  | 2025-07-03 16:20:12 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Bitcoin institutional investment trends 2024'
-veritas-backend  | 2025-07-03 16:20:12 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Bitcoin institutional investment trends 2024'
-veritas-backend  | 2025-07-03 16:20:12 [agent.fact_checkers.base] [INFO] Executing search query: largest Bitcoin purchases by institutions 2024
-veritas-backend  | 2025-07-03 16:20:13 [agent.tools] [INFO] SearxNG search completed: 5 results for 'largest Bitcoin purchases by institutions 2024'
-veritas-backend  | 2025-07-03 16:20:13 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'largest Bitcoin purchases by institutions 2024'
-veritas-backend  | 2025-07-03 16:20:13 [agent.fact_checkers.base] [INFO] Executing search query: Bitcoin market analysis July 2025
-veritas-backend  | 2025-07-03 16:20:14 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Bitcoin market analysis July 2025'
-veritas-backend  | 2025-07-03 16:20:14 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Bitcoin market analysis July 2025'
-veritas-backend  | 2025-07-03 16:20:14 [agent.fact_checkers.base] [INFO] Executing search query: institutional Bitcoin holdings over time 2024-2025
-veritas-backend  | 2025-07-03 16:20:15 [agent.tools] [INFO] SearxNG search completed: 5 results for 'institutional Bitcoin holdings over time 2024-2025'
-veritas-backend  | 2025-07-03 16:20:15 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'institutional Bitcoin holdings over time 2024-2025'
-veritas-backend  | INFO:     127.0.0.1:56720 - "GET /health HTTP/1.1" 200
-veritas-backend  | 2025-07-03 16:20:23 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:20:26 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:20:26 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 25 sources.
-veritas-backend  | 2025-07-03 16:20:26 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Generating final verdict... (80%)
-veritas-backend  | 2025-07-03 16:20:29 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
-veritas-backend  | 2025-07-03 16:20:30 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:19:49.944Z"}
-veritas-backend  | 2025-07-03 16:20:32 [agent.llm] [INFO] Successfully invoked text-only LLM
-veritas-backend  | 2025-07-03 16:20:32 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Updating user reputation... (90%)
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-07-03 17:43:10 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00042s] ('cryptopatell',)
+veritas-backend  | 2025-07-03 17:43:10 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Extracting claims and user information... (40%)
+veritas-backend  | 2025-07-03 17:43:10 [agent.temporal_analysis] [INFO] Temporal analysis completed: critical mismatch detected
+veritas-backend  | 2025-07-03 17:43:10 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Extracting claims and user information... (45%)
+veritas-backend  | 2025-07-03 17:43:10 [agent.motives_analyzer] [INFO] Starting LLM-based manipulation analysis
+veritas-backend  | 2025-07-03 17:43:11 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:43:11 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:43:11 [agent.motives_analyzer] [INFO] Adversarial check result: SAFE
+veritas-backend  | 2025-07-03 17:43:11 [agent.motives_analyzer] [ERROR] LLM manipulation analysis failed: '\n  "manipulation_detected"'
+veritas-backend  | 2025-07-03 17:43:11 [agent.motives_analyzer] [INFO] Motives analysis completed: legitimate_sharing (confidence: 0.70)
+veritas-backend  | 2025-07-03 17:43:11 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Fact-checking with external sources... (50%)
+veritas-backend  | 2025-07-03 17:43:11 [agent.services.fact_checking] [INFO] Using 'financial' fact-checker.
+veritas-backend  | 2025-07-03 17:43:11 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Fact-checking with external sources... (50%)
+veritas-backend  | 2025-07-03 17:43:13 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | INFO:     127.0.0.1:32860 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:43:16 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:42:36.002Z"}
+veritas-backend  | 2025-07-03 17:43:22 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:43:22 [agent.services.fact_checking] [INFO] Generated 7 search queries for claim: 'BlackRock bought 4,970 BTC worth $530.6M on May 21, 2024'
+veritas-backend  | 2025-07-03 17:43:22 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
+veritas-backend  | 2025-07-03 17:43:22 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC purchase May 21 2024
+veritas-backend  | 2025-07-03 17:43:25 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:25 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:25 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock bought 4970 BTC worth $530.6M
+veritas-backend  | 2025-07-03 17:43:25 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock bought 4970 BTC worth $530.6M'
+veritas-backend  | 2025-07-03 17:43:25 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock bought 4970 BTC worth $530.6M'
+veritas-backend  | 2025-07-03 17:43:25 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin investment May 2024
+veritas-backend  | 2025-07-03 17:43:26 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin investment May 2024'
+veritas-backend  | 2025-07-03 17:43:26 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin investment May 2024'
+veritas-backend  | 2025-07-03 17:43:26 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC transaction 2024
+veritas-backend  | 2025-07-03 17:43:28 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC transaction 2024'
+veritas-backend  | 2025-07-03 17:43:28 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC transaction 2024'
+veritas-backend  | 2025-07-03 17:43:28 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock official statement BTC purchase May 21 2024
+veritas-backend  | 2025-07-03 17:43:30 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock official statement BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:30 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock official statement BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:30 [agent.fact_checkers.base] [INFO] Executing search query: Financial reports BlackRock BTC purchase 2024
+veritas-backend  | 2025-07-03 17:43:31 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Financial reports BlackRock BTC purchase 2024'
+veritas-backend  | 2025-07-03 17:43:31 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Financial reports BlackRock BTC purchase 2024'
+veritas-backend  | 2025-07-03 17:43:31 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock May 2024 financial news BTC
+veritas-backend  | 2025-07-03 17:43:32 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock May 2024 financial news BTC'
+veritas-backend  | 2025-07-03 17:43:32 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock May 2024 financial news BTC'
+veritas-backend  | 2025-07-03 17:43:40 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:43:44 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:43:44 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 18 sources.
+veritas-backend  | 2025-07-03 17:43:44 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Fact-checking with external sources... (60%)
+veritas-backend  | INFO:     127.0.0.1:48932 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:43:45 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:43:46 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:43:05.997Z"}
+veritas-backend  | 2025-07-03 17:43:51 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:43:51 [agent.services.fact_checking] [INFO] Generated 7 search queries for claim: 'BlackRock now holds 643,974 BTC valued at over $67B'
+veritas-backend  | 2025-07-03 17:43:51 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
+veritas-backend  | 2025-07-03 17:43:51 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin holdings 2024
+veritas-backend  | 2025-07-03 17:43:54 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin holdings 2024'
+veritas-backend  | 2025-07-03 17:43:54 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin holdings 2024'
+veritas-backend  | 2025-07-03 17:43:54 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC purchase May 21 2024
+veritas-backend  | 2025-07-03 17:43:56 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:56 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC purchase May 21 2024'
+veritas-backend  | 2025-07-03 17:43:56 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock current Bitcoin holdings
+veritas-backend  | 2025-07-03 17:43:57 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock current Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:43:57 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock current Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:43:57 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin investment 2025
+veritas-backend  | 2025-07-03 17:43:58 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin investment 2025'
+veritas-backend  | 2025-07-03 17:43:58 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin investment 2025'
+veritas-backend  | 2025-07-03 17:43:58 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock BTC valuation July 2025
+veritas-backend  | 2025-07-03 17:43:59 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock BTC valuation July 2025'
+veritas-backend  | 2025-07-03 17:43:59 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock BTC valuation July 2025'
+veritas-backend  | 2025-07-03 17:43:59 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock official statements on Bitcoin holdings
+veritas-backend  | 2025-07-03 17:44:00 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock official statements on Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:44:00 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock official statements on Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:44:00 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock financial reports 2024 2025
+veritas-backend  | 2025-07-03 17:44:01 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock financial reports 2024 2025'
+veritas-backend  | 2025-07-03 17:44:01 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock financial reports 2024 2025'
+veritas-backend  | 2025-07-03 17:44:08 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:44:13 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:44:13 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 14 sources.
+veritas-backend  | 2025-07-03 17:44:13 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Fact-checking with external sources... (70%)
+veritas-backend  | 2025-07-03 17:44:14 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | INFO:     127.0.0.1:38560 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:44:16 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:43:35.998Z"}
+veritas-backend  | 2025-07-03 17:44:20 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:44:20 [agent.services.fact_checking] [INFO] Generated 7 search queries for claim: 'This is the largest institutional Bitcoin stash ever'
+veritas-backend  | 2025-07-03 17:44:20 [agent.fact_checkers.base] [INFO] Executing fact-check with FinancialFactChecker: 'A financial fact-checker responsible for verifying claims about stocks, companies, and market activities.'
+veritas-backend  | 2025-07-03 17:44:20 [agent.fact_checkers.base] [INFO] Executing search query: largest institutional Bitcoin holdings 2024
+veritas-backend  | 2025-07-03 17:44:23 [agent.tools] [INFO] SearxNG search completed: 5 results for 'largest institutional Bitcoin holdings 2024'
+veritas-backend  | 2025-07-03 17:44:23 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'largest institutional Bitcoin holdings 2024'
+veritas-backend  | 2025-07-03 17:44:23 [agent.fact_checkers.base] [INFO] Executing search query: BlackRock Bitcoin holdings May 2024
+veritas-backend  | 2025-07-03 17:44:26 [agent.tools] [INFO] SearxNG search completed: 5 results for 'BlackRock Bitcoin holdings May 2024'
+veritas-backend  | 2025-07-03 17:44:26 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'BlackRock Bitcoin holdings May 2024'
+veritas-backend  | 2025-07-03 17:44:26 [agent.fact_checkers.base] [INFO] Executing search query: institutional Bitcoin stash rankings
+veritas-backend  | 2025-07-03 17:44:27 [agent.tools] [INFO] SearxNG search completed: 5 results for 'institutional Bitcoin stash rankings'
+veritas-backend  | 2025-07-03 17:44:27 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'institutional Bitcoin stash rankings'
+veritas-backend  | 2025-07-03 17:44:27 [agent.fact_checkers.base] [INFO] Executing search query: Bitcoin institutional investment trends 2025
+veritas-backend  | 2025-07-03 17:44:30 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Bitcoin institutional investment trends 2025'
+veritas-backend  | 2025-07-03 17:44:30 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Bitcoin institutional investment trends 2025'
+veritas-backend  | 2025-07-03 17:44:30 [agent.fact_checkers.base] [INFO] Executing search query: largest Bitcoin purchases by institutions 2024
+veritas-backend  | 2025-07-03 17:44:30 [agent.tools] [INFO] SearxNG search completed: 5 results for 'largest Bitcoin purchases by institutions 2024'
+veritas-backend  | 2025-07-03 17:44:30 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'largest Bitcoin purchases by institutions 2024'
+veritas-backend  | 2025-07-03 17:44:30 [agent.fact_checkers.base] [INFO] Executing search query: current institutional Bitcoin holdings
+veritas-backend  | 2025-07-03 17:44:31 [agent.tools] [INFO] SearxNG search completed: 5 results for 'current institutional Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:44:31 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'current institutional Bitcoin holdings'
+veritas-backend  | 2025-07-03 17:44:31 [agent.fact_checkers.base] [INFO] Executing search query: Bitcoin market trends July 2025
+veritas-backend  | 2025-07-03 17:44:34 [agent.tools] [INFO] SearxNG search completed: 5 results for 'Bitcoin market trends July 2025'
+veritas-backend  | 2025-07-03 17:44:34 [agent.fact_checkers.base] [INFO] Found 5 sources for query: 'Bitcoin market trends July 2025'
+veritas-backend  | 2025-07-03 17:44:42 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:44:45 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:44:45 [agent.fact_checkers.base] [INFO] Fact-checking completed for claim in FinancialFactChecker. Examined 31 sources.
+veritas-backend  | 2025-07-03 17:44:45 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Generating final verdict... (80%)
+veritas-backend  | 2025-07-03 17:44:46 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:44:05.995Z"}
+veritas-backend  | INFO:     127.0.0.1:53746 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:44:49 [httpx] [INFO] HTTP Request: POST http://192.168.11.130:11434/api/chat "HTTP/1.1 200 OK"
+veritas-backend  | 2025-07-03 17:44:57 [agent.llm] [INFO] Successfully invoked text-only LLM
+veritas-backend  | 2025-07-03 17:44:57 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Updating user reputation... (90%)
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.nickname = $1::VARCHAR
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] [cached since 101.9s ago] ('cryptopatell',)
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] UPDATE users SET total_posts_checked=$1::INTEGER, last_checked_date=$2::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $3::INTEGER
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00024s] (45, datetime.datetime(2025, 7, 3, 16, 20, 32, 571886), 13)
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] [cached since 104.7s ago] ('cryptopatell',)
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] UPDATE users SET partially_true_count=$1::INTEGER, total_posts_checked=$2::INTEGER, last_checked_date=$3::TIMESTAMP WITHOUT TIME ZONE WHERE users.id = $4::INTEGER
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00022s] (6, 47, datetime.datetime(2025, 7, 3, 17, 44, 57, 464961), 13)
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] SELECT users.id, users.nickname, users.true_count, users.partially_true_count, users.false_count, users.ironic_count, users.total_posts_checked, users.created_at, users.last_checked_date, users.warning_issued, users.notification_issued
 veritas-backend  | FROM users
 veritas-backend  | WHERE users.id = $1::INTEGER
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00023s] (13,)
-veritas-backend  | 2025-07-03 16:20:32 [app.crud] [INFO] Updated reputation for cryptopatell: The information appears to be based on actual events, but the details may be outdated.
-veritas-backend  | 2025-07-03 16:20:32 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Saving results... (95%)
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00045s] ('cryptopatell', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'BlackRock Just Made the Biggest Bitcoin Move of 2024 #BlackRock just bought 4,970 $BTC worth $530.6M on May 21. They now hold 643,974 BTC valued at over $67B - the largest institutional #Bitcoin stash ever.', 'is that actual info?', 'financial', '["BlackRock bought 4,970 BTC worth $530.6M on May 21, 2024", "BlackRock now holds 643,974 BTC valued at over $67B", "This is the largest institutional Bitcoin stash ever"]', 'The information appears to be based on actual events, but the details may be outdated.', 'The claim about BlackRock buying 4,970 BTC worth $530.6M on May 21, 2024, is supported by multiple sources and appears to be true. However, the infor ... (19 characters truncated) ...  a year ago, which raises questions about its current relevance. The details provided seem to be factual but might not reflect the current situation.', 0.85, 0, 'llama4', '["SearxNGSearchTool"]', datetime.datetime(2025, 7, 3, 16, 20, 32, 594858))
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00016s] (13,)
+veritas-backend  | 2025-07-03 17:44:57 [app.crud] [INFO] Updated reputation for cryptopatell: partially_true
+veritas-backend  | 2025-07-03 17:44:57 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Saving results... (95%)
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] INSERT INTO verification_results (user_nickname, image_hash, extracted_text, user_prompt, primary_topic, identified_claims, verdict, justification, confidence_score, processing_time_seconds, model_used, tools_used, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::INTEGER, $10::INTEGER, $11::VARCHAR, $12::VARCHAR, $13::TIMESTAMP WITHOUT TIME ZONE) RETURNING verification_results.id
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00103s] ('cryptopatell', 'c25ae643e50138e78010a7d326aef82e2cfa7a3527181a26f5ce4ce827a23fff', 'BlackRock Just Made the Biggest Bitcoin Move of 2024 #BlackRock just bought 4,970 $BTC worth $530.6M on May 21. They now hold 643,974 BTC valued at over $67B - the largest institutional #Bitcoin stash ever.', 'is that actual info?', 'financial', '["BlackRock bought 4,970 BTC worth $530.6M on May 21, 2024", "BlackRock now holds 643,974 BTC valued at over $67B", "This is the largest institutional Bitcoin stash ever"]', 'partially_true', 'The information provided appears to be based on outdated data. While it was true that BlackRock bought 4,970 BTC worth $530.6M on May 21, 2024, and t ... (72 characters truncated) ... and current status of their holdings are not verified in real-time. Therefore, the claim is partially true but may not reflect the current situation.', 0.8, 0, 'llama4', '["SearxNGSearchTool"]', datetime.datetime(2025, 7, 3, 17, 44, 57, 480919))
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] SELECT verification_results.id, verification_results.user_nickname, verification_results.image_hash, verification_results.extracted_text, verification_results.user_prompt, verification_results.primary_topic, verification_results.identified_claims, verification_results.verdict, verification_results.justification, verification_results.confidence_score, verification_results.processing_time_seconds, verification_results.model_used, verification_results.tools_used, verification_results.created_at
 veritas-backend  | FROM verification_results
 veritas-backend  | WHERE verification_results.id = $1::INTEGER
-veritas-backend  | 2025-07-03 16:20:32 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00022s] (141,)
-veritas-backend  | 2025-07-03 16:20:32 [app.crud] [INFO] Created verification result for cryptopatell: The information appears to be based on actual events, but the details may be outdated.
-veritas-backend  | 2025-07-03 16:20:32 [agent.vector_store] [INFO] Initializing vector store with Ollama embeddings (no external downloads)...
-veritas-backend  | 2025-07-03 16:20:32 [agent.chroma_client] [INFO] Initializing ChromaDB client with Ollama embeddings only...
-veritas-backend  | 2025-07-03 16:20:33 [agent.ollama_embeddings] [INFO] Ollama embedding function initialized with model: nomic-embed-text
-veritas-backend  | 2025-07-03 16:20:33 [agent.chroma_client] [INFO] ChromaDB client initialized successfully with Ollama embeddings
-veritas-backend  | 2025-07-03 16:20:33 [agent.vector_store] [INFO] Vector store initialized successfully with Ollama embeddings
-veritas-backend  | 2025-07-03 16:21:19 [agent.vector_store] [INFO] Stored verification result: verification_9bdd90258cbe8a7d35494cf1d28ac31b_1751559633
-veritas-backend  | 2025-07-03 16:21:19 [agent.services.storage] [INFO] Stored verification result in vector database.
-veritas-backend  | 2025-07-03 16:21:19 [app.websocket_manager] [INFO] Progress update [4b6f0faa-ca58-467c-9c0c-79acb025a994]: Verification complete! (100%)
-veritas-backend  | 2025-07-03 16:21:19 [agent.orchestrator] [INFO] Verification completed in 119s: The information appears to be based on actual events, but the details may be outdated.
-veritas-backend  | INFO:     127.0.0.1:58450 - "GET /health HTTP/1.1" 200
-veritas-backend  | 2025-07-03 16:21:19 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:20:19.935Z"}
-veritas-backend  | 2025-07-03 16:21:19 [app.websocket_manager] [INFO] Verification completed [4b6f0faa-ca58-467c-9c0c-79acb025a994]
-veritas-backend  | 2025-07-03 16:21:19 [sqlalchemy.engine.Engine] [INFO] ROLLBACK
-veritas-backend  | 2025-07-03 16:20:49 [app.main] [INFO] Received WebSocket message from 4b6f0faa-ca58-467c-9c0c-79acb025a994: {"type":"ping","timestamp":"2025-07-03T16:20:49.937Z"}
-veritas-backend  | INFO:     127.0.0.1:44562 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:44:57 [sqlalchemy.engine.Engine] [INFO] [generated in 0.00020s] (147,)
+veritas-backend  | 2025-07-03 17:44:57 [app.crud] [INFO] Created verification result for cryptopatell: partially_true
+veritas-backend  | 2025-07-03 17:44:57 [agent.vector_store] [INFO] Initializing vector store with Ollama embeddings (no external downloads)...
+veritas-backend  | 2025-07-03 17:44:57 [agent.chroma_client] [INFO] Initializing ChromaDB client with Ollama embeddings only...
+veritas-backend  | 2025-07-03 17:44:58 [agent.ollama_embeddings] [INFO] Ollama embedding function initialized with model: nomic-embed-text
+veritas-backend  | 2025-07-03 17:44:58 [agent.chroma_client] [INFO] ChromaDB client initialized successfully with Ollama embeddings
+veritas-backend  | 2025-07-03 17:44:58 [agent.vector_store] [INFO] Vector store initialized successfully with Ollama embeddings
+veritas-backend  | 2025-07-03 17:45:32 [agent.vector_store] [INFO] Stored verification result: verification_5671e2ecebaf0d47783a3ebf149fe55f_1751564698
+veritas-backend  | 2025-07-03 17:45:32 [agent.services.storage] [INFO] Stored verification result in vector database.
+veritas-backend  | 2025-07-03 17:45:32 [app.websocket_manager] [INFO] Progress update [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]: Verification complete! (100%)
+veritas-backend  | 2025-07-03 17:45:32 [agent.orchestrator] [INFO] Verification completed in 121s: partially_true
+veritas-backend  | 2025-07-03 17:45:32 [app.routers.verification] [INFO] Background verification completed for session d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0, sending result
+veritas-backend  | 2025-07-03 17:45:32 [sqlalchemy.engine.Engine] [INFO] COMMIT
+veritas-backend  | INFO:     127.0.0.1:54928 - "GET /health HTTP/1.1" 200
+veritas-backend  | 2025-07-03 17:45:32 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:44:36.002Z"}
+veritas-backend  | 2025-07-03 17:45:32 [app.routers.verification] [INFO] Database transaction committed for session d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0
+veritas-backend  | 2025-07-03 17:45:32 [app.websocket_manager] [INFO] Verification completed [d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0]
+veritas-backend  | 2025-07-03 17:45:32 [app.routers.verification] [INFO] Final result sent successfully for session d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0
+veritas-backend  | 2025-07-03 17:45:46 [app.main] [INFO] Received WebSocket message from d61a1aa8-8f66-4d21-ac2e-2b3a107bb6c0: {"type":"ping","timestamp":"2025-07-03T17:45:05.997Z"}
+veritas-backend  | INFO:     127.0.0.1:50444 - "GET /health HTTP/1.1" 200

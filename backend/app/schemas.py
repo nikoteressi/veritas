@@ -146,6 +146,8 @@ class VerdictResult(BaseModel):
     verdict: str
     confidence_score: float
     reasoning: str
+    sources: Optional[List[str]] = []
+    motives_analysis: Optional[Dict[str, Any]] = None
 
 
 class FactCheckerResponse(BaseModel):
