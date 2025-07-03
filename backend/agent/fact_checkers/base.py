@@ -25,19 +25,12 @@ class BaseFactChecker(ABC):
         self._search_tool = search_tool
 
     @abstractmethod
-    def analyze_search_results(self, claim: str, search_results: List[Dict], temporal_context: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze_search_results(self, claim: str, search_results: List[Dict[str, Any]], temporal_context: Dict[str, Any]) -> str:
         """
         Analyze search results from a domain-specific perspective.
         
-        This method must be implemented by concrete checker classes.
-        
-        Args:
-            claim: The original claim.
-            search_results: A list of dictionaries containing search queries and their results.
-            temporal_context: Any temporal information related to the claim.
-            
-        Returns:
-            A dictionary containing the analysis of the search results.
+        This method must be implemented by concrete checker classes. It should
+        return a JSON string conforming to the FactCheckerResponse schema.
         """
         pass
 
@@ -77,7 +70,7 @@ class BaseFactChecker(ABC):
 
         return list(dict.fromkeys(filtered_entities))[:5]
 
-    def check(self, claim: str, search_queries: List[str], temporal_context: Dict[str, Any]) -> str:
+    async def check(self, claim: str, search_queries: List[str], temporal_context: Dict[str, Any]) -> str:
         """Execute the full fact-checking process for the given domain."""
         try:
             logger.info(f"Executing fact-check with {self.__class__.__name__}: '{self.role_description}'")
@@ -87,19 +80,24 @@ class BaseFactChecker(ABC):
 
             for query in search_queries:
                 logger.info(f"Executing search query: {query}")
-                result_str = self._search_tool._run(query)
+                result_str = await self._search_tool._arun(query=query)
                 search_results_data.append({"query": query, "results": result_str})
                 
                 sources = self._extract_sources_from_result(result_str)
                 examined_sources.update(sources)
                 logger.info(f"Found {len(sources)} sources for query: '{query}'")
 
-            analysis = self.analyze_search_results(claim, search_results_data, temporal_context)
-            analysis["examined_sources"] = list(examined_sources)
-            analysis["search_queries_used"] = search_queries
+            # The analyze_search_results method is now async and returns a JSON string
+            analysis_result_str = await self.analyze_search_results(claim, search_results_data, temporal_context)
+            
+            # We add the sources we found to the result
+            analysis_result = json.loads(analysis_result_str)
+            analysis_result["claim"] = claim
+            analysis_result["examined_sources"] = list(examined_sources)
+            analysis_result["total_sources_found"] = len(examined_sources)
             
             logger.info(f"Fact-checking completed for claim in {self.__class__.__name__}. Examined {len(examined_sources)} sources.")
-            return json.dumps(analysis, indent=2)
+            return json.dumps(analysis_result)
 
         except Exception as e:
             error_msg = f"Fact-checking failed in {self.__class__.__name__}: {e}"

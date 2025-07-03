@@ -20,7 +20,7 @@ class VectorStore:
     def __init__(self, persist_directory: str = None, lazy_init: bool = True):
         """Initialize ChromaDB client with optional lazy initialization."""
         if persist_directory is None:
-            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
         
         self.persist_directory = persist_directory
         self.lazy_init = lazy_init
@@ -70,7 +70,7 @@ class VectorStore:
     
 
     
-    def store_verification_result(self, verification_data: Dict[str, Any]) -> str:
+    async def store_verification_result(self, verification_data: Dict[str, Any]) -> str:
         """Store a complete verification result."""
         if not self._safe_initialize():
             return ""
@@ -185,46 +185,74 @@ class VectorStore:
         return " | ".join(parts)
     
     def _store_claims(self, claims: List[str], verification_id: str):
-        """Store individual claims for pattern recognition."""
+        """Store individual claims for pattern recognition in a batch."""
+        if not claims:
+            return
+
         try:
+            # Prepare all documents, metadatas, and IDs first
+            documents = []
+            metadatas = []
+            ids = []
+
             for i, claim in enumerate(claims):
                 claim_id = f"{verification_id}_claim_{i}"
-
                 metadata = {
                     "verification_id": verification_id,
                     "claim_index": i,
                     "timestamp": datetime.now().isoformat()
                 }
+                documents.append(claim)
+                metadatas.append(metadata)
+                ids.append(claim_id)
 
+            if documents:
+                # Generate embeddings for all documents in a single batch call
+                embeddings = self.client.embedding_function(documents)
+                
+                # Add to collection with pre-computed embeddings
                 self.claims_collection.add(
-                    documents=[claim],
-                    metadatas=[metadata],
-                    ids=[claim_id]
+                    embeddings=embeddings,
+                    documents=documents,
+                    metadatas=metadatas,
+                    ids=ids
                 )
         except Exception as e:
             logger.error(f"Failed to store claims: {e}")
     
     def _store_sources(self, fact_check_results: Dict[str, Any], verification_id: str):
-        """Store source information."""
+        """Store source information in a batch."""
+        examined_sources = fact_check_results.get("examined_sources", [])
+        if not examined_sources:
+            return
+            
         try:
-            examined_sources = fact_check_results.get("examined_sources", [])
-
+            documents = []
+            metadatas = []
+            ids = []
+            
             for i, source in enumerate(examined_sources):
                 source_id = f"{verification_id}_source_{i}"
-
-                # Create document from source URL and any available metadata
                 source_doc = f"Source: {source}"
-
                 metadata = {
                     "verification_id": verification_id,
                     "source_url": source,
                     "timestamp": datetime.now().isoformat()
                 }
+                documents.append(source_doc)
+                metadatas.append(metadata)
+                ids.append(source_id)
+            
+            if documents:
+                # Generate embeddings for all documents in a single batch call
+                embeddings = self.client.embedding_function(documents)
 
+                # Add to collection with pre-computed embeddings
                 self.sources_collection.add(
-                    documents=[source_doc],
-                    metadatas=[metadata],
-                    ids=[source_id]
+                    embeddings=embeddings,
+                    documents=documents,
+                    metadatas=metadatas,
+                    ids=ids
                 )
         except Exception as e:
             logger.error(f"Failed to store sources: {e}")

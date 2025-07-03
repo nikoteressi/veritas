@@ -3,10 +3,12 @@ Input validation utilities for the Veritas application.
 """
 import re
 import logging
+from io import BytesIO
 from typing import Optional, List, Dict, Any
 from fastapi import UploadFile
+from PIL import Image
 
-from app.exceptions import ValidationError
+from app.exceptions import ValidationError, ImageProcessingError
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +30,17 @@ class FileValidator:
     MIN_FILE_SIZE = 1024  # 1KB
     
     @classmethod
-    def validate_image_file(cls, file: UploadFile) -> None:
+    def validate_image_file(cls, file: UploadFile, image_bytes: bytes) -> None:
         """
         Validate an uploaded image file.
         
         Args:
             file: Uploaded file to validate
+            image_bytes: Raw image bytes for content validation
             
         Raises:
             ValidationError: If validation fails
+            ImageProcessingError: If the image content is invalid
         """
         # Check if file exists
         if not file:
@@ -78,6 +82,32 @@ class FileValidator:
                     error_code="FILE_TOO_SMALL",
                     details={"min_size_bytes": cls.MIN_FILE_SIZE}
                 )
+        
+        # Validate image content
+        if not cls.is_valid_image_content(image_bytes):
+            raise ImageProcessingError(
+                "Invalid or corrupted image file",
+                error_code="INVALID_IMAGE"
+            )
+    
+    @staticmethod
+    def is_valid_image_content(image_bytes: bytes) -> bool:
+        """
+        Validate that the bytes represent a valid image.
+        
+        Args:
+            image_bytes: Raw image bytes
+            
+        Returns:
+            True if valid image, False otherwise
+        """
+        try:
+            with Image.open(BytesIO(image_bytes)) as img:
+                img.verify()
+            return True
+        except Exception as e:
+            logger.error(f"Image content validation failed: {e}")
+            return False
     
     @staticmethod
     def _get_file_extension(filename: str) -> str:
@@ -207,7 +237,7 @@ class RequestValidator:
     """Validator for API requests."""
     
     @staticmethod
-    def validate_verification_request(
+    async def validate_verification_request(
         file: UploadFile, 
         prompt: str,
         session_id: Optional[str] = None
@@ -226,8 +256,12 @@ class RequestValidator:
         Raises:
             ValidationError: If validation fails
         """
-        # Validate file
-        FileValidator.validate_image_file(file)
+        # Read image bytes for content validation
+        image_bytes = await file.read()
+        await file.seek(0)  # Reset file pointer after reading
+
+        # Validate file metadata and content
+        FileValidator.validate_image_file(file, image_bytes)
         
         # Validate prompt
         sanitized_prompt = TextValidator.validate_prompt(prompt)
@@ -243,7 +277,8 @@ class RequestValidator:
         return {
             "file": file,
             "prompt": sanitized_prompt,
-            "session_id": session_id
+            "session_id": session_id,
+            "image_bytes": image_bytes
         }
     
     @staticmethod

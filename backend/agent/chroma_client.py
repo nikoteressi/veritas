@@ -5,9 +5,11 @@ and ensures all collections use Ollama embeddings.
 import logging
 import os
 from typing import Optional, Dict, Any
+
 import chromadb
 from chromadb.config import Settings
 from chromadb.api.types import CollectionMetadata, EmbeddingFunction
+
 from agent.ollama_embeddings import create_ollama_embedding_function
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class OllamaChromaClient:
             persist_directory: Directory to persist ChromaDB data
         """
         if persist_directory is None:
-            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
             
         self.persist_directory = persist_directory
         self.embedding_function = None

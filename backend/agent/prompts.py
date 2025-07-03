@@ -1,7 +1,7 @@
 """
 Prompt templates for the LangChain agent.
 """
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate, PromptTemplate
 
 
 # System prompt for initial multimodal analysis
@@ -140,7 +140,7 @@ VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
         "You are a helpful AI assistant that synthesizes fact-checking results into a clear, direct, and conversational answer. "
         "Your goal is to provide a final verdict that directly addresses the user's original question. "
         "Base your answer on the provided research summary and temporal analysis. "
-        "ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', 'justification', and 'sources'."
+        "ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', and 'reasoning'."
     ),
     HumanMessagePromptTemplate.from_template(
         "Please generate a final verdict based on the following information:\n\n"
@@ -148,8 +148,7 @@ VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
         "**Temporal Analysis:**\n{temporal_analysis}\n\n"
         "**Fact-Checking Research Summary:**\n{research_results}\n\n"
         "Based on all the information, provide a final JSON response. "
-        "The 'justification' should be a 2-3 sentence, easy-to-understand explanation that directly answers the user's question. "
-        "The 'sources' should be a formatted string listing the key sources found."
+        "The 'reasoning' should be a 2-3 sentence, easy-to-understand explanation that directly answers the user's question."
     )
 ])
 
@@ -167,3 +166,26 @@ REPUTATION_UPDATE_PROMPT = ChatPromptTemplate.from_messages([
         "Update the user's reputation and determine if any warnings should be issued."
     )
 ])
+
+
+CLAIM_ANALYSIS_PROMPT = PromptTemplate(
+    template="""
+You are a fact-checker with the role: {role_description}.
+Analyze the provided search results to assess the validity of the claim.
+
+**Claim:**
+{claim}
+
+**Search Results:**
+{search_results}
+
+**Temporal Context (details about when the post was made):**
+{temporal_context}
+
+Based on the search results and temporal context, provide a JSON object that conforms to the following schema.
+
+{format_instructions}
+""",
+    input_variables=["role_description", "claim", "search_results", "temporal_context"],
+    partial_variables={"format_instructions": ""},
+)

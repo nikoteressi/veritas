@@ -1,47 +1,74 @@
 """
 Main FastAPI application for Veritas.
 """
-import logging
+# --- Telemetry Patch ---
+# This is a workaround for a bug in chromadb 0.5.3. It prevents telemetry errors
+# by replacing the problematic module with a mock before it's ever imported.
+from unittest.mock import patch, MagicMock
+patch.dict('sys.modules', {'chromadb.telemetry.product.posthog': MagicMock()}).start()
+# --- End Telemetry Patch ---
+
+import logging.config
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
+from unittest.mock import MagicMock, patch
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.database import init_db
+from app.database import Base, async_engine, create_db_and_tables
+from app.error_handlers import EXCEPTION_HANDLERS, setup_error_handlers
+from agent.llm import llm_manager
+from agent.vector_store import vector_store
+from app.redis_client import redis_manager
 from app.routers import verification, reputation
-from app.error_handlers import EXCEPTION_HANDLERS
+from app.websocket_manager import connection_manager
 
 
 # Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.config.fileConfig(settings.logging_config_file, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Veritas application...")
     
+    # Initialize Redis
+    await redis_manager.init_redis()
+    logger.info("Redis connection pool initialized.")
+    
     # Initialize database
-    await init_db()
-    logger.info("Database initialized")
+    create_db_and_tables()
+    
+    # Initialize vector store (with lazy loading)
+    # The actual initialization will happen on the first request
+    logger.info("Vector store scheduled for lazy initialization.")
     
     yield
     
     logger.info("Shutting down Veritas application...")
+    # Disconnect from Redis
+    await redis_manager.close()
+    logger.info("Redis connection pool closed.")
+    
+    # Clean up the telemetry patch
+    if 'posthog_patcher' in globals():
+        posthog_patcher.stop()
+        print("Removed ChromaDB telemetry monkey-patch.")
 
 
 # Create FastAPI application
 app = FastAPI(
     title="Veritas API",
-    description="AI-Powered Social Post Verifier",
-    version="1.0.0",
+    description="API for Veritas fact-checking agent",
+    version="0.1.0",
     lifespan=lifespan
 )
 
@@ -59,8 +86,8 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_type, handler)
 
 # Include routers
-app.include_router(verification.router, prefix="/api/v1", tags=["verification"])
-app.include_router(reputation.router, prefix="/api/v1", tags=["reputation"])
+app.include_router(verification.router, prefix="/api/v1", tags=["Verification"])
+app.include_router(reputation.router, prefix="/api/v1", tags=["Reputation"])
 
 
 @app.get("/")
@@ -69,7 +96,7 @@ async def root():
     return {"message": "Veritas API is running", "version": "1.0.0"}
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "veritas-api"}
@@ -78,8 +105,6 @@ async def health_check():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates."""
-    from app.websocket_manager import connection_manager
-
     session_id = None
     try:
         # Accept connection and get session ID
@@ -137,11 +162,10 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket error: {e}")
     finally:
         if session_id:
-            connection_manager.disconnect(session_id)
+            await connection_manager.disconnect(session_id)
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
         "app.main:app",
         host=settings.app_host,

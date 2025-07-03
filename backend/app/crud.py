@@ -2,13 +2,14 @@
 CRUD operations for database models.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.future import select
 
-from app.database import User, VerificationResult
+from app.database import User, VerificationResult, async_session_factory
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -28,59 +29,68 @@ class UserCRUD:
         """Create a new user."""
         user = User(nickname=nickname)
         db.add(user)
-        try:
-            await db.commit()
-            await db.refresh(user)
-            logger.info(f"Created new user: {nickname}")
-            return user
-        except IntegrityError:
-            await db.rollback()
-            # User might have been created by another request
-            return await UserCRUD.get_user_by_nickname(db, nickname)
-    
-    @staticmethod
-    async def get_or_create_user(db: AsyncSession, nickname: str) -> User:
-        """Get existing user or create new one."""
-        user = await UserCRUD.get_user_by_nickname(db, nickname)
-        if not user:
-            user = await UserCRUD.create_user(db, nickname)
+        await db.flush()
+        await db.refresh(user)
+        logger.info(f"Created new user: {nickname}")
         return user
     
     @staticmethod
-    async def update_user_reputation(
-        db: AsyncSession, 
-        nickname: str, 
-        verdict: str
-    ) -> User:
-        """Update user reputation based on verification verdict."""
-        user = await UserCRUD.get_or_create_user(db, nickname)
+    async def get_or_create_user(db: AsyncSession, nickname: str) -> User:
+        """Get a user by nickname, or create it if it doesn't exist."""
+        result = await db.execute(select(User).filter(User.nickname == nickname))
+        user = result.scalars().first()
         
-        # Update counters based on verdict
-        if verdict == "true":
+        if user:
+            return user
+        
+        # User not found, try to create it within a nested transaction
+        try:
+            async with db.begin_nested():
+                user = User(nickname=nickname)
+                db.add(user)
+                await db.flush()
+                await db.refresh(user)
+                logger.info(f"Created new user: {nickname}")
+                return user
+        except IntegrityError:
+            # The nested transaction is rolled back automatically on error
+            logger.warning(f"Race condition: User '{nickname}' already exists. Fetching existing user.")
+            # The user should exist now, so we can fetch it
+            result = await db.execute(select(User).filter(User.nickname == nickname))
+            return result.scalars().first()
+    
+    @staticmethod
+    async def update_user_reputation(db: AsyncSession, nickname: str, verdict: str) -> Optional[User]:
+        """Update a user's reputation based on the verification verdict."""
+        user = await UserCRUD.get_or_create_user(db, nickname)
+        if not user:
+            return None
+
+        if verdict == 'true':
             user.true_count += 1
-        elif verdict == "partially_true":
+        elif verdict == 'partially_true':
             user.partially_true_count += 1
-        elif verdict == "false":
+        elif verdict == 'false':
             user.false_count += 1
-        elif verdict == "ironic":
+        elif verdict == 'ironic':
             user.ironic_count += 1
         
         user.total_posts_checked += 1
         user.last_checked_date = datetime.utcnow()
         
         # Check for warning/notification thresholds
-        if user.false_count >= settings.warning_threshold and not user.warning_issued:
+        if user.false_count >= 10 and not user.warning_issued:
             user.warning_issued = True
             logger.warning(f"Warning threshold reached for user: {nickname}")
-        
-        if user.false_count >= settings.notification_threshold and not user.notification_issued:
+            
+        if user.false_count >= 20 and not user.notification_issued:
             user.notification_issued = True
             logger.warning(f"Notification threshold reached for user: {nickname}")
         
-        await db.commit()
+        await db.flush()
         await db.refresh(user)
         
-        logger.info(f"Updated reputation for {nickname}: {verdict}")
+        logger.info(f"Updated reputation for {user.nickname}: {verdict}")
         return user
     
     @staticmethod
@@ -96,42 +106,14 @@ class VerificationResultCRUD:
     """CRUD operations for VerificationResult model."""
     
     @staticmethod
-    async def create_verification_result(
-        db: AsyncSession,
-        user_nickname: str,
-        image_hash: str,
-        extracted_text: str,
-        user_prompt: str,
-        primary_topic: str,
-        identified_claims: str,
-        verdict: str,
-        justification: str,
-        confidence_score: int,
-        processing_time_seconds: int,
-        model_used: str,
-        tools_used: str
-    ) -> VerificationResult:
+    async def create_verification_result(db: AsyncSession, result_data: dict) -> VerificationResult:
         """Create a new verification result."""
-        result = VerificationResult(
-            user_nickname=user_nickname,
-            image_hash=image_hash,
-            extracted_text=extracted_text,
-            user_prompt=user_prompt,
-            primary_topic=primary_topic,
-            identified_claims=identified_claims,
-            verdict=verdict,
-            justification=justification,
-            confidence_score=confidence_score,
-            processing_time_seconds=processing_time_seconds,
-            model_used=model_used,
-            tools_used=tools_used
-        )
-        
+        result = VerificationResult(**result_data)
         db.add(result)
-        await db.commit()
+        await db.flush()
         await db.refresh(result)
         
-        logger.info(f"Created verification result for {user_nickname}: {verdict}")
+        logger.info(f"Created verification result for {result.user_nickname}: {result.verdict}")
         return result
     
     @staticmethod
@@ -150,15 +132,10 @@ class VerificationResultCRUD:
         return result.scalars().all()
     
     @staticmethod
-    async def get_verification_result_by_id(
-        db: AsyncSession, 
-        result_id: int
-    ) -> Optional[VerificationResult]:
-        """Get verification result by ID."""
-        result = await db.execute(
-            select(VerificationResult).where(VerificationResult.id == result_id)
-        )
-        return result.scalar_one_or_none()
+    async def get_verification_result_by_id(db: AsyncSession, result_id: int) -> Optional[VerificationResult]:
+        """Get a verification result by its ID."""
+        result = await db.execute(select(VerificationResult).filter(VerificationResult.id == result_id))
+        return result.scalars().first()
     
     @staticmethod
     async def get_recent_results(
@@ -171,4 +148,10 @@ class VerificationResultCRUD:
             .order_by(VerificationResult.created_at.desc())
             .limit(limit)
         )
+        return result.scalars().all()
+
+    @staticmethod
+    async def get_all_verification_results(db: AsyncSession) -> List[VerificationResult]:
+        """Get all verification results."""
+        result = await db.execute(select(VerificationResult).order_by(VerificationResult.created_at.desc()))
         return result.scalars().all()

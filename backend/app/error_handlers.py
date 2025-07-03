@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, FastAPI
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -210,3 +210,12 @@ EXCEPTION_HANDLERS = {
     StarletteHTTPException: http_exception_handler,
     Exception: general_exception_handler,
 }
+
+
+def setup_error_handlers(app: FastAPI):
+    """
+    Register all exception handlers for the FastAPI application.
+    """
+    for exc, handler in EXCEPTION_HANDLERS.items():
+        app.add_exception_handler(exc, handler)
+    logger.info("Custom exception handlers registered.")

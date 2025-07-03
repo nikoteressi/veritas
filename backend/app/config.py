@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, env="APP_PORT")
     debug: bool = Field(default=False, env="DEBUG")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    logging_config_file: str = Field(default="logging.conf", env="LOGGING_CONFIG_FILE")
     
     # Security settings
     secret_key: str = Field(default="dev-secret-key", env="SECRET_KEY")
@@ -50,6 +51,9 @@ class Settings(BaseSettings):
     # Reputation system settings
     warning_threshold: int = Field(default=3, env="WARNING_THRESHOLD")
     notification_threshold: int = Field(default=5, env="NOTIFICATION_THRESHOLD")
+    
+    # Redis configuration
+    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
     
     @property
     def database_url(self) -> str:

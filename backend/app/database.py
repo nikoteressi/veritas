@@ -69,60 +69,29 @@ class VerificationResult(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# Database engine and session setup
-engine = None
-async_engine = None
-SessionLocal = None
-AsyncSessionLocal = None
+# Asynchronous database setup
+async_db_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
+sync_db_url = settings.database_url
 
+async_engine = create_async_engine(async_db_url, echo=settings.debug)
+sync_engine = create_engine(sync_db_url, echo=settings.debug)
 
-def init_sync_db():
-    """Initialize synchronous database connection."""
-    global engine, SessionLocal
-    
-    # Use synchronous PostgreSQL URL
-    sync_db_url = settings.database_url
-    
-    engine = create_engine(sync_db_url, echo=settings.debug)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
-    # Create tables
-    Base.metadata.create_all(bind=engine)
-    logger.info("Synchronous database initialized")
+async_session_factory = async_sessionmaker(
+    async_engine, class_=AsyncSession, expire_on_commit=False
+)
 
-
-async def init_db():
-    """Initialize asynchronous database connection."""
-    global async_engine, AsyncSessionLocal
-    
-    # Use asynchronous PostgreSQL URL
-    async_db_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
-    
-    async_engine = create_async_engine(async_db_url, echo=settings.debug)
-    AsyncSessionLocal = async_sessionmaker(
-        async_engine, class_=AsyncSession, expire_on_commit=False
-    )
-    
-    # Create tables
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    logger.info("Asynchronous database initialized")
+def create_db_and_tables():
+    """Create all database tables."""
+    try:
+        logger.info("Creating database tables if they don't exist...")
+        Base.metadata.create_all(bind=sync_engine)
+        logger.info("Database tables created successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create database tables: {e}")
+        raise
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get database session."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
-
-def get_sync_db():
-    """Get synchronous database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """Dependency to get an async database session."""
+    async with async_session_factory() as session:
+        yield session

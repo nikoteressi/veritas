@@ -1,11 +1,15 @@
 # This file is intentionally minimal to override the default engine settings.
 # All other settings will use the SearXNG defaults.
 
+use_default_settings: true
+
 server:
   # We bind to all interfaces so the service is accessible from other containers.
   bind_address: "0.0.0.0"
   # The default port for SearXNG is 8080.
   port: 8080
+  secret_key: "a_very_secret_and_secure_key_that_should_be_changed"
+  limiter: false
 
 # By default, many useful engines are disabled. This configuration enables
 # a curated list of reliable search engines for fact-checking.
@@ -34,12 +38,6 @@ engines:
     categories: [general, web]
     disabled: false
 
-  - name: qwant
-    engine: qwant
-    shortcut: qw
-    categories: [general, web]
-    disabled: false
-    
   - name: bing news
     engine: bing_news
     shortcut: bin
@@ -64,9 +62,9 @@ engines:
     shortcut: ya
     categories: [general, web]
     disabled: false
-    
-  - name: swisscows
-    engine: swisscows
-    shortcut: sc
-    categories: [general, web]
-    disabled: false
+
+search:
+  default_doi_resolver: "https://doi.org"
+  formats:
+    - html
+    - json

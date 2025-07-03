@@ -62,3 +62,8 @@ class VectorStoreError(VeritasException):
 class ToolError(VeritasException):
     """Exception raised when tool operations fail."""
     pass
+
+
+class StorageError(VeritasException):
+    """Exception raised for storage operations."""
+    pass

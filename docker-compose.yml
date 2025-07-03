@@ -26,8 +26,6 @@ services:
       - "8888:8080"
     volumes:
       - ./docker/searxng:/etc/searxng
-    environment:
-      - SEARXNG_BASE_URL=http://localhost:8888/
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--spider", "--tries=1", "--timeout=5", "http://localhost:8080/healthz"]
       interval: 30s
@@ -51,6 +49,18 @@ services:
       timeout: 10s
       retries: 3
 
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: veritas-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Backend API (Development)
   backend:
     build:
@@ -65,6 +75,7 @@ services:
       - DB_NAME=veritas_db
       - DB_USER=veritas_user
       - DB_PASSWORD=veritas_password
+      - REDIS_URL=redis://redis:6379/0
       - SEARXNG_URL=http://searxng:8080
       - OLLAMA_BASE_URL=http://192.168.11.130:11434
       - OLLAMA_MODEL=llama4
@@ -79,6 +90,8 @@ services:
       postgres:
         condition: service_healthy
       searxng:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -106,3 +119,4 @@ services:
 volumes:
   postgres_data:
   chroma_data:
+  redis_data:
