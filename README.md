@@ -1,362 +1,370 @@
 # Veritas: AI-Powered Social Post Verifier
 
-Veritas is an advanced AI-driven system designed for automated verification of facts within social media posts. The system accepts a screenshot of a social media post and a text prompt from the user, leveraging a multimodal Large Language Model (Llama 4) for deep comprehension and intelligent fact-checking.
+Veritas is a sophisticated AI-driven system for automated verification of social media posts. The system processes screenshot images using multimodal AI (Llama 4) and combines multiple analysis techniques to provide comprehensive fact-checking results with user reputation tracking.
 
-## Features
+## 🚀 Key Features
 
-- **Multimodal Input Analysis**: Processes screenshots using multimodal Llama 4 to extract text, analyze visual content, and understand context
-- **Intelligent Fact Verification**: Uses RAG (Retrieval Augmented Generation) with up-to-date external information sources
-- **Dynamic Agent Specialization**: Automatically classifies posts and activates specialized AI agents for different domains
-- **Advanced Agent Architecture**: Modular workflow coordination with specialized fact-checkers and services following Single Responsibility Principle
-- **Temporal Analysis**: Time-based verification capabilities for detecting outdated information
-- **Motives Analysis**: Advanced analysis of underlying motivations in posts
-- **User Reputation System**: Maintains detailed statistics and issues warnings based on misinformation patterns
-- **Real-time WebSocket Updates**: Provides live updates on the fact-checking process
-- **Scalable Architecture**: Built with async FastAPI backend and React frontend
+### Core Capabilities
+- **Multimodal AI Analysis**: Advanced image processing with Llama 4 for text extraction and visual content analysis
+- **Modular Verification Pipeline**: Configurable pipeline with 9 specialized verification steps
+- **Real-time WebSocket Updates**: Live progress tracking during verification process
+- **Advanced Temporal Analysis**: Time-based verification to detect outdated information
+- **Motives Analysis**: Sophisticated analysis of underlying intentions and motivations
+- **Multi-domain Fact Checking**: Specialized agents for financial, general, and other domain-specific verification
+- **Comprehensive Reputation System**: User reputation tracking with warnings and notifications
+- **Vector Database Integration**: ChromaDB for intelligent caching and semantic search
+- **Self-hosted Search**: Integrated SearxNG for privacy-focused fact verification
 
-## Technology Stack
+### Advanced Agent Architecture
+- **Workflow Coordinator**: Central orchestration of verification processes
+- **Specialized Analyzers**: Temporal and motives analysis with dedicated algorithms
+- **Domain-Specific Fact Checkers**: Specialized agents for different content types
+- **Progress Tracking Service**: Real-time updates and status monitoring
+- **Result Compiler**: Comprehensive result aggregation and formatting
 
-### Backend
-- **FastAPI**: High-performance async web framework with WebSocket support
-- **LangChain**: LLM orchestration and agent framework
-- **Ollama**: Local multimodal Llama 4 hosting
-- **PostgreSQL**: User reputation and results storage with async support
-- **ChromaDB**: Vector database for caching and embeddings
+## 🏗️ Architecture Overview
+
+### Backend Stack
+- **FastAPI**: High-performance async web framework with automatic OpenAPI documentation
+- **SQLAlchemy**: Async ORM with PostgreSQL for data persistence
+- **LangChain**: Advanced LLM orchestration and multi-agent coordination
+- **Ollama**: Local hosting of multimodal Llama 4 models
+- **ChromaDB**: Vector database for embeddings and intelligent caching
+- **SearxNG**: Self-hosted search engine for privacy-focused fact verification
 - **Redis**: High-performance caching and session management
-- **SearxNG**: Self-hosted search engine for fact verification
-- **Alembic**: Database migration system
-- **SQLAlchemy**: Async ORM with full database abstraction
-- **Pillow**: Advanced image processing capabilities
-- **Structlog**: Structured logging for better observability
+- **Alembic**: Database migration management
+- **WebSockets**: Real-time bidirectional communication
 
-### Frontend
-- **React**: Component-based UI framework
-- **Tailwind CSS**: Utility-first styling
-- **Vite**: Fast build tool and dev server
+### Frontend Stack
+- **React 18**: Modern functional components with hooks
+- **Tailwind CSS**: Utility-first styling framework
+- **Vite**: Fast build tool with HMR support
 - **Axios**: HTTP client for API communication
-- **React Dropzone**: Drag-and-drop file upload
-- **WebSockets**: Real-time communication with progress tracking
+- **React Dropzone**: Advanced file upload with drag-and-drop
+- **Custom Hooks**: Sophisticated state management and WebSocket integration
 
-## Advanced Agent Architecture
+## 📋 Verification Pipeline
 
-Veritas employs a sophisticated multi-agent system with specialized components:
+The system uses a modular, configurable pipeline with the following steps:
 
-### Core Agent Components
-- **`agent/workflow_coordinator.py`** - Central coordination of all verification processes
-- **`agent/services/verification_pipeline.py`** - Modular verification pipeline with specialized steps
-- **`agent/services/validation_service.py`** - Centralized validation logic for all inputs
-- **`agent/services/configuration_service.py`** - Application configuration and settings management
-- **`agent/llm.py`** - Multimodal LLM management and integration
-- **`agent/vector_store.py`** - Vector database operations and embeddings
-- **`agent/temporal_analysis.py`** - Time-based verification and recency analysis
-- **`agent/motives_analyzer.py`** - Advanced analysis of post motivations and intent
+1. **Validation** - Input validation and security checks
+2. **Image Analysis** - Multimodal AI processing for text extraction and visual analysis
+3. **Reputation Retrieval** - User reputation lookup and initialization
+4. **Temporal Analysis** - Time-based verification and recency analysis
+5. **Motives Analysis** - Advanced analysis of underlying intentions
+6. **Fact Checking** - Multi-source verification with specialized domain agents
+7. **Verdict Generation** - Final decision synthesis with confidence scoring
+8. **Reputation Update** - User reputation adjustment based on results
+9. **Result Storage** - Vector database storage for future reference
 
-### Specialized Fact Checkers
-- **`agent/fact_checkers/base.py`** - Base class for all fact-checking agents
-- **`agent/fact_checkers/general_checker.py`** - General purpose fact verification
-- **`agent/fact_checkers/financial_checker.py`** - Specialized financial information verification
+## 🤖 AI Agents & Services
 
 ### Core Services
-- **`agent/services/fact_checking.py`** - Core fact-checking logic and coordination
-- **`agent/services/verdict.py`** - Verdict generation and confidence scoring
-- **`agent/services/image_analysis.py`** - Advanced image processing and text extraction
-- **`agent/services/reputation.py`** - User reputation management
-- **`agent/services/storage.py`** - Data persistence and retrieval
+- **`ValidationService`** - Comprehensive input validation and security checks
+- **`ImageAnalysisService`** - Multimodal image processing and text extraction
+- **`FactCheckingService`** - Coordinated fact verification across multiple sources
+- **`VerdictService`** - Final decision generation with confidence scoring
+- **`ReputationService`** - User reputation management and warning system
+- **`StorageService`** - Vector database operations and caching
+- **`ProgressTrackingService`** - Real-time WebSocket progress updates
 
-## Project Structure
+### Specialized Analyzers
+- **`TemporalAnalyzer`** - Time-based verification and recency analysis
+- **`MotivesAnalyzer`** - Advanced analysis of post intentions and motivations
 
-```
-veritas/
-├── backend/                     # FastAPI backend application
-│   ├── app/                    # Main application code
-│   │   ├── routers/           # API route handlers
-│   │   │   ├── verification.py  # Post verification endpoints
-│   │   │   └── reputation.py    # User reputation endpoints
-│   │   ├── config.py          # Application configuration
-│   │   ├── database.py        # Database setup and models
-│   │   ├── schemas.py         # Pydantic schemas
-│   │   ├── crud.py           # Database operations
-│   │   ├── websocket_manager.py # WebSocket connection management
-│   │   └── main.py           # FastAPI application entry point
-│   ├── agent/                 # LangChain agent implementation
-│   │   ├── fact_checkers/    # Specialized fact-checking agents
-│   │   ├── services/         # Core verification services
-│   │   │   ├── verification_pipeline.py  # Modular verification pipeline
-│   │   │   ├── validation_service.py     # Centralized validation logic
-│   │   │   ├── configuration_service.py  # Application configuration
-│   │   │   └── ...          # Other specialized services
-│   │   ├── workflow_coordinator.py      # Main workflow coordination
-│   │   ├── llm.py           # LLM integration
-│   │   ├── vector_store.py   # Vector database operations
-│   │   ├── temporal_analysis.py # Time-based analysis
-│   │   ├── motives_analyzer.py  # Motivation analysis
-│   │   └── tools.py         # Custom LangChain tools
-│   ├── alembic/              # Database migrations
-│   ├── data/                 # Data files and persistence
-│   ├── scripts/              # Utility and initialization scripts
-│   ├── tests/                # Backend tests
-│   └── requirements.txt      # Python dependencies
-├── frontend/                   # React frontend application
-│   ├── src/                  # Source code
-│   │   ├── components/       # React components
-│   │   │   ├── ErrorBoundary.jsx    # Error handling
-│   │   │   ├── UploadForm.jsx       # File upload interface
-│   │   │   ├── VerificationResults.jsx # Results display
-│   │   │   ├── ReputationDisplay.jsx   # User reputation
-│   │   │   └── WebSocketStatus.jsx     # Connection status
-│   │   ├── hooks/           # Custom React hooks
-│   │   │   ├── useWebSocketService.js   # WebSocket integration
-│   │   │   ├── useVerificationState.js  # Verification state management
-│   │   │   └── ...          # Other custom hooks
-│   │   ├── services/        # Frontend services
-│   │   │   ├── webSocketService.js      # WebSocket connection management
-│   │   │   ├── verificationStateService.js # Verification state service
-│   │   │   ├── configurationService.js  # Frontend configuration
-│   │   │   └── ...          # Other services
-│   │   ├── utils/           # Utility functions
-│   │   │   └── errorHandling.js     # Error management
-│   │   └── main.jsx         # Application entry point
-│   ├── Dockerfile           # Production container
-│   ├── Dockerfile.dev       # Development container
-│   ├── nginx.conf          # Production web server config
-│   └── package.json        # Node.js dependencies
-├── docker/                    # Docker configurations
-│   └── searxng/              # SearxNG search engine config
-├── data/                      # Data files and SQL migrations
-├── docs/                      # Project documentation
-└── scripts/                   # Deployment and utility scripts
+### Fact Checkers
+- **`GeneralFactChecker`** - General-purpose fact verification
+- **`FinancialFactChecker`** - Specialized financial information verification
+- **`BaseFactChecker`** - Extensible base class for domain-specific checkers
+
+## 🗃️ Data Models
+
+### Database Schema
+```sql
+-- User reputation tracking
+users (
+    id, nickname, true_count, partially_true_count, 
+    false_count, ironic_count, total_posts_checked,
+    warning_issued, notification_issued, created_at, last_checked_date
+)
+
+-- Verification results storage
+verification_results (
+    id, user_nickname, image_hash, extracted_text, user_prompt,
+    primary_topic, identified_claims, verdict, justification,
+    confidence_score, processing_time_seconds, model_used, tools_used, created_at
+)
 ```
 
-## Prerequisites
+### API Response Models
+- **`VerificationResponse`** - Complete verification results with user reputation
+- **`UserReputation`** - User reputation data and statistics
+- **`ImageAnalysisResult`** - Structured image analysis results
+- **`FactCheckResult`** - Detailed fact-checking results
+- **`VerdictResult`** - Final verdict with confidence and reasoning
 
-- Python 3.11+
-- Node.js 18+
-- Docker and Docker Compose
-- PostgreSQL 15+
-- Redis 7+
-- Ollama with multimodal model (e.g., llama4)
+## 🔧 Configuration
 
-## Quick Start
+### Environment Variables
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=veritas_db
+DB_USER=veritas_user
+DB_PASSWORD=your_password
 
-### 1. Clone the Repository
+# AI Model Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama4
 
+# External Services
+SEARXNG_URL=http://localhost:8888
+REDIS_URL=redis://localhost:6379/0
+CHROMA_PERSIST_DIRECTORY=./data/chroma_db
+
+# Application Settings
+DEBUG=false
+LOG_LEVEL=INFO
+SECRET_KEY=your-secret-key
+CORS_ORIGINS=http://localhost:3000
+
+# Processing Limits
+VERITAS_MAX_FILE_SIZE=10485760  # 10MB
+VERITAS_MAX_CONCURRENT_REQUESTS=10
+VERITAS_REQUEST_TIMEOUT=300
+VERITAS_FACT_CHECK_TIMEOUT=120
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Python 3.11+** with pip
+- **Node.js 18+** with npm
+- **Docker & Docker Compose**
+- **PostgreSQL 15+**
+- **Redis 7+**
+- **Ollama** with multimodal model
+
+### 1. Clone and Setup
 ```bash
 git clone <repository-url>
 cd veritas
-```
-
-### 2. Environment Setup
-
-Copy the environment template and configure your settings:
-
-```bash
 cp backend/.env.example backend/.env
+# Edit backend/.env with your configuration
 ```
 
-Edit `backend/.env` with your configuration:
-- Database credentials
-- Ollama server URL (e.g., `http://192.168.1.1:11434`)
-- SearxNG URL
-- Redis configuration
-- Other service configurations
-
-### 3. Start with Docker Compose
-
+### 2. Start with Docker Compose
 ```bash
 # Start all services
 docker-compose up -d
 
 # View logs
 docker-compose logs -f
+
+# Check service health
+docker-compose ps
 ```
 
-This will start:
-- **PostgreSQL database** (port 5432) - User data and verification results
-- **SearxNG search engine** (port 8888) - Fact verification queries
-- **ChromaDB vector database** (port 8002) - Embeddings and caching
-- **Redis cache** (port 6379) - Session management and caching
-- **Backend API** (port 8000) - Main application server
-- **Frontend application** (port 3000) - User interface
+### 3. Manual Development Setup
 
-### 4. Manual Development Setup
-
-#### Backend Setup
-
+#### Backend
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Run database migrations
 alembic upgrade head
-
-# Run the application
 uvicorn app.main:app --reload --port 8000
 ```
 
-#### Frontend Setup
-
+#### Frontend
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-## Configuration
+### 4. Service Access
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **SearxNG**: http://localhost:8888
+- **ChromaDB**: http://localhost:8002
 
-### Environment Variables
+## 📡 API Endpoints
 
-Key environment variables for the backend:
+### Verification Endpoints
+- `POST /api/v1/verify-post` - Submit post for verification
+- `GET /api/v1/verification-status/{verification_id}` - Get verification status
 
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: Database configuration
-- `REDIS_URL`: Redis connection string (e.g., `redis://localhost:6379/0`)
-- `OLLAMA_BASE_URL`: URL to your Ollama server
-- `OLLAMA_MODEL`: Multimodal model name (e.g., "llama4")
-- `SEARXNG_URL`: URL to your SearxNG instance
-- `CHROMA_PERSIST_DIRECTORY`: ChromaDB data directory
-- `SECRET_KEY`: Application secret key
-- `CORS_ORIGINS`: Allowed frontend origins
-- `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
+### Reputation Endpoints
+- `GET /api/v1/user-reputation/{nickname}` - Get user reputation
+- `GET /api/v1/reputation-stats` - Get platform statistics
+- `GET /api/v1/users-with-warnings` - Get users with warnings
+- `GET /api/v1/leaderboard` - Get reputation leaderboard
 
-### Ollama Setup
+### System Endpoints
+- `GET /` - Service information
+- `GET /health` - Health check
+- `WS /ws` - WebSocket for real-time updates
 
-Ensure you have Ollama running with a multimodal model:
+## 🔄 WebSocket Events
 
+### Client → Server
+- `ping` - Heartbeat
+- `subscribe` - Subscribe to verification updates
+
+### Server → Client
+- `session_established` - Session ID assignment
+- `verification_progress` - Real-time progress updates
+- `verification_complete` - Final results
+- `verification_error` - Error notifications
+
+## 📊 Reputation System
+
+### Scoring Algorithm
+- **True**: +1.0 points
+- **Partially True**: +0.5 points
+- **False**: -2.0 points
+- **Ironic**: -1.0 points
+
+### Warning System
+- **Notification**: Score ≤ -10.0
+- **Warning**: Score ≤ -20.0
+- **Tracking**: All user interactions logged
+
+## 🧪 Testing
+
+### Backend Tests
 ```bash
-# Install and start Ollama
-ollama serve
-
-# Pull a multimodal model
-ollama pull llama4
+cd backend
+pytest tests/ -v
+pytest tests/unit/ -v
+pytest tests/integration/ -v
 ```
 
-### SearxNG Configuration
-
-SearxNG should be configured to enable JSON output. The docker-compose setup includes a basic configuration.
-
-## API Endpoints
-
-### Verification
-- `POST /api/v1/verify-post`: Submit a post for verification
-  - Supports both synchronous and asynchronous processing
-  - WebSocket integration for real-time updates
-  - Comprehensive image validation and processing
-- `GET /api/v1/verification-status/{verification_id}`: Get verification status and results
-
-### Reputation Management
-- `GET /api/v1/user-reputation/{nickname}`: Get user reputation data
-- `GET /api/v1/reputation-stats`: Get overall platform statistics
-- `GET /api/v1/users-with-warnings`: Get users who have received warnings
-- `GET /api/v1/leaderboard`: Get reputation leaderboard
-
-### System
-- `GET /`: Root endpoint with service information
-- `GET /health`: Health check endpoint for monitoring
-
-### WebSocket
-- `WS /ws`: Real-time updates during verification with session management
-
-## Development
-
-### Running Tests
-
+### Frontend Tests
 ```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
 cd frontend
 npm test
+npm run test:coverage
 ```
 
-### Database Migrations
+## 🔧 Development
 
+### Database Migrations
 ```bash
-# Create a new migration
-cd backend
+# Create migration
 alembic revision --autogenerate -m "description"
 
 # Apply migrations
 alembic upgrade head
 
-# Rollback migration
+# Rollback
 alembic downgrade -1
 ```
 
 ### Code Quality
-
 ```bash
-# Backend linting
+# Backend
 cd backend
-flake8 app/
-black app/
+black app/ agent/
+flake8 app/ agent/
+mypy app/ agent/
 
-# Frontend linting
+# Frontend
 cd frontend
 npm run lint
+npm run format
 ```
 
-## Advanced Features
+## 🐳 Docker Services
 
-### WebSocket Integration
-Real-time progress tracking with sophisticated session management:
-- Automatic connection handling and reconnection
-- Progress updates during verification process
-- Error handling and status reporting
-
-### Agent Orchestration
-Sophisticated multi-agent system:
-- Dynamic fact-checker selection based on content analysis
-- Specialized agents for different domains (financial, general)
-- Temporal analysis for time-sensitive information
-- Motives analysis for understanding post intent
-
-### Caching Strategy
-Multi-layer caching for optimal performance:
-- Redis for session data and frequent queries
-- ChromaDB for vector embeddings and fact cache
-- In-memory caching for configuration data
-
-## Deployment
-
-### Production Docker Compose
-
+### Production Deployment
 ```bash
-# Use production configuration
+# Production build
 docker-compose -f docker-compose.prod.yml up -d
+
+# Scale services
+docker-compose up -d --scale backend=3
 ```
 
-### Manual Deployment
+### Service Health Checks
+All services include comprehensive health checks:
+- **PostgreSQL**: Connection and query tests
+- **Redis**: Ping response
+- **SearxNG**: HTTP endpoint availability
+- **ChromaDB**: Port connectivity
+- **Backend**: API health endpoint
 
-1. Build the applications
-2. Configure environment variables
-3. Set up external services (PostgreSQL, Redis, Ollama, SearxNG)
-4. Run database migrations with Alembic
-5. Deploy using your preferred method (Docker, Kubernetes, etc.)
+## 📁 Project Structure
 
-## Contributing
+```
+veritas/
+├── backend/                     # FastAPI backend
+│   ├── app/                    # Main application
+│   │   ├── routers/           # API endpoints
+│   │   ├── services/          # Application services
+│   │   ├── config.py          # Configuration management
+│   │   ├── database.py        # Database models and setup
+│   │   ├── schemas.py         # Pydantic schemas
+│   │   └── main.py           # FastAPI application
+│   ├── agent/                 # AI agent system
+│   │   ├── analyzers/        # Specialized analyzers
+│   │   ├── fact_checkers/    # Domain-specific fact checkers
+│   │   ├── services/         # Core verification services
+│   │   ├── pipeline/         # Verification pipeline
+│   │   ├── models/           # Data models
+│   │   └── workflow_coordinator.py
+│   ├── alembic/              # Database migrations
+│   └── tests/                # Test suites
+├── frontend/                  # React frontend
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── hooks/           # Custom hooks
+│   │   ├── services/        # Frontend services
+│   │   └── utils/           # Utility functions
+│   └── public/              # Static assets
+├── docker/                   # Docker configurations
+├── data/                     # Data and migrations
+└── docs/                     # Project documentation
+```
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-## License
+### Development Guidelines
+- Follow existing code style and patterns
+- Add tests for new functionality
+- Update documentation as needed
+- Ensure all tests pass before submitting
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 📝 License
 
-## Support
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-For questions and support, please open an issue in the repository or use the discussions area for general questions.
+## 🙏 Acknowledgments
+
+- **LangChain** for advanced LLM orchestration
+- **Ollama** for local multimodal AI hosting
+- **SearxNG** for privacy-focused search
+- **ChromaDB** for vector database capabilities
+- **FastAPI** for high-performance API framework
+- **React** for modern frontend development
+
+## 📞 Support
+
+For questions, issues, or contributions:
+- Open an issue in the repository
+- Use the discussions area for general questions
+- Check the [documentation](docs/) for detailed information
+
+---
+
+**Veritas** - *Where Truth Meets Technology* 🔍✨
