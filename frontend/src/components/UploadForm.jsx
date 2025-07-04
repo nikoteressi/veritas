@@ -1,15 +1,8 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import axios from 'axios'
-import {
-  validateFile,
-  validatePrompt,
-  handleAPIError,
-  retryWithBackoff,
-  showErrorNotification
-} from '../utils/errorHandling'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+import { useFileUpload } from '../hooks/useFileUpload'
+import { useVerification } from '../hooks/useVerification'
+import { configurationService } from '../services/configurationService'
 
 function UploadForm({
   onVerificationStart,
@@ -18,114 +11,56 @@ function UploadForm({
   sessionId,
   isWebSocketConnected
 }) {
-  const [selectedFile, setSelectedFile] = useState(null)
   const [prompt, setPrompt] = useState('')
-  const [previewUrl, setPreviewUrl] = useState(null)
-  const [error, setError] = useState(null)
-  const [validationErrors, setValidationErrors] = useState({})
-
-  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
-    setError(null)
-    setValidationErrors({})
-
-    if (rejectedFiles.length > 0) {
-      const rejection = rejectedFiles[0]
-      setError(`File rejected: ${rejection.errors[0]?.message || 'Invalid file'}`)
-      return
-    }
-
-    const file = acceptedFiles[0]
-    if (file) {
-      try {
-        validateFile(file)
-        setSelectedFile(file)
-
-        // Create preview URL
-        const url = URL.createObjectURL(file)
-        setPreviewUrl(url)
-      } catch (validationError) {
-        setError(validationError.message)
-      }
-    }
-  }, [])
+  
+  // Use custom hooks for file handling and verification
+  const {
+    selectedFile,
+    previewUrl,
+    fileError,
+    handleDropzoneFiles,
+    clearFile: clearSelectedFile,
+    cleanup
+  } = useFileUpload()
+  
+  const {
+    error: verificationError,
+    validationErrors,
+    submitVerification
+  } = useVerification()
+  
+  // Combine errors for display
+  const error = fileError || verificationError
+  
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return cleanup
+  }, [cleanup])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: handleDropzoneFiles,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+      'image/*': configurationService.fileUpload.allowedExtensions.map(ext => `.${ext}`)
     },
     multiple: false,
-    maxSize: 10 * 1024 * 1024 // 10MB
+    maxSize: configurationService.fileUpload.maxSize
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError(null)
-    setValidationErrors({})
-
-    try {
-      // Validate inputs
-      if (!selectedFile) {
-        setValidationErrors({ file: 'Please select an image file' })
-        return
-      }
-
-      validateFile(selectedFile)
-      const validatedPrompt = validatePrompt(prompt)
-
-      onVerificationStart()
-
-      // Create verification request with retry logic
-      const makeRequest = async () => {
-        const formData = new FormData()
-        formData.append('file', selectedFile)
-        formData.append('prompt', validatedPrompt)
-
-        // Add session ID if WebSocket is connected for real-time updates
-        if (isWebSocketConnected && sessionId) {
-          formData.append('session_id', sessionId)
-        }
-
-        return await axios.post(`${API_BASE_URL}/verify-post`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: 60000, // 60 second timeout
-        })
-      }
-
-      const response = await retryWithBackoff(makeRequest, 3, 1000)
-
-      // If using WebSocket, the result will come via WebSocket
-      // Otherwise, handle the response directly
-      if (!isWebSocketConnected || !sessionId) {
-        onVerificationComplete(response.data)
-      }
-      // If WebSocket is connected, the result will be handled by the WebSocket message handler
-
-    } catch (error) {
-      console.error('Verification error:', error)
-
-      try {
-        handleAPIError(error)
-      } catch (handledError) {
-        const errorMessage = handledError.message || 'An error occurred during verification'
-        setError(errorMessage)
-
-        onVerificationComplete({
-          status: 'error',
-          message: errorMessage
-        })
-      }
-    }
+    
+    await submitVerification(
+      selectedFile,
+      prompt,
+      sessionId,
+      isWebSocketConnected,
+      onVerificationStart,
+      onVerificationComplete
+    )
   }
 
-  const clearFile = () => {
-    setSelectedFile(null)
-    setPreviewUrl(null)
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
+  const handleClearFile = () => {
+    clearSelectedFile()
   }
 
   return (
@@ -197,7 +132,7 @@ function UploadForm({
                 />
                 <button
                   type="button"
-                  onClick={clearFile}
+                  onClick={handleClearFile}
                   className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

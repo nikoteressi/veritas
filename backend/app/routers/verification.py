@@ -2,77 +2,19 @@
 Verification endpoints for post fact-checking.
 """
 import logging
-from typing import Dict, Any, Optional
-from uuid import uuid4
+from typing import Dict, Any
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db, async_session_factory
-from app.websocket_manager import connection_manager, ProgressTracker
+from app.database import get_db
 from app.schemas import VerificationResponse
-from app.validators import RequestValidator
 from app.exceptions import ValidationError, ImageProcessingError
-from agent.orchestrator import verification_orchestrator
-from app.crud import VerificationResultCRUD
+from app.services.verification_service import verification_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-async def run_verification_with_websocket(
-    verification_id: str,
-    session_id: str,
-    image_content: bytes,
-    prompt: str,
-    filename: str = None,
-):
-    """
-    Run verification with WebSocket progress updates.
-
-    Args:
-        verification_id: Unique verification ID
-        session_id: WebSocket session ID
-        image_content: Image bytes
-        prompt: User prompt
-    """
-    db: Optional[AsyncSession] = None
-    progress_tracker = ProgressTracker(connection_manager, session_id)
-    try:
-        # Create a new database session for the background task
-        async with async_session_factory() as db:
-            logger.info(f"Starting background verification for session {session_id}")
-            # Run verification with progress callback
-            result = await verification_orchestrator.verify_post(
-                image_bytes=image_content,
-                user_prompt=prompt,
-                db=db,
-                progress_callback=progress_tracker.update,
-                session_id=session_id,
-                filename=filename,
-            )
-            logger.info(f"Background verification completed for session {session_id}, sending result")
-            
-            # Explicitly commit the database transaction
-            try:
-                await db.commit()
-                logger.info(f"Database transaction committed for session {session_id}")
-            except Exception as commit_error:
-                logger.error(f"Failed to commit database transaction for session {session_id}: {commit_error}", exc_info=True)
-                await db.rollback()
-                raise
-            
-            # Send final result - handle any WebSocket errors separately after DB commit
-            try:
-                await progress_tracker.complete(result)
-                logger.info(f"Final result sent successfully for session {session_id}")
-            except Exception as ws_error:
-                logger.error(f"Failed to send WebSocket result for session {session_id}: {ws_error}", exc_info=True)
-                # Don't raise the exception - the verification succeeded even if WebSocket failed
-    except Exception as e:
-        logger.error(f"WebSocket verification failed for session {session_id}: {e}", exc_info=True)
-        await progress_tracker.error(str(e))
 
 
 @router.post("/verify-post", response_model=VerificationResponse)
@@ -97,61 +39,20 @@ async def verify_post(
         Verification result with verdict and justification
     """
     try:
-        # Validate request using comprehensive validator
-        validated_data = await RequestValidator.validate_verification_request(
-            file, prompt, session_id
+        # Read file data
+        file_data = await file.read()
+
+        # Delegate validation and processing to the service layer
+        result = await verification_service.submit_verification_request(
+            background_tasks=background_tasks,
+            file_data=file_data,
+            filename=file.filename,
+            prompt=prompt,
+            session_id=session_id,
+            db=db
         )
 
-        # Get image content from validated data
-        image_content = validated_data["image_bytes"]
-
-        # Additional file size check after reading - This is now handled in the validator
-        # if len(image_content) > 10 * 1024 * 1024:
-        #     raise ValidationError(
-        #         "Image file too large (max 10MB)",
-        #         error_code="FILE_TOO_LARGE"
-        #     )
-
-        logger.info(f"Received verification request: {file.filename}, prompt: {validated_data['prompt'][:100]}...")
-
-        # Generate verification ID
-        verification_id = str(uuid4())
-
-        # If session_id provided, start WebSocket session
-        if session_id and session_id in connection_manager.active_connections:
-            await connection_manager.start_verification_session(session_id, {
-                "verification_id": verification_id,
-                "filename": file.filename,
-                "prompt": validated_data['prompt']
-            })
-
-            # Run verification in background with WebSocket updates
-            background_tasks.add_task(
-                run_verification_with_websocket,
-                verification_id,
-                session_id,
-                image_content,
-                validated_data['prompt'],
-                file.filename,
-            )
-
-            return {
-                "status": "processing",
-                "message": "Verification started. Check WebSocket for real-time updates.",
-                "verification_id": verification_id,
-                "session_id": session_id
-            }
-        else:
-            # Run verification synchronously
-            result = await verification_orchestrator.verify_post(
-                image_bytes=image_content,
-                user_prompt=validated_data['prompt'],
-                db=db,
-                session_id="sync",
-                filename=file.filename
-            )
-
-            return result
+        return result
 
     except (ValidationError, ImageProcessingError):
         # These will be handled by the global exception handlers
@@ -178,28 +79,9 @@ async def get_verification_status(
     Returns:
         Status information and verification result if completed
     """
-    crud = VerificationResultCRUD(db)
-    result = await crud.get_verification_result_by_uuid(verification_id)
+    result = await verification_service.get_verification_status(verification_id, db)
     
     if not result:
         raise HTTPException(status_code=404, detail="Verification result not found")
 
-    return {
-        "status": "completed",
-        "message": "Verification result retrieved successfully.",
-        "verification_id": str(result.id),
-        "user_nickname": result.user_nickname,
-        "extracted_text": result.extracted_text,
-        "primary_topic": result.primary_topic,
-        "identified_claims": result.identified_claims,
-        "verdict": result.verdict,
-        "justification": result.justification,
-        "confidence_score": result.confidence_score,
-        "processing_time_seconds": result.processing_time_seconds,
-        "temporal_analysis": result.temporal_analysis,
-        "examined_sources": result.examined_sources,
-        "search_queries_used": result.search_queries_used,
-        "fact_check_summary": result.fact_check_summary,
-        "user_reputation": result.user_reputation,
-        "warnings": result.warnings
-    }
+    return result

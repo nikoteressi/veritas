@@ -7,7 +7,7 @@ Veritas is an advanced AI-driven system designed for automated verification of f
 - **Multimodal Input Analysis**: Processes screenshots using multimodal Llama 4 to extract text, analyze visual content, and understand context
 - **Intelligent Fact Verification**: Uses RAG (Retrieval Augmented Generation) with up-to-date external information sources
 - **Dynamic Agent Specialization**: Automatically classifies posts and activates specialized AI agents for different domains
-- **Advanced Agent Architecture**: Sophisticated orchestrator with specialized fact-checkers and services
+- **Advanced Agent Architecture**: Modular workflow coordination with specialized fact-checkers and services following Single Responsibility Principle
 - **Temporal Analysis**: Time-based verification capabilities for detecting outdated information
 - **Motives Analysis**: Advanced analysis of underlying motivations in posts
 - **User Reputation System**: Maintains detailed statistics and issues warnings based on misinformation patterns
@@ -42,7 +42,10 @@ Veritas is an advanced AI-driven system designed for automated verification of f
 Veritas employs a sophisticated multi-agent system with specialized components:
 
 ### Core Agent Components
-- **`agent/orchestrator.py`** - Central coordination of all verification processes
+- **`agent/workflow_coordinator.py`** - Central coordination of all verification processes
+- **`agent/services/verification_pipeline.py`** - Modular verification pipeline with specialized steps
+- **`agent/services/validation_service.py`** - Centralized validation logic for all inputs
+- **`agent/services/configuration_service.py`** - Application configuration and settings management
 - **`agent/llm.py`** - Multimodal LLM management and integration
 - **`agent/vector_store.py`** - Vector database operations and embeddings
 - **`agent/temporal_analysis.py`** - Time-based verification and recency analysis
@@ -78,7 +81,11 @@ veritas/
 │   ├── agent/                 # LangChain agent implementation
 │   │   ├── fact_checkers/    # Specialized fact-checking agents
 │   │   ├── services/         # Core verification services
-│   │   ├── orchestrator.py   # Main agent orchestrator
+│   │   │   ├── verification_pipeline.py  # Modular verification pipeline
+│   │   │   ├── validation_service.py     # Centralized validation logic
+│   │   │   ├── configuration_service.py  # Application configuration
+│   │   │   └── ...          # Other specialized services
+│   │   ├── workflow_coordinator.py      # Main workflow coordination
 │   │   ├── llm.py           # LLM integration
 │   │   ├── vector_store.py   # Vector database operations
 │   │   ├── temporal_analysis.py # Time-based analysis
@@ -98,7 +105,14 @@ veritas/
 │   │   │   ├── ReputationDisplay.jsx   # User reputation
 │   │   │   └── WebSocketStatus.jsx     # Connection status
 │   │   ├── hooks/           # Custom React hooks
-│   │   │   └── useWebSocket.js      # WebSocket integration
+│   │   │   ├── useWebSocketService.js   # WebSocket integration
+│   │   │   ├── useVerificationState.js  # Verification state management
+│   │   │   └── ...          # Other custom hooks
+│   │   ├── services/        # Frontend services
+│   │   │   ├── webSocketService.js      # WebSocket connection management
+│   │   │   ├── verificationStateService.js # Verification state service
+│   │   │   ├── configurationService.js  # Frontend configuration
+│   │   │   └── ...          # Other services
 │   │   ├── utils/           # Utility functions
 │   │   │   └── errorHandling.js     # Error management
 │   │   └── main.jsx         # Application entry point

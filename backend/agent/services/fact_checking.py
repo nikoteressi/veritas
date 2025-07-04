@@ -76,9 +76,7 @@ class FactCheckingService:
         num_claims = len(claims)
         for i, claim in enumerate(claims):
             if progress_callback:
-                await progress_callback(
-                    "Fact-checking with external sources...", 50 + int((i / num_claims) * 30)
-                )
+                await progress_callback(i, num_claims)
 
             search_queries = await self._generate_search_queries(
                 claim,

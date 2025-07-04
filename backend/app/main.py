@@ -11,7 +11,6 @@ patch.dict('sys.modules', {'chromadb.telemetry.product.posthog': MagicMock()}).s
 import logging.config
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
 from typing import AsyncGenerator
 from unittest.mock import MagicMock, patch
 
@@ -23,11 +22,10 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database import Base, async_engine, create_db_and_tables
 from app.error_handlers import EXCEPTION_HANDLERS, setup_error_handlers
-from agent.llm import llm_manager
 from agent.vector_store import vector_store
 from app.redis_client import redis_manager
 from app.routers import verification, reputation
-from app.websocket_manager import connection_manager
+from app.handlers.websocket_handler import websocket_handler
 
 
 # Configure logging
@@ -61,7 +59,7 @@ async def lifespan(app: FastAPI):
     # Clean up the telemetry patch
     if 'posthog_patcher' in globals():
         posthog_patcher.stop()
-        print("Removed ChromaDB telemetry monkey-patch.")
+        logger.info("Removed ChromaDB telemetry monkey-patch.")
 
 
 # Create FastAPI application
@@ -105,64 +103,7 @@ async def health_check():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates."""
-    session_id = None
-    try:
-        # Accept connection and get session ID
-        session_id = await connection_manager.connect(websocket)
-
-        # Keep connection alive and handle incoming messages
-        while True:
-            try:
-                # Receive message from client
-                data = await websocket.receive_text()
-                logger.info(f"Received WebSocket message from {session_id}: {data}")
-
-                # Parse message (expecting JSON)
-                import json
-                try:
-                    message = json.loads(data)
-                    message_type = message.get("type", "unknown")
-
-                    if message_type == "ping":
-                        # Respond to ping with pong
-                        await connection_manager.send_message(session_id, {
-                            "type": "pong",
-                            "data": {"timestamp": message.get("timestamp")},
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-                    elif message_type == "status_request":
-                        # Send session status
-                        status = connection_manager.get_session_status(session_id)
-                        await connection_manager.send_message(session_id, {
-                            "type": "status_response",
-                            "data": status or {"status": "connected"},
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-                    else:
-                        # Echo unknown messages
-                        await connection_manager.send_message(session_id, {
-                            "type": "echo",
-                            "data": message,
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-
-                except json.JSONDecodeError:
-                    # Handle non-JSON messages
-                    await connection_manager.send_message(session_id, {
-                        "type": "error",
-                        "data": {"message": "Invalid JSON format"},
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-
-            except WebSocketDisconnect:
-                logger.info(f"WebSocket client disconnected: {session_id}")
-                break
-
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-    finally:
-        if session_id:
-            await connection_manager.disconnect(session_id)
+    await websocket_handler.handle_connection(websocket)
 
 
 if __name__ == "__main__":

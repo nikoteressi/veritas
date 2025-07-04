@@ -43,7 +43,7 @@ class VerificationResponse(BaseModel):
     identified_claims: Optional[List[str]] = None
     verdict: Optional[str] = None  # true, partially_true, false, ironic
     justification: Optional[str] = None
-    confidence_score: Optional[int] = None
+    confidence_score: Optional[float] = None
     processing_time_seconds: Optional[int] = None
     user_reputation: Optional[UserReputation] = None
     warnings: Optional[List[str]] = None

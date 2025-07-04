@@ -1,71 +1,70 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import UploadForm from './components/UploadForm'
 import VerificationResults from './components/VerificationResults'
 import WebSocketStatus from './components/WebSocketStatus'
 import ErrorBoundary from './components/ErrorBoundary'
-import { useWebSocket } from './hooks/useWebSocket'
+import { useWebSocketService } from './hooks/useWebSocketService'
+import { useVerificationState } from './hooks/useVerificationState'
+import logger from './utils/logger'
 
 function App() {
-  const [verificationResult, setVerificationResult] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [progressData, setProgressData] = useState(null)
-
   // WebSocket connection
   const {
     isConnected,
     sessionId,
     lastMessage,
     sendMessage
-  } = useWebSocket()
+  } = useWebSocketService()
 
-  // Handle WebSocket messages
+  // Verification state management
+  const {
+    verificationResult,
+    isLoading,
+    progressData,
+    startVerification,
+    completeVerification,
+    handleWebSocketMessage
+  } = useVerificationState()
+
+  // Handle WebSocket messages and delegate to verification state service
   useEffect(() => {
     if (lastMessage) {
-      switch (lastMessage.type) {
-        case 'progress_update':
-          setProgressData(lastMessage.data)
-          break
-        case 'verification_result':
-          setVerificationResult(lastMessage.data)
-          setIsLoading(false)
-          setProgressData(null)
-          break
-        case 'error':
-          setVerificationResult({
-            status: 'error',
-            message: lastMessage.data.message
-          })
-          setIsLoading(false)
-          setProgressData(null)
-          break
-        case 'connection_established':
-          console.log('WebSocket connection established:', lastMessage.data)
-          break
-        case 'pong':
-          console.log('WebSocket pong received:', lastMessage.data)
-          break
-        case 'status_response':
-          console.log('WebSocket status response:', lastMessage.data)
-          break
-        case 'echo':
-          console.log('WebSocket echo received:', lastMessage.data)
-          break
-        default:
-          console.log('Unhandled WebSocket message:', lastMessage)
+      // Handle verification-related messages
+      const verificationMessageTypes = ['progress_update', 'verification_result', 'error', 'verification_started'];
+      
+      if (verificationMessageTypes.includes(lastMessage.type)) {
+        handleWebSocketMessage(lastMessage.type, lastMessage.data);
+      } else {
+        // Handle other message types
+        switch (lastMessage.type) {
+          case 'connection_established':
+            logger.info('WebSocket connection established:', lastMessage.data);
+            break;
+          case 'session_established':
+            logger.info('WebSocket session established:', lastMessage.data);
+            break;
+          case 'pong':
+            // Skip logging pong messages to reduce console noise
+            break;
+          case 'status_response':
+            logger.debug('WebSocket status response:', lastMessage.data);
+            break;
+          case 'echo':
+            logger.debug('WebSocket echo received:', lastMessage.data);
+            break;
+          default:
+            logger.warn('Unhandled WebSocket message:', lastMessage);
+        }
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, handleWebSocketMessage])
 
   const handleVerificationComplete = (result) => {
-    setVerificationResult(result)
-    setIsLoading(false)
-    setProgressData(null)
+    completeVerification(result)
   }
 
   const handleVerificationStart = () => {
-    setIsLoading(true)
-    setVerificationResult(null)
-    setProgressData(null)
+    startVerification()
   }
 
   return (

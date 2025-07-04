@@ -134,7 +134,8 @@ class TemporalAnalyzer:
                 for match in matches:
                     try:
                         return parser.parse(match)
-                    except:
+                    except (ValueError, TypeError, AttributeError) as e:
+                        logger.debug(f"Failed to parse date '{match}': {e}")
                         continue
             
             return None
@@ -164,7 +165,8 @@ class TemporalAnalyzer:
                     try:
                         parsed_date = parser.parse(match)
                         referenced_dates.append((claim, parsed_date))
-                    except:
+                    except (ValueError, TypeError, AttributeError) as e:
+                        logger.debug(f"Failed to parse referenced date '{match}' in claim '{claim[:50]}...': {e}")
                         continue
         
         return referenced_dates

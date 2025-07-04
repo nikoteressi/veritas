@@ -1,6 +1,7 @@
 /**
  * Error handling utilities for the frontend
  */
+import { configurationService } from '../services/configurationService';
 
 export class APIError extends Error {
   constructor(message, status, code, details = {}) {
@@ -84,23 +85,12 @@ export const getErrorMessage = (error) => {
  * Validate file before upload
  */
 export const validateFile = (file) => {
-  if (!file) {
-    throw new ValidationError('Please select a file')
-  }
-
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-  if (!allowedTypes.includes(file.type)) {
-    throw new ValidationError('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
-  }
-
-  const maxSize = 10 * 1024 * 1024 // 10MB
-  if (file.size > maxSize) {
-    throw new ValidationError('File size must be less than 10MB')
-  }
-
-  const minSize = 1024 // 1KB
-  if (file.size < minSize) {
-    throw new ValidationError('File is too small. Please select a valid image.')
+  try {
+    // Delegate to configuration service for validation
+    return configurationService.validateFile(file);
+  } catch (error) {
+    // Convert configuration service errors to ValidationError
+    throw new ValidationError(error.message);
   }
 }
 
@@ -108,34 +98,13 @@ export const validateFile = (file) => {
  * Validate prompt text
  */
 export const validatePrompt = (prompt) => {
-  if (!prompt || !prompt.trim()) {
-    throw new ValidationError('Please enter a question or prompt')
+  try {
+    // Delegate to configuration service for validation
+    return configurationService.validatePrompt(prompt);
+  } catch (error) {
+    // Convert configuration service errors to ValidationError
+    throw new ValidationError(error.message);
   }
-
-  const trimmed = prompt.trim()
-  
-  if (trimmed.length < 5) {
-    throw new ValidationError('Please enter a longer question (at least 5 characters)')
-  }
-
-  if (trimmed.length > 1000) {
-    throw new ValidationError('Please keep your question under 1000 characters')
-  }
-
-  // Check for potentially harmful content
-  const suspiciousPatterns = [
-    /<script[^>]*>.*?<\/script>/gi,
-    /javascript:/gi,
-    /on\w+\s*=/gi
-  ]
-
-  for (const pattern of suspiciousPatterns) {
-    if (pattern.test(trimmed)) {
-      throw new ValidationError('Please remove any code or scripts from your prompt')
-    }
-  }
-
-  return trimmed
 }
 
 /**
