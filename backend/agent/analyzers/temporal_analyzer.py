@@ -1,5 +1,5 @@
 """
-Temporal analysis module for detecting temporal mismatches in social media posts.
+Refactored temporal analysis module for detecting temporal mismatches in social media posts.
 """
 import re
 import logging
@@ -8,85 +8,77 @@ from typing import Dict, Any, Optional, List, Tuple
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
+from agent.analyzers.base_analyzer import BaseAnalyzer
+from agent.models.verification_context import VerificationContext
+
 logger = logging.getLogger(__name__)
 
 
-class TemporalAnalyzer:
+class TemporalAnalyzer(BaseAnalyzer):
     """Analyzes temporal context of social media posts and claims."""
     
     def __init__(self):
+        super().__init__("temporal")
         self.current_time = datetime.now()
     
-    def analyze_temporal_context(self, extracted_info: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze(self, context: VerificationContext) -> Dict[str, Any]:
         """
         Analyze temporal context of a post and its claims.
         
         Args:
-            extracted_info: Dictionary containing extracted post information
+            context: Verification context containing all necessary data
             
         Returns:
             Dictionary with temporal analysis results
         """
-        try:
-            analysis = {
-                "post_timestamp": None,
-                "post_age_hours": None,
-                "referenced_dates": [],
-                "temporal_mismatch": False,
-                "mismatch_severity": "none",  # none, minor, major, critical
-                "temporal_flags": [],
-                "intent_analysis": "unknown"
-            }
-            
-            # Extract post timestamp
-            post_date_str = extracted_info.get("post_date")
-            post_timestamp = self._extract_post_timestamp(post_date_str) if post_date_str else None
-            
-            if not post_timestamp:
-                post_timestamp = self._extract_post_timestamp(extracted_info.get("extracted_text", ""))
+        extracted_info = context.get_extracted_info()
+        
+        analysis = {
+            "post_timestamp": None,
+            "post_age_hours": None,
+            "referenced_dates": [],
+            "temporal_mismatch": False,
+            "mismatch_severity": "none",  # none, minor, major, critical
+            "temporal_flags": [],
+            "intent_analysis": "unknown"
+        }
+        
+        # Extract post timestamp
+        post_date_str = extracted_info.get("post_date")
+        post_timestamp = self._extract_post_timestamp(post_date_str) if post_date_str else None
+        
+        if not post_timestamp:
+            post_timestamp = self._extract_post_timestamp(extracted_info.get("extracted_text", ""))
 
-            if post_timestamp:
-                analysis["post_timestamp"] = post_timestamp
-                analysis["post_age_hours"] = self._calculate_age_hours(post_timestamp)
-            
-            # Extract referenced dates from claims
-            referenced_dates = self._extract_referenced_dates(extracted_info.get("claims", []))
-            analysis["referenced_dates"] = referenced_dates
-            
-            # Analyze temporal mismatches
-            mismatch_analysis = self._analyze_temporal_mismatches(
-                post_timestamp, referenced_dates, extracted_info
-            )
-            analysis.update(mismatch_analysis)
-            
-            # Analyze potential intent
-            analysis["intent_analysis"] = self._analyze_intent(
-                post_timestamp, referenced_dates, extracted_info
-            )
-            
-            # Convert datetimes to strings for JSON serialization
-            if isinstance(analysis.get("post_timestamp"), datetime):
-                analysis["post_timestamp"] = analysis["post_timestamp"].isoformat()
+        if post_timestamp:
+            analysis["post_timestamp"] = post_timestamp
+            analysis["post_age_hours"] = self._calculate_age_hours(post_timestamp)
+        
+        # Extract referenced dates from claims
+        referenced_dates = self._extract_referenced_dates(extracted_info.get("claims", []))
+        analysis["referenced_dates"] = referenced_dates
+        
+        # Analyze temporal mismatches
+        mismatch_analysis = self._analyze_temporal_mismatches(
+            post_timestamp, referenced_dates, extracted_info
+        )
+        analysis.update(mismatch_analysis)
+        
+        # Analyze potential intent
+        analysis["intent_analysis"] = self._analyze_intent(
+            post_timestamp, referenced_dates, extracted_info
+        )
+        
+        # Convert datetimes to strings for JSON serialization
+        if isinstance(analysis.get("post_timestamp"), datetime):
+            analysis["post_timestamp"] = analysis["post_timestamp"].isoformat()
 
-            if "referenced_dates" in analysis:
-                analysis["referenced_dates"] = [
-                    (claim, date.isoformat()) for claim, date in analysis["referenced_dates"]
-                ]
+        if "referenced_dates" in analysis:
+            analysis["referenced_dates"] = [
+                (claim, date.isoformat()) for claim, date in analysis["referenced_dates"]
+            ]
 
-            logger.info(f"Temporal analysis completed: {analysis['mismatch_severity']} mismatch detected")
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"Temporal analysis failed: {e}")
-            return {
-                "post_timestamp": None,
-                "post_age_hours": None,
-                "referenced_dates": [],
-                "temporal_mismatch": False,
-                "mismatch_severity": "none",
-                "temporal_flags": [f"Analysis failed: {e}"],
-                "intent_analysis": "unknown"
-            }
+        return analysis
     
     def _extract_post_timestamp(self, text: str) -> Optional[datetime]:
         """Extract post timestamp from text."""
@@ -252,8 +244,4 @@ class TemporalAnalyzer:
         elif has_major_mismatch:
             return "outdated_information_sharing"
         else:
-            return "legitimate_recent_content"
-
-
-# Global temporal analyzer instance
-temporal_analyzer = TemporalAnalyzer()
+            return "legitimate_recent_content" 

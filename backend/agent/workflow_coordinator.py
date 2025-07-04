@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import AgentError
-from agent.services.verification_pipeline import verification_pipeline
+from agent.pipeline.verification_pipeline import verification_pipeline
 
 logger = logging.getLogger(__name__)
 

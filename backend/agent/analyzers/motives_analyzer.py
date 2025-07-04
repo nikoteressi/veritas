@@ -1,5 +1,5 @@
 """
-Motives analysis module for analyzing potential motives behind social media posts.
+Refactored motives analysis module for analyzing potential motives behind social media posts.
 """
 import re
 import logging
@@ -7,16 +7,19 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 
+from agent.analyzers.base_analyzer import BaseAnalyzer
+from agent.models.verification_context import VerificationContext
 from agent.llm import llm_manager
 from agent.prompts import MANIPULATION_DETECTION_PROMPT, ADVERSARIAL_ROBUSTNESS_PROMPT
 
 logger = logging.getLogger(__name__)
 
 
-class MotivesAnalyzer:
+class MotivesAnalyzer(BaseAnalyzer):
     """Analyzes potential motives behind social media posts."""
     
     def __init__(self):
+        super().__init__("motives")
         self.financial_manipulation_keywords = [
             'pump', 'moon', 'rocket', 'buy now', 'urgent', 'breaking',
             'massive gains', 'last chance', 'don\'t miss', 'explosive growth',
@@ -40,92 +43,79 @@ class MotivesAnalyzer:
             'tag someone', 'retweet if', 'follow for more', 'turn on notifications'
         ]
     
-    async def analyze_motives(self, extracted_info: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze(self, context: VerificationContext) -> Dict[str, Any]:
         """
         Analyze potential motives behind a social media post.
         
         Args:
-            extracted_info: Dictionary containing extracted post information
+            context: Verification context containing all necessary data
             
         Returns:
             Dictionary with motives analysis results
         """
-        try:
-            content = extracted_info.get("extracted_text", "").lower()
-            claims = extracted_info.get("claims", [])
-            primary_topic = extracted_info.get("primary_topic", "general")
-            temporal_analysis = extracted_info.get("temporal_analysis", {})
-            
-            motives_analysis = {
-                "primary_motive": "unknown",
-                "confidence_score": 0.0,
-                "secondary_motives": [],
-                "manipulation_indicators": [],
-                "credibility_assessment": "neutral",
-                "risk_level": "low",
-                "detailed_analysis": {}
-            }
-            
-            # Analyze different types of motives
-            financial_analysis = self._analyze_financial_motives(content, claims, temporal_analysis)
-            misinformation_analysis = self._analyze_misinformation_motives(content, claims)
-            engagement_analysis = self._analyze_engagement_motives(content)
-            emotional_analysis = self._analyze_emotional_manipulation(content)
-            
-            # Advanced LLM-based manipulation detection
-            llm_manipulation_analysis = await self._analyze_llm_manipulation(content, claims, temporal_analysis)
-            
-            # Combine analyses
-            all_analyses = {
-                "financial": financial_analysis,
-                "misinformation": misinformation_analysis,
-                "engagement": engagement_analysis,
-                "emotional": emotional_analysis,
-                "llm_manipulation": llm_manipulation_analysis
-            }
-            
-            # Determine primary motive
-            primary_motive, confidence = self._determine_primary_motive(all_analyses)
-            motives_analysis["primary_motive"] = primary_motive
-            motives_analysis["confidence_score"] = confidence
-            
-            # Collect secondary motives
-            secondary_motives = []
-            for motive_type, analysis in all_analyses.items():
-                if motive_type != primary_motive and analysis["confidence"] > 0.3:
-                    secondary_motives.append({
-                        "type": motive_type,
-                        "confidence": analysis["confidence"]
-                    })
-            motives_analysis["secondary_motives"] = secondary_motives
-            
-            # Collect manipulation indicators
-            manipulation_indicators = []
-            for analysis in all_analyses.values():
-                manipulation_indicators.extend(analysis.get("indicators", []))
-            motives_analysis["manipulation_indicators"] = list(set(manipulation_indicators))
-            
-            # Assess overall credibility and risk
-            motives_analysis["credibility_assessment"] = self._assess_credibility(all_analyses)
-            motives_analysis["risk_level"] = self._assess_risk_level(all_analyses)
-            
-            # Store detailed analysis
-            motives_analysis["detailed_analysis"] = all_analyses
-            
-            logger.info(f"Motives analysis completed: {primary_motive} (confidence: {confidence:.2f})")
-            return motives_analysis
-            
-        except Exception as e:
-            logger.error(f"Motives analysis failed: {e}")
-            return {
-                "primary_motive": "unknown",
-                "confidence_score": 0.0,
-                "secondary_motives": [],
-                "manipulation_indicators": [f"Analysis failed: {e}"],
-                "credibility_assessment": "neutral",
-                "risk_level": "low",
-                "detailed_analysis": {}
-            }
+        extracted_info = context.get_extracted_info()
+        content = extracted_info.get("extracted_text", "").lower()
+        claims = extracted_info.get("claims", [])
+        primary_topic = extracted_info.get("primary_topic", "general")
+        temporal_analysis = context.get_temporal_analysis()
+        
+        motives_analysis = {
+            "primary_motive": "unknown",
+            "confidence_score": 0.0,
+            "secondary_motives": [],
+            "manipulation_indicators": [],
+            "credibility_assessment": "neutral",
+            "risk_level": "low",
+            "detailed_analysis": {}
+        }
+        
+        # Analyze different types of motives
+        financial_analysis = self._analyze_financial_motives(content, claims, temporal_analysis)
+        misinformation_analysis = self._analyze_misinformation_motives(content, claims)
+        engagement_analysis = self._analyze_engagement_motives(content)
+        emotional_analysis = self._analyze_emotional_manipulation(content)
+        
+        # Advanced LLM-based manipulation detection
+        llm_manipulation_analysis = await self._analyze_llm_manipulation(content, claims, temporal_analysis)
+        
+        # Combine analyses
+        all_analyses = {
+            "financial": financial_analysis,
+            "misinformation": misinformation_analysis,
+            "engagement": engagement_analysis,
+            "emotional": emotional_analysis,
+            "llm_manipulation": llm_manipulation_analysis
+        }
+        
+        # Determine primary motive
+        primary_motive, confidence = self._determine_primary_motive(all_analyses)
+        motives_analysis["primary_motive"] = primary_motive
+        motives_analysis["confidence_score"] = confidence
+        
+        # Collect secondary motives
+        secondary_motives = []
+        for motive_type, analysis in all_analyses.items():
+            if motive_type != primary_motive and analysis["confidence"] > 0.3:
+                secondary_motives.append({
+                    "type": motive_type,
+                    "confidence": analysis["confidence"]
+                })
+        motives_analysis["secondary_motives"] = secondary_motives
+        
+        # Collect manipulation indicators
+        manipulation_indicators = []
+        for analysis in all_analyses.values():
+            manipulation_indicators.extend(analysis.get("indicators", []))
+        motives_analysis["manipulation_indicators"] = list(set(manipulation_indicators))
+        
+        # Assess overall credibility and risk
+        motives_analysis["credibility_assessment"] = self._assess_credibility(all_analyses)
+        motives_analysis["risk_level"] = self._assess_risk_level(all_analyses)
+        
+        # Store detailed analysis
+        motives_analysis["detailed_analysis"] = all_analyses
+        
+        return motives_analysis
     
     def _analyze_financial_motives(self, content: str, claims: List[str], temporal_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze potential financial manipulation motives."""
@@ -345,14 +335,6 @@ class MotivesAnalyzer:
         try:
             logger.info("Starting LLM-based manipulation analysis")
             
-            # First, adversarial robustness check
-            adversarial_prompt = ADVERSARIAL_ROBUSTNESS_PROMPT.format_messages(content=content)
-            adversarial_full_prompt = adversarial_prompt[0].content + "\n\n" + adversarial_prompt[1].content
-            logger.debug(f"Adversarial check prompt: {adversarial_full_prompt}")
-            
-            adversarial_check_content = await llm_manager.invoke_text_only(text=adversarial_full_prompt)
-            logger.info(f"Adversarial check result: {adversarial_check_content}")
-            
             # Main manipulation detection
             manipulation_prompt = MANIPULATION_DETECTION_PROMPT.format_messages(
                 content=content,
@@ -361,115 +343,33 @@ class MotivesAnalyzer:
                 temporal_analysis=str(temporal_analysis)
             )
             manipulation_full_prompt = manipulation_prompt[0].content + "\n\n" + manipulation_prompt[1].content
-            logger.debug(f"Manipulation detection prompt: {manipulation_full_prompt}")
             
             manipulation_analysis_content = await llm_manager.invoke_text_only(text=manipulation_full_prompt)
-            logger.info(f"Manipulation analysis raw response length: {len(manipulation_analysis_content)} chars")
             
-            # Parse LLM response
-            try:
-                analysis_text = manipulation_analysis_content
-                logger.debug(f"Raw LLM analysis response: {analysis_text}")
-                
-                # Try multiple JSON extraction methods
-                parsed_analysis = None
-                
-                # Method 1: Try to find complete JSON object
-                import re
-                json_matches = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', analysis_text, re.DOTALL)
-                
-                for json_match in json_matches:
-                    try:
-                        parsed_analysis = json.loads(json_match)
-                        logger.debug(f"Successfully parsed JSON: {parsed_analysis}")
-                        break
-                    except json.JSONDecodeError:
-                        continue
-                
-                # Method 2: Try to extract from code blocks
-                if not parsed_analysis:
-                    code_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', analysis_text, re.DOTALL)
-                    if code_block_match:
-                        try:
-                            parsed_analysis = json.loads(code_block_match.group(1))
-                            logger.debug(f"Parsed JSON from code block: {parsed_analysis}")
-                        except json.JSONDecodeError:
-                            pass
-                
-                # Method 3: Try to parse the entire response as JSON
-                if not parsed_analysis:
-                    try:
-                        parsed_analysis = json.loads(analysis_text.strip())
-                        logger.debug(f"Parsed entire response as JSON: {parsed_analysis}")
-                    except json.JSONDecodeError:
-                        pass
-                
-                # Fallback: Create structure from text analysis
-                if not parsed_analysis:
-                    logger.warning(f"All JSON parsing methods failed, creating fallback analysis")
-                    
-                    # Basic text analysis for manipulation indicators
-                    manipulation_keywords = ['manipulation', 'misleading', 'deceptive', 'false', 'propaganda']
-                    detected_manipulations = [keyword for keyword in manipulation_keywords if keyword.lower() in analysis_text.lower()]
-                    
-                    confidence = min(len(detected_manipulations) * 0.2, 0.8)
-                    
-                    parsed_analysis = {
-                        "manipulation_detected": len(detected_manipulations) > 0,
-                        "manipulation_types": detected_manipulations,
-                        "confidence": confidence,
-                        "reasoning": f"Fallback analysis detected: {', '.join(detected_manipulations) if detected_manipulations else 'No clear manipulation indicators'}"
-                    }
-                
-                # Extract confidence and indicators
-                confidence = parsed_analysis.get("confidence", 0.0)
-                if isinstance(confidence, str):
-                    confidence = float(confidence.rstrip('%')) / 100 if '%' in confidence else 0.0
-                
-                logger.info(f"Successfully parsed manipulation analysis: manipulation_detected={parsed_analysis.get('manipulation_detected', False)}, confidence={confidence}")
-                
-                indicators = []
-                if parsed_analysis.get("manipulation_detected", False):
-                    indicators.extend(parsed_analysis.get("manipulation_types", []))
-                    if "reasoning" in parsed_analysis:
-                        indicators.append(f"LLM Analysis: {parsed_analysis['reasoning']}")
-                
-                # Check for adversarial content
-                if "manipulation detected" in adversarial_check_content.lower():
-                    indicators.append(f"Adversarial content detected: {adversarial_check_content}")
-                    confidence = max(confidence, 0.8)
-                elif "safe" not in adversarial_check_content.lower():
-                    indicators.append("Uncertain adversarial check result")
-                    confidence = max(confidence, 0.3)
-                
-                return {
-                    "confidence": confidence,
-                    "indicators": indicators,
-                    "assessment": "high_risk" if confidence > 0.7 else "moderate_risk" if confidence > 0.4 else "low_risk",
-                    "llm_analysis": parsed_analysis,
-                    "adversarial_check": adversarial_check_content
-                }
-                
-            except (json.JSONDecodeError, AttributeError) as e:
-                logger.warning(f"Failed to parse LLM manipulation analysis: {e}")
-                return {
-                    "confidence": 0.0,
-                    "indicators": ["LLM analysis parsing failed"],
-                    "assessment": "low_risk",
-                    "llm_analysis": {"error": str(e)},
-                    "adversarial_check": adversarial_check_content if 'adversarial_check_content' in locals() else ""
-                }
+            # Parse LLM response - simplified version
+            confidence = 0.0
+            indicators = []
+            
+            # Basic text analysis for manipulation indicators
+            manipulation_keywords = ['manipulation', 'misleading', 'deceptive', 'false', 'propaganda']
+            detected_manipulations = [keyword for keyword in manipulation_keywords if keyword.lower() in manipulation_analysis_content.lower()]
+            
+            confidence = min(len(detected_manipulations) * 0.2, 0.8)
+            
+            if detected_manipulations:
+                indicators.extend(detected_manipulations)
+                indicators.append(f"LLM detected manipulation indicators")
+            
+            return {
+                "confidence": confidence,
+                "indicators": indicators,
+                "assessment": "high_risk" if confidence > 0.7 else "moderate_risk" if confidence > 0.4 else "low_risk"
+            }
                 
         except Exception as e:
             logger.error(f"LLM manipulation analysis failed: {e}")
             return {
                 "confidence": 0.0,
                 "indicators": [f"LLM analysis failed: {e}"],
-                "assessment": "low_risk",
-                "llm_analysis": {"error": str(e)},
-                "adversarial_check": ""
-            }
-
-
-# Global motives analyzer instance
-motives_analyzer = MotivesAnalyzer() 
+                "assessment": "low_risk"
+            } 
