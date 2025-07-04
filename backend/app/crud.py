@@ -2,12 +2,11 @@
 CRUD operations for database models.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.future import select
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.database import User, VerificationResult, async_session_factory
 from app.config import settings
@@ -37,27 +36,23 @@ class UserCRUD:
     @staticmethod
     async def get_or_create_user(db: AsyncSession, nickname: str) -> User:
         """Get a user by nickname, or create it if it doesn't exist."""
+        # Use PostgreSQL's INSERT ... ON CONFLICT DO NOTHING for atomic operation
+        stmt = insert(User).values(nickname=nickname)
+        stmt = stmt.on_conflict_do_nothing(index_elements=['nickname'])
+        await db.execute(stmt)
+        await db.flush()
+        
+        # Now fetch the user (either existing or newly created)
         result = await db.execute(select(User).filter(User.nickname == nickname))
         user = result.scalars().first()
         
-        if user:
-            return user
+        if not user:
+            # This should not happen, but handle it gracefully
+            logger.error(f"Failed to get or create user: {nickname}")
+            raise RuntimeError(f"Could not get or create user: {nickname}")
         
-        # User not found, try to create it within a nested transaction
-        try:
-            async with db.begin_nested():
-                user = User(nickname=nickname)
-                db.add(user)
-                await db.flush()
-                await db.refresh(user)
-                logger.info(f"Created new user: {nickname}")
-                return user
-        except IntegrityError:
-            # The nested transaction is rolled back automatically on error
-            logger.warning(f"Race condition: User '{nickname}' already exists. Fetching existing user.")
-            # The user should exist now, so we can fetch it
-            result = await db.execute(select(User).filter(User.nickname == nickname))
-            return result.scalars().first()
+        logger.debug(f"Retrieved user: {nickname}")
+        return user
     
     @staticmethod
     async def update_user_reputation(db: AsyncSession, nickname: str, verdict: str) -> Optional[User]:

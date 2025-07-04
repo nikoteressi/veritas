@@ -84,50 +84,31 @@ async def get_reputation_stats(
     try:
         from sqlalchemy import func
 
-        # Get total users
-        total_users_result = await db.execute(
-            select(func.count(User.id))
+        # Single optimized query to get all statistics at once
+        stats_result = await db.execute(
+            select(
+                func.count(User.id).label('total_users'),
+                func.sum(User.total_posts_checked).label('total_posts'),
+                func.sum(User.true_count).label('true_posts'),
+                func.sum(User.false_count).label('false_posts'),
+                func.sum(User.partially_true_count).label('partially_true'),
+                func.sum(User.ironic_count).label('ironic_posts'),
+                func.sum(func.case((User.warning_issued == True, 1), else_=0)).label('users_with_warnings'),
+                func.sum(func.case((User.notification_issued == True, 1), else_=0)).label('users_with_notifications')
+            )
         )
-        total_users = total_users_result.scalar() or 0
-
-        # Get total posts checked
-        total_posts_result = await db.execute(
-            select(func.sum(User.total_posts_checked))
-        )
-        total_posts = total_posts_result.scalar() or 0
-
-        # Get verdict counts
-        true_posts_result = await db.execute(
-            select(func.sum(User.true_count))
-        )
-        true_posts = true_posts_result.scalar() or 0
-
-        false_posts_result = await db.execute(
-            select(func.sum(User.false_count))
-        )
-        false_posts = false_posts_result.scalar() or 0
-
-        partially_true_result = await db.execute(
-            select(func.sum(User.partially_true_count))
-        )
-        partially_true = partially_true_result.scalar() or 0
-
-        ironic_posts_result = await db.execute(
-            select(func.sum(User.ironic_count))
-        )
-        ironic_posts = ironic_posts_result.scalar() or 0
-
-        # Get users with warnings
-        warnings_result = await db.execute(
-            select(func.count(User.id)).where(User.warning_issued == True)
-        )
-        users_with_warnings = warnings_result.scalar() or 0
-
-        # Get users with notifications
-        notifications_result = await db.execute(
-            select(func.count(User.id)).where(User.notification_issued == True)
-        )
-        users_with_notifications = notifications_result.scalar() or 0
+        
+        stats = stats_result.first()
+        
+        # Extract values with defaults
+        total_users = stats.total_users or 0
+        total_posts = stats.total_posts or 0
+        true_posts = stats.true_posts or 0
+        false_posts = stats.false_posts or 0
+        partially_true = stats.partially_true or 0
+        ironic_posts = stats.ironic_posts or 0
+        users_with_warnings = stats.users_with_warnings or 0
+        users_with_notifications = stats.users_with_notifications or 0
 
         # Calculate percentages
         accuracy_rate = (true_posts + partially_true) / total_posts * 100 if total_posts > 0 else 0
