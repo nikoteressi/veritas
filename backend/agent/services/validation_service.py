@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import ValidationError
-from agent.services.configuration_service import configuration_service
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,8 @@ class ValidationService:
     """
     
     def __init__(self):
-        self.config = configuration_service.validation
-        self.security_config = configuration_service.security
+        # Use the unified configuration from app.config
+        self.settings = settings
     
     def validate_verification_request(
         self,
@@ -77,12 +77,12 @@ class ValidationService:
         if not file_data:
             raise ValidationError("No image data provided")
         
-        if len(file_data) > self.config.max_file_size:
+        if len(file_data) > self.settings.max_file_size:
             raise ValidationError(
-                f"Image too large. Maximum size is {self.config.max_file_size / (1024 * 1024):.1f}MB"
+                f"Image too large. Maximum size is {self.settings.max_file_size / (1024 * 1024):.1f}MB"
             )
         
-        if len(file_data) < self.config.min_file_size:
+        if len(file_data) < self.settings.min_file_size:
             raise ValidationError("Image data appears to be corrupted or too small")
         
         # Basic image format validation (check for common image headers)
@@ -110,14 +110,14 @@ class ValidationService:
         # Clean and normalize prompt
         cleaned_prompt = prompt.strip()
         
-        if len(cleaned_prompt) < self.config.min_prompt_length:
+        if len(cleaned_prompt) < self.settings.min_prompt_length:
             raise ValidationError(
-                f"Prompt too short. Minimum length is {self.config.min_prompt_length} characters"
+                f"Prompt too short. Minimum length is {self.settings.min_prompt_length} characters"
             )
         
-        if len(cleaned_prompt) > self.config.max_prompt_length:
+        if len(cleaned_prompt) > self.settings.max_prompt_length:
             raise ValidationError(
-                f"Prompt too long. Maximum length is {self.config.max_prompt_length} characters"
+                f"Prompt too long. Maximum length is {self.settings.max_prompt_length} characters"
             )
         
         # Check for obvious spam or malicious content
@@ -194,53 +194,62 @@ class ValidationService:
             True if suspicious content detected
         """
         prompt_lower = prompt.lower()
-        return any(pattern in prompt_lower for pattern in self.security_config.suspicious_patterns)
+        return any(pattern in prompt_lower for pattern in self.settings.suspicious_patterns)
     
     def validate_analysis_result(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Validate analysis result structure.
+        Validate analysis result structure and content.
         
         Args:
-            analysis_result: Analysis result dictionary
+            analysis_result: Analysis result to validate
             
         Returns:
             Validated analysis result
             
         Raises:
-            ValidationError: If analysis result is invalid
+            ValidationError: If validation fails
         """
-        if not isinstance(analysis_result, dict):
-            raise ValidationError("Analysis result must be a dictionary")
+        if not analysis_result:
+            raise ValidationError("Analysis result cannot be empty")
         
-        required_fields = ['extracted_text', 'primary_topic', 'claims']
-        missing_fields = [field for field in required_fields if field not in analysis_result]
+        # Validate required fields
+        required_fields = ['username', 'content', 'timestamp']
+        for field in required_fields:
+            if field not in analysis_result:
+                logger.warning(f"Missing field '{field}' in analysis result")
+                analysis_result[field] = None
         
-        if missing_fields:
-            raise ValidationError(f"Missing required fields in analysis result: {missing_fields}")
+        # Validate username
+        if analysis_result['username'] and len(analysis_result['username']) > 100:
+            raise ValidationError("Username too long")
+        
+        # Validate content
+        if analysis_result['content'] and len(analysis_result['content']) > 10000:
+            raise ValidationError("Content too long")
         
         return analysis_result
     
     def validate_reputation_data(self, reputation_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Validate reputation data structure.
+        Validate reputation data structure and values.
         
         Args:
-            reputation_data: Reputation data dictionary
+            reputation_data: Reputation data to validate
             
         Returns:
             Validated reputation data
             
         Raises:
-            ValidationError: If reputation data is invalid
+            ValidationError: If validation fails
         """
-        if not isinstance(reputation_data, dict):
-            raise ValidationError("Reputation data must be a dictionary")
+        if not reputation_data:
+            raise ValidationError("Reputation data cannot be empty")
         
-        required_fields = ['nickname', 'total_posts_checked']
-        missing_fields = [field for field in required_fields if field not in reputation_data]
-        
-        if missing_fields:
-            raise ValidationError(f"Missing required fields in reputation data: {missing_fields}")
+        # Validate reputation score
+        if 'reputation_score' in reputation_data:
+            score = reputation_data['reputation_score']
+            if not isinstance(score, (int, float)):
+                raise ValidationError("Reputation score must be a number")
         
         return reputation_data
 
