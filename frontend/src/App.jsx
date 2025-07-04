@@ -51,6 +51,7 @@ function App() {
               result={verificationResult}
               isLoading={isLoading}
               progressData={progressData}
+              error={error}
             />
           </div>
         </div>
