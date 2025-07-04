@@ -26,6 +26,7 @@ from agent.vector_store import vector_store
 from app.redis_client import redis_manager
 from app.routers import verification, reputation
 from app.handlers.websocket_handler import websocket_handler
+from agent.services.agent_manager import create_agent_manager
 
 
 # Configure logging
@@ -48,6 +49,15 @@ async def lifespan(app: FastAPI):
     # Initialize vector store (with lazy loading)
     # The actual initialization will happen on the first request
     logger.info("Vector store scheduled for lazy initialization.")
+    
+    # Initialize AgentManager
+    try:
+        agent_manager = await create_agent_manager()
+        app.state.agent_manager = agent_manager
+        logger.info("AgentManager initialized and attached to app state.")
+    except Exception as e:
+        logger.error(f"Failed to initialize AgentManager: {e}")
+        raise
     
     yield
     

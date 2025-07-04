@@ -17,14 +17,19 @@ class AgentManager:
     """Manages LLM agent initialization and configuration."""
     
     def __init__(self):
-        self.llm = llm_manager.llm
+        """Initialize AgentManager without performing I/O operations."""
+        self.llm = None
         self.tools = AVAILABLE_TOOLS
         self.agent_executor: Optional[AgentExecutor] = None
-        self._initialize_agent()
+        self._initialized = False
     
-    def _initialize_agent(self):
-        """Initialize the LangChain agent executor."""
+    async def _initialize_agent(self):
+        """Initialize the LangChain agent executor asynchronously."""
         try:
+            # Initialize LLM if not already done
+            if self.llm is None:
+                self.llm = llm_manager.llm
+            
             prompt = ChatPromptTemplate.from_messages([
                 ("system", "You are a helpful AI assistant with access to tools for fact-checking."),
                 ("human", "{input}"),
@@ -39,6 +44,8 @@ class AgentManager:
                 max_iterations=10,
                 early_stopping_method="generate"
             )
+            
+            self._initialized = True
             logger.info("Agent executor initialized successfully")
             
         except Exception as e:
@@ -47,14 +54,52 @@ class AgentManager:
     
     def get_agent_executor(self) -> AgentExecutor:
         """Get the initialized agent executor."""
-        if self.agent_executor is None:
-            self._initialize_agent()
+        if not self._initialized or self.agent_executor is None:
+            raise RuntimeError("AgentManager not initialized. Call create_agent_manager() first.")
         return self.agent_executor
     
     def is_agent_ready(self) -> bool:
         """Check if the agent is ready for use."""
-        return self.agent_executor is not None
+        return self._initialized and self.agent_executor is not None
 
 
-# Singleton instance
-agent_manager = AgentManager() 
+async def create_agent_manager() -> AgentManager:
+    """
+    Async factory function to create and initialize an AgentManager.
+    
+    Returns:
+        Initialized AgentManager instance
+    """
+    logger.info("Creating and initializing AgentManager...")
+    
+    try:
+        manager = AgentManager()
+        await manager._initialize_agent()
+        logger.info("AgentManager created and initialized successfully")
+        return manager
+    except Exception as e:
+        logger.error(f"Failed to create AgentManager: {e}")
+        raise
+
+
+def get_agent_manager_from_app(app) -> AgentManager:
+    """
+    Get the AgentManager instance from FastAPI app state.
+    
+    Args:
+        app: FastAPI application instance
+        
+    Returns:
+        AgentManager instance
+        
+    Raises:
+        RuntimeError: If AgentManager is not initialized in app state
+    """
+    if not hasattr(app.state, 'agent_manager'):
+        raise RuntimeError("AgentManager not found in app state. Ensure the app was started properly.")
+    
+    agent_manager = app.state.agent_manager
+    if not agent_manager.is_agent_ready():
+        raise RuntimeError("AgentManager is not ready. Initialization may have failed.")
+    
+    return agent_manager 
