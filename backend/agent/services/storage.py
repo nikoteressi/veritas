@@ -40,7 +40,7 @@ class StorageService:
             "user_nickname": user_nickname,
             "verdict": verdict_result.get("verdict"),
             "justification": verdict_result.get("reasoning"),
-            "identified_claims": json.dumps(extracted_info.get("claims", [])),
+            "identified_claims": json.dumps([fact['description'] for fact in extracted_info.get("fact_hierarchy", {}).get("supporting_facts", [])]),
             "primary_topic": extracted_info.get("primary_topic"),
             "extracted_text": extracted_info.get("extracted_text"),
             "image_hash": self._hash_image(image_bytes),

@@ -108,11 +108,15 @@ class ImageAnalysisResult(BaseModel):
     """Pydantic model for structured image analysis results."""
     username: Optional[str] = Field(
         default="unknown",
-        description="The username of the person who posted the content. Should be 'unknown' if not identifiable."
+        description="The COMPLETE username of the person who posted the content. Extract the full username without truncation. Should be 'unknown' if not identifiable."
     )
     post_date: Optional[str] = Field(
         default=None,
-        description="The timestamp of the post, e.g., 'May 21, 2024' or '15 hours ago'."
+        description="The timestamp of the post, e.g., 'May 21, 2024' or '15 hours ago' or '2 days ago'. Extract exactly as seen in the image."
+    )
+    platform: Optional[str] = Field(
+        default="unknown",
+        description="The social media platform (Twitter, Instagram, Facebook, etc.) or 'unknown' if not identifiable."
     )
     mentioned_dates: List[str] = Field(
         default_factory=list,
@@ -121,14 +125,7 @@ class ImageAnalysisResult(BaseModel):
     extracted_text: str = Field(
         description="A verbatim transcription of all visible text from the image."
     )
-    # Legacy field - kept for backward compatibility
-    claims: List[str] = Field(
-        default_factory=list,
-        description="A list of specific, verifiable statements or factual claims made in the post."
-    )
-    # New hierarchical field
-    fact_hierarchy: Optional[FactHierarchy] = Field(
-        None, 
+    fact_hierarchy: FactHierarchy = Field(
         description="A structured representation of the claims and their relationships."
     )
     primary_topic: str = Field(

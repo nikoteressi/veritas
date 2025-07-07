@@ -106,8 +106,11 @@ class VectorStore:
                 ids=[verification_id]
             )
 
-            # Store individual claims
-            self._store_claims(verification_data.get("claims", []), verification_id)
+            # Store individual claims from hierarchical structure
+            fact_hierarchy = verification_data.get("fact_hierarchy", {})
+            supporting_facts = fact_hierarchy.get("supporting_facts", [])
+            claims = [fact.get("description", "") for fact in supporting_facts]
+            self._store_claims(claims, verification_id)
 
             # Store source information
             self._store_sources(verification_data.get("fact_check_results", {}), verification_id)
@@ -164,8 +167,10 @@ class VectorStore:
         if verification_data.get("nickname"):
             parts.append(f"User: {verification_data['nickname']}")
         
-        # Add claims
-        claims = verification_data.get("claims", [])
+        # Add claims from hierarchical structure
+        fact_hierarchy = verification_data.get("fact_hierarchy", {})
+        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        claims = [fact.get("description", "") for fact in supporting_facts]
         if claims:
             parts.append(f"Claims: {' | '.join(claims)}")
         

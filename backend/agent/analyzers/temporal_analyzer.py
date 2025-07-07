@@ -20,6 +20,7 @@ class TemporalAnalyzer(BaseAnalyzer):
     def __init__(self):
         super().__init__("temporal")
         self.current_time = datetime.now()
+        logger.info(f"TemporalAnalyzer initialized with current_time: {self.current_time}")
     
     async def analyze(self, context: VerificationContext) -> Dict[str, Any]:
         """
@@ -43,19 +44,35 @@ class TemporalAnalyzer(BaseAnalyzer):
             "intent_analysis": "unknown"
         }
         
-        # Extract post timestamp
+        # Extract post timestamp - prioritize post_date field from image analysis
         post_date_str = extracted_info.get("post_date")
         post_timestamp = self._extract_post_timestamp(post_date_str) if post_date_str else None
         
+        # Fallback to extracting from extracted_text if post_date not found
         if not post_timestamp:
             post_timestamp = self._extract_post_timestamp(extracted_info.get("extracted_text", ""))
+        
+        # Log temporal analysis findings
+        if post_timestamp:
+            logger.info(f"Extracted post timestamp: {post_timestamp} from {'post_date field' if post_date_str else 'extracted_text'}")
+        else:
+            logger.warning("No post timestamp found in either post_date field or extracted_text")
 
         if post_timestamp:
             analysis["post_timestamp"] = post_timestamp
             analysis["post_age_hours"] = self._calculate_age_hours(post_timestamp)
         
-        # Extract referenced dates from claims
-        referenced_dates = self._extract_referenced_dates(extracted_info.get("claims", []))
+        # Extract referenced dates from hierarchical facts
+        fact_hierarchy = extracted_info.get("fact_hierarchy", {})
+        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        fact_descriptions = [fact.get("description", "") for fact in supporting_facts]
+        
+        # Also include primary thesis and extracted text for year context
+        primary_thesis = fact_hierarchy.get("primary_thesis", "")
+        extracted_text = extracted_info.get("extracted_text", "")
+        all_text_for_context = [primary_thesis, extracted_text] + fact_descriptions
+        
+        referenced_dates = self._extract_referenced_dates(fact_descriptions, all_text_for_context)
         analysis["referenced_dates"] = referenced_dates
         
         # Analyze temporal mismatches
@@ -136,9 +153,19 @@ class TemporalAnalyzer(BaseAnalyzer):
             logger.error(f"Failed to extract post timestamp: {e}")
             return None
     
-    def _extract_referenced_dates(self, claims: List[str]) -> List[Tuple[str, datetime]]:
+    def _extract_referenced_dates(self, claims: List[str], context_text: List[str] = None) -> List[Tuple[str, datetime]]:
         """Extract dates referenced in claims."""
         referenced_dates = []
+        
+        # Look for year context in all available text
+        all_context = context_text if context_text else claims
+        all_text = " ".join(all_context)
+        year_context = None
+        year_matches = re.findall(r'\b(20\d{2})\b', all_text)
+        if year_matches:
+            # Use the most recent explicit year mentioned
+            year_context = int(max(year_matches))
+            logger.info(f"Found year context: {year_context} in claims")
         
         for claim in claims:
             # Look for dates in claims
@@ -148,6 +175,7 @@ class TemporalAnalyzer(BaseAnalyzer):
                 r'\b([A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4})\b',
                 r'\b(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})\b',
                 r'\b(May\s+\d{1,2})\b',  # Specific for the example
+                r'\b([A-Za-z]{3,9}\s+\d{1,2})\b',  # General month/day pattern
                 r'\b(\d{4})\b'  # Just year
             ]
             
@@ -155,8 +183,24 @@ class TemporalAnalyzer(BaseAnalyzer):
                 matches = re.findall(pattern, claim)
                 for match in matches:
                     try:
+                        # Parse the date
                         parsed_date = parser.parse(match)
+                        
+                        # If only month/day is provided without year, use year context or intelligent defaults
+                        if len(match.split()) == 2 and not re.search(r'\d{4}', match):  # e.g., "May 21" without year
+                            if year_context:
+                                # Use the year context found in the content
+                                parsed_date = parsed_date.replace(year=year_context)
+                                logger.info(f"Applied year context {year_context} to '{match}' -> {parsed_date}")
+                            else:
+                                # Fallback: if the date would be in the future with current year, assume previous year
+                                current_date = self.current_time
+                                if parsed_date > current_date:
+                                    parsed_date = parsed_date.replace(year=current_date.year - 1)
+                                    logger.info(f"Applied previous year logic to '{match}' -> {parsed_date}")
+                        
                         referenced_dates.append((claim, parsed_date))
+                        logger.info(f"Parsed referenced date: '{match}' -> {parsed_date} in claim: {claim}")
                     except (ValueError, TypeError, AttributeError) as e:
                         logger.debug(f"Failed to parse referenced date '{match}' in claim '{claim[:50]}...': {e}")
                         continue
@@ -224,24 +268,35 @@ class TemporalAnalyzer(BaseAnalyzer):
         
         # Check for financial/crypto content with temporal mismatches
         content = extracted_info.get("extracted_text", "").lower()
-        financial_keywords = ['bitcoin', 'btc', 'crypto', 'investment', 'buy', 'sell', 'price', 'market']
+        financial_keywords = ['bitcoin', 'btc', 'crypto', 'investment', 'buy', 'sell', 'price', 'market', 'blackrock']
         
         is_financial = any(keyword in content for keyword in financial_keywords)
         
-        # Check for significant temporal mismatch
-        has_major_mismatch = any(
-            abs((post_timestamp - ref_date).days) > 90 
-            for _, ref_date in referenced_dates
-        )
+        # Check for different levels of temporal mismatch
+        max_days_diff = 0
+        for _, ref_date in referenced_dates:
+            days_diff = abs((post_timestamp - ref_date).days)
+            max_days_diff = max(max_days_diff, days_diff)
         
-        if is_financial and has_major_mismatch:
-            # Look for manipulation indicators
-            manipulation_keywords = ['pump', 'moon', 'buy now', 'urgent', 'breaking']
-            if any(keyword in content for keyword in manipulation_keywords):
-                return "potential_market_manipulation"
-            else:
+        # Log the mismatch for debugging
+        logger.info(f"Temporal mismatch analysis: max_days_diff={max_days_diff}, is_financial={is_financial}")
+        logger.info(f"Post timestamp: {post_timestamp}, Referenced dates: {[(claim[:50], date) for claim, date in referenced_dates]}")
+        
+        if is_financial:
+            if max_days_diff > 365:  # More than a year
+                return "potentially_misleading_old_news"
+            elif max_days_diff > 180:  # More than 6 months
+                # Look for manipulation indicators
+                manipulation_keywords = ['pump', 'moon', 'buy now', 'urgent', 'breaking', 'biggest', 'massive']
+                if any(keyword in content for keyword in manipulation_keywords):
+                    return "potential_market_manipulation"
+                else:
+                    return "outdated_financial_information"
+            elif max_days_diff > 30:  # More than a month
                 return "outdated_financial_information"
-        elif has_major_mismatch:
+            else:
+                return "legitimate_recent_content"
+        elif max_days_diff > 90:  # Non-financial content more than 3 months old
             return "outdated_information_sharing"
         else:
             return "legitimate_recent_content" 

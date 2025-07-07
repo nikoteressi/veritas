@@ -11,20 +11,23 @@ You are an expert AI analyst specializing in social media content verification. 
 **Current Date for Context:** {current_date}
 
 **Your Analysis Task:**
-Analyze the provided image and any accompanying text. Your goal is to deconstruct the information into both a flat list (for backward compatibility) and a hierarchical structure.
+Analyze the provided image and any accompanying text. Your goal is to deconstruct the information into a hierarchical structure that captures the logical relationship between facts.
 
-1. **Legacy Claims Extraction:** Extract specific, verifiable statements as individual claims (for the 'claims' field).
-2. **Hierarchical Analysis:** 
-   - **Identify Primary Thesis:** Determine the single, main point the author is trying to make. This should be a holistic summary of the core message.
-   - **Extract Supporting Facts:** Extract all the specific, atomic, and verifiable facts that underpin this primary thesis. For each fact, provide a clear description and structured context data.
+**Post Metadata Extraction:**
+- **Post Date/Timestamp:** Look for any temporal indicators like "15h ago", "2 days ago", "posted yesterday", etc. in the image
+- **Username/Author:** Extract the COMPLETE username or account name that posted the content. Be careful to capture the full username without truncation (e.g., "cryptopatel" not "cryptopat")
+- **Platform:** Identify the social media platform (Twitter, Instagram, Facebook, etc.)
+
+**Hierarchical Analysis:** 
+- **Identify Primary Thesis:** Determine the single, main point the author is trying to make. This should be a holistic summary of the core message that includes specific temporal information when dates are mentioned.
+- **Extract Supporting Facts:** Extract all the specific, atomic, and verifiable facts that underpin this primary thesis. For each fact, provide a clear description and structured context data.
 
 **Important Guidelines:**
 - Take the user's prompt and current date into account for full context
-- If no clear hierarchical structure exists, the primary thesis should be a summary of the overall message
+- ALWAYS extract post metadata including timestamps (e.g., "15h ago", "2 days ago") visible in the image
+- Primary thesis should be comprehensive and include temporal information (dates, timeframes)
 - Supporting facts should be atomic and verifiable
 - Context data should include structured information (dates, amounts, entities, etc.)
-- Both legacy claims and hierarchical structure should be populated
-- **Primary thesis should include specific temporal information** when dates are mentioned 
 - **Use proper JSON number format** - NO underscores in numbers (use 4970, not 4_970)
 
 **Example of Good Primary Thesis:**
@@ -167,7 +170,8 @@ VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
         "You are a professional fact-checking analyst that synthesizes fact-checking results into a clear, direct, and conversational answer. "
         "Your goal is to provide a final verdict that directly addresses the user's original question. "
         "Base your answer on the provided research summary and temporal analysis. "
-        "IMPORTANT: When a primary thesis is provided, focus your verdict on whether that main claim is supported by the verified facts. "
+        "CRITICAL: Pay special attention to temporal mismatches. If content references old events (6+ months) as if they're current news, this may be misleading regardless of factual accuracy. "
+        "IMPORTANT: When a primary thesis is provided, focus your verdict on whether that main claim is supported by the verified facts AND whether it's temporally appropriate. "
         "When sources are available, include key source URLs in your reasoning to show where the information was verified. "
         "ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', 'reasoning', and 'sources'."
     ),
@@ -179,8 +183,9 @@ VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
         "**Instructions:**\n"
         "1. Start with a conclusive rating: **True**, **False**, **Partially True**, or **Ironic**.\n"
         "2. If a primary thesis is mentioned in the research summary, evaluate whether it is supported by the verified facts.\n"
-        "3. Synthesize the evidence into a coherent narrative that directly addresses the user's question.\n"
-        "4. Do not simply list the facts - explain why the overall claim is correct or incorrect based on the evidence.\n\n"
+        "3. CRITICAL: Review the temporal analysis carefully. If the content presents old information (6+ months) as current news, consider 'partially_true' or 'false' verdicts due to temporal misleading, even if facts are accurate.\n"
+        "4. Synthesize the evidence into a coherent narrative that directly addresses the user's question.\n"
+        "5. Do not simply list the facts - explain why the overall claim is correct or incorrect based on the evidence AND temporal context.\n\n"
         "Based on all the information, provide a final JSON response with these keys:\n"
         "- 'verdict': One of 'true', 'partially_true', 'false', or 'ironic'\n"
         "- 'confidence_score': A number between 0.0 and 1.0\n"
@@ -263,7 +268,7 @@ MANIPULATION_DETECTION_PROMPT = ChatPromptTemplate.from_messages([
     HumanMessagePromptTemplate.from_template(
         "Analyze this content for sophisticated manipulation techniques:\n\n"
         "**Content:**\n{content}\n\n"
-        "**Claims:**\n{claims}\n\n"
+        "**Fact Hierarchy:**\n{fact_hierarchy}\n\n"
         "**Context:**\n{context}\n\n"
         "**Temporal Analysis:**\n{temporal_analysis}\n\n"
         "Provide a detailed analysis of potential manipulation techniques beyond simple keyword matching."

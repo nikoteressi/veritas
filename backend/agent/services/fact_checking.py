@@ -48,37 +48,41 @@ class FactCheckingService:
         Returns:
             A FactCheckResult object containing the results.
         """
-        # Try to get hierarchical facts first, fall back to legacy claims
+        # Get hierarchical facts
         fact_hierarchy = extracted_info.get("fact_hierarchy")
         claims_to_check = []
         primary_thesis = None
         
-        if fact_hierarchy:
-            primary_thesis = fact_hierarchy.get("primary_thesis")
-            supporting_facts = fact_hierarchy.get("supporting_facts", [])
-            
-            # Convert supporting facts to claims with enhanced context
-            for fact in supporting_facts:
-                if isinstance(fact, dict):
-                    claims_to_check.append({
-                        "claim": fact.get("description", ""),
-                        "context": fact.get("context", {}),
-                        "primary_thesis": primary_thesis
-                    })
-                else:
-                    claims_to_check.append({
-                        "claim": str(fact),
-                        "context": {},
-                        "primary_thesis": primary_thesis
-                    })
-        else:
-            # Fall back to legacy claims format
-            legacy_claims = extracted_info.get("claims", [])
-            for claim in legacy_claims:
+        if not fact_hierarchy:
+            logger.warning("No fact hierarchy found in extracted info.")
+            return FactCheckResult(
+                claim_results=[],
+                examined_sources=[],
+                search_queries_used=[],
+                summary=FactCheckSummary(
+                    total_sources_found=0,
+                    credible_sources=0,
+                    supporting_evidence=0,
+                    contradicting_evidence=0,
+                )
+            )
+        
+        primary_thesis = fact_hierarchy.get("primary_thesis")
+        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        
+        # Convert supporting facts to claims with enhanced context
+        for fact in supporting_facts:
+            if isinstance(fact, dict):
                 claims_to_check.append({
-                    "claim": claim,
+                    "claim": fact.get("description", ""),
+                    "context": fact.get("context", {}),
+                    "primary_thesis": primary_thesis
+                })
+            else:
+                claims_to_check.append({
+                    "claim": str(fact),
                     "context": {},
-                    "primary_thesis": None
+                    "primary_thesis": primary_thesis
                 })
         
         if not claims_to_check:

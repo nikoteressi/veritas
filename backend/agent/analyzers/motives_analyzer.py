@@ -55,7 +55,10 @@ class MotivesAnalyzer(BaseAnalyzer):
         """
         extracted_info = context.get_extracted_info()
         content = extracted_info.get("extracted_text", "").lower()
-        claims = extracted_info.get("claims", [])
+        # Extract claims from hierarchical structure
+        fact_hierarchy = extracted_info.get("fact_hierarchy", {})
+        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        claims = [fact.get("description", "") for fact in supporting_facts]
         primary_topic = extracted_info.get("primary_topic", "general")
         temporal_analysis = context.get_temporal_analysis()
         
@@ -331,45 +334,55 @@ class MotivesAnalyzer(BaseAnalyzer):
         return "low"
     
     async def _analyze_llm_manipulation(self, content: str, claims: List[str], temporal_analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Use LLM to detect sophisticated manipulation techniques."""
+        """Analyze potential LLM manipulation attempts."""
         try:
-            logger.info("Starting LLM-based manipulation analysis")
+            # Get hierarchical structure for more context
+            fact_hierarchy = {
+                "supporting_facts": [{"description": claim} for claim in claims]
+            }
             
-            # Main manipulation detection
-            manipulation_prompt = MANIPULATION_DETECTION_PROMPT.format_messages(
+            prompt = MANIPULATION_DETECTION_PROMPT.format(
                 content=content,
-                claims=str(claims),
-                context="Social media post analysis",
+                fact_hierarchy=str(fact_hierarchy),
+                context=str(temporal_analysis),
                 temporal_analysis=str(temporal_analysis)
             )
-            manipulation_full_prompt = manipulation_prompt[0].content + "\n\n" + manipulation_prompt[1].content
             
-            manipulation_analysis_content = await llm_manager.invoke_text_only(text=manipulation_full_prompt)
+            response = await llm_manager.invoke_text_only(prompt)
             
-            # Parse LLM response - simplified version
-            confidence = 0.0
-            indicators = []
-            
-            # Basic text analysis for manipulation indicators
-            manipulation_keywords = ['manipulation', 'misleading', 'deceptive', 'false', 'propaganda']
-            detected_manipulations = [keyword for keyword in manipulation_keywords if keyword.lower() in manipulation_analysis_content.lower()]
-            
-            confidence = min(len(detected_manipulations) * 0.2, 0.8)
-            
-            if detected_manipulations:
-                indicators.extend(detected_manipulations)
-                indicators.append(f"LLM detected manipulation indicators")
-            
-            return {
-                "confidence": confidence,
-                "indicators": indicators,
-                "assessment": "high_risk" if confidence > 0.7 else "moderate_risk" if confidence > 0.4 else "low_risk"
-            }
+            # Try to parse JSON response
+            try:
+                import json
+                import re
                 
+                # Clean response to extract JSON
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group()
+                    result = json.loads(json_str)
+                    
+                    return {
+                        "manipulation_detected": result.get("manipulation_detected", False),
+                        "manipulation_types": result.get("manipulation_types", []),
+                        "confidence": result.get("confidence", 0.0),
+                        "reasoning": result.get("reasoning", "")
+                    }
+            except Exception as parse_error:
+                logger.warning(f"Failed to parse manipulation detection response: {parse_error}")
+            
+            # Fallback analysis
+            return {
+                "manipulation_detected": "manipulation" in response.lower() or "detected" in response.lower(),
+                "manipulation_types": [],
+                "confidence": 0.3,
+                "reasoning": "Basic keyword-based detection due to parsing error"
+            }
+            
         except Exception as e:
             logger.error(f"LLM manipulation analysis failed: {e}")
             return {
+                "manipulation_detected": False,
+                "manipulation_types": [],
                 "confidence": 0.0,
-                "indicators": [f"LLM analysis failed: {e}"],
-                "assessment": "low_risk"
+                "reasoning": f"Analysis failed: {str(e)}"
             } 
