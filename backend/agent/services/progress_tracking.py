@@ -15,12 +15,12 @@ class ProgressTrackingService:
         self.current_step = 0
         self.total_steps = 10  # Default total steps
         self.step_descriptions = {
-            10: "Analyzing image content...",
-            25: "Extracting claims and user information...",
+            20: "Analyzing image content...",
+            30: "Extracting claims and user information...",
             40: "Performing temporal analysis...",
-            45: "Analyzing potential motives...",
-            50: "Fact-checking with external sources...",
-            80: "Generating final verdict...",
+            45: "Fact-checking with external sources...",
+            75: "Generating final verdict...",
+            85: "Analyzing potential motives...",
             90: "Updating user reputation...",
             95: "Saving results...",
             100: "Verification complete!"
@@ -44,11 +44,11 @@ class ProgressTrackingService:
     
     async def start_verification(self):
         """Signal the start of verification."""
-        await self.update_step(10)
+        await self.update_step(20)
     
     async def start_analysis(self):
         """Signal the start of analysis phase."""
-        await self.update_step(25)
+        await self.update_step(30)
     
     async def start_temporal_analysis(self):
         """Signal the start of temporal analysis."""
@@ -56,22 +56,22 @@ class ProgressTrackingService:
     
     async def start_motives_analysis(self):
         """Signal the start of motives analysis."""
-        await self.update_step(45)
+        await self.update_step(85)
     
     async def start_fact_checking(self):
         """Signal the start of fact-checking."""
-        await self.update_step(50)
+        await self.update_step(45)
     
     async def update_fact_checking_progress(self, claim_index: int, total_claims: int):
         """Update fact-checking progress based on claim processing."""
         if total_claims > 0:
-            progress = 50 + int((claim_index / total_claims) * 30)
+            progress = 45 + int((claim_index / total_claims) * 25)  # 45% to 70%
             details = f"Processing claim {claim_index + 1} of {total_claims}"
             await self.update_progress("Fact-checking with external sources...", progress, details)
     
     async def start_verdict_generation(self):
         """Signal the start of verdict generation."""
-        await self.update_step(80)
+        await self.update_step(75)
     
     async def start_reputation_update(self):
         """Signal the start of reputation update."""

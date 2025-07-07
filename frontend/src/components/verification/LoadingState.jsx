@@ -41,27 +41,27 @@ function LoadingState({ progressData }) {
         />
         <ProgressStep
           text="Extracting claims and user information..."
-          isActive={progressData && progressData.progress >= 25 && progressData.progress < 40}
-          isComplete={progressData && progressData.progress >= 40}
+          isActive={progressData && progressData.progress >= 25 && progressData.progress < 35}
+          isComplete={progressData && progressData.progress >= 35}
         />
         <ProgressStep
           text="Analyzing temporal context..."
-          isActive={progressData && progressData.progress >= 40 && progressData.progress < 45}
+          isActive={progressData && progressData.progress >= 35 && progressData.progress < 45}
           isComplete={progressData && progressData.progress >= 45}
         />
         <ProgressStep
-          text="Analyzing potential motives..."
-          isActive={progressData && progressData.progress >= 45 && progressData.progress < 50}
-          isComplete={progressData && progressData.progress >= 50}
-        />
-        <ProgressStep
           text="Fact-checking with external sources..."
-          isActive={progressData && progressData.progress >= 50 && progressData.progress < 80}
-          isComplete={progressData && progressData.progress >= 80}
+          isActive={progressData && progressData.progress >= 45 && progressData.progress < 70}
+          isComplete={progressData && progressData.progress >= 70}
         />
         <ProgressStep
           text="Generating final verdict..."
-          isActive={progressData && progressData.progress >= 80 && progressData.progress < 100}
+          isActive={progressData && progressData.progress >= 70 && progressData.progress < 85}
+          isComplete={progressData && progressData.progress >= 85}
+        />
+        <ProgressStep
+          text="Analyzing potential motives..."
+          isActive={progressData && progressData.progress >= 85 && progressData.progress < 100}
           isComplete={progressData && progressData.progress >= 100}
         />
       </div>

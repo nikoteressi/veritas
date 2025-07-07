@@ -42,7 +42,7 @@ class OllamaChromaClient:
             return
             
         try:
-            logger.info("Initializing ChromaDB client with Ollama embeddings only...")
+            logger.info("Initializing ChromaDB client")
             
             # Create Ollama embedding function first
             self.embedding_function = create_ollama_embedding_function()
@@ -66,7 +66,7 @@ class OllamaChromaClient:
             )
             
             self._initialized = True
-            logger.info("ChromaDB client initialized successfully with Ollama embeddings")
+            logger.info("ChromaDB client initialized successfully")
             
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB client: {e}")

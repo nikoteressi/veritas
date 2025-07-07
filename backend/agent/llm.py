@@ -128,6 +128,7 @@ class OllamaLLMManager:
             response = await self.llm.ainvoke([message], **kwargs)
             
             logger.info("Successfully invoked multimodal LLM")
+            logger.info(f"Image parsing response: {response.content}")
             return response.content
             
         except Exception as e:

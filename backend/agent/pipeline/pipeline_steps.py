@@ -183,7 +183,7 @@ class VerdictGenerationStep(BasePipelineStep):
             context.fact_check_result,
             context.user_prompt,
             extracted_info.get("temporal_analysis", {}),
-            extracted_info.get("motives_analysis", {})
+            {}  # motives_analysis not available yet - runs after verdict generation
         )
         
         context.verdict_result = verdict_result

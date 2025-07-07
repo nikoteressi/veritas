@@ -52,9 +52,9 @@ class ConfigurationService {
       { key: 'image_analysis', label: 'Image Analysis', message: 'Analyzing image content...' },
       { key: 'reputation_retrieval', label: 'Reputation Check', message: 'Checking user reputation...' },
       { key: 'temporal_analysis', label: 'Temporal Analysis', message: 'Analyzing temporal context...' },
-      { key: 'motives_analysis', label: 'Motives Analysis', message: 'Analyzing user motives...' },
       { key: 'fact_checking', label: 'Fact Checking', message: 'Fact-checking claims...' },
       { key: 'verdict_generation', label: 'Verdict Generation', message: 'Generating verdict...' },
+      { key: 'motives_analysis', label: 'Motives Analysis', message: 'Analyzing user motives...' },
       { key: 'reputation_update', label: 'Reputation Update', message: 'Updating reputation...' },
       { key: 'result_storage', label: 'Saving Results', message: 'Saving results...' }
     ];

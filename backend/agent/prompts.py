@@ -16,7 +16,6 @@ Analyze the provided image and any accompanying text. Your goal is to deconstruc
 **Post Metadata Extraction:**
 - **Post Date/Timestamp:** Look for any temporal indicators like "15h ago", "2 days ago", "posted yesterday", etc. in the image
 - **Username/Author:** Extract the COMPLETE username or account name that posted the content. Be careful to capture the full username without truncation (e.g., "cryptopatel" not "cryptopat")
-- **Platform:** Identify the social media platform (Twitter, Instagram, Facebook, etc.)
 
 **Hierarchical Analysis:** 
 - **Identify Primary Thesis:** Determine the single, main point the author is trying to make. This should be a holistic summary of the core message that includes specific temporal information when dates are mentioned.
@@ -287,5 +286,46 @@ ADVERSARIAL_ROBUSTNESS_PROMPT = ChatPromptTemplate.from_messages([
     ),
     HumanMessagePromptTemplate.from_template(
         "Security check: {content}"
+    )
+])
+
+# Motives Analysis Prompt - Uses final verdict and temporal analysis
+MOTIVES_ANALYSIS_PROMPT = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(
+        "You are an expert analyst specializing in identifying the motives behind online posts.\n"
+        "Your task is to determine the author's most likely intention based on the FINAL VERDICT.\n\n"
+        "CRITICAL: Use the final verdict and temporal analysis as your PRIMARY inputs.\n"
+        "The final verdict already synthesizes fact-checking results with temporal context.\n"
+        "Your job is to determine WHY the author posted this content based on these findings.\n\n"
+        "Consider these motive categories:\n"
+        "- **Disinformation**: Intentionally false/misleading content to manipulate opinion (likely if verdict is False)\n"
+        "- **Financial Manipulation**: False/misleading content to influence markets (likely if financial topic + False verdict)\n"
+        "- **Outdated Information**: Sharing old information as if current (likely if verdict is Partially True due to temporal issues)\n"
+        "- **Clickbait**: Sensational content designed for engagement, regardless of truth\n"
+        "- **Informing**: Genuinely sharing true, relevant information (likely if verdict is True + appropriate timing)\n"
+        "- **Satire**: Content not meant to be taken literally (if verdict is Ironic)\n"
+        "- **Other**: If none of the above categories fit\n\n"
+        "TEMPORAL MISMATCH FOCUS: Pay special attention to cases where true information is shared\n"
+        "long after the original event (months/years later) as if it's breaking news.\n"
+        "This is a common manipulation tactic to create artificial market movements or mislead audiences.\n\n"
+        "You must respond with ONLY a valid JSON object with these exact keys:\n"
+        "{{\n"
+        "  \"primary_motive\": \"string\",\n"
+        "  \"confidence_score\": number_between_0_and_1,\n"
+        "  \"reasoning\": \"string\",\n"
+        "  \"risk_level\": \"low|moderate|high\",\n"
+        "  \"manipulation_indicators\": [\"array\", \"of\", \"strings\"]\n"
+        "}}"
+    ),
+    HumanMessagePromptTemplate.from_template(
+        "Analyze the author's motive based on the comprehensive analysis:\n\n"
+        "**Final Verdict**: {fact_check_verdict}\n"
+        "**Verdict Confidence**: {fact_check_confidence}\n"
+        "**Temporal & Dates Analysis**: {temporal_analysis}\n"
+        "**Content Theme**: {primary_topic}\n"
+        "**Original Post Text**:\n"
+        "{content}\n\n"
+        "Determine the primary motive based on the final verdict and temporal context.\n"
+        "Focus especially on temporal mismatches where old information is presented as current."
     )
 ])

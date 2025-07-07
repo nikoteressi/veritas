@@ -13,9 +13,9 @@ class VerificationSteps(Enum):
     IMAGE_ANALYSIS = "image_analysis"
     REPUTATION_RETRIEVAL = "reputation_retrieval"
     TEMPORAL_ANALYSIS = "temporal_analysis"
-    MOTIVES_ANALYSIS = "motives_analysis"
     FACT_CHECKING = "fact_checking"
     VERDICT_GENERATION = "verdict_generation"
+    MOTIVES_ANALYSIS = "motives_analysis"
     REPUTATION_UPDATE = "reputation_update"
     RESULT_STORAGE = "result_storage"
 
@@ -143,9 +143,9 @@ class Settings(BaseSettings):
             VerificationSteps.IMAGE_ANALYSIS.value: "Image Analysis",
             VerificationSteps.REPUTATION_RETRIEVAL.value: "Reputation Retrieval",
             VerificationSteps.TEMPORAL_ANALYSIS.value: "Temporal Analysis",
-            VerificationSteps.MOTIVES_ANALYSIS.value: "Motives Analysis",
             VerificationSteps.FACT_CHECKING.value: "Fact Checking",
             VerificationSteps.VERDICT_GENERATION.value: "Verdict Generation",
+            VerificationSteps.MOTIVES_ANALYSIS.value: "Motives Analysis",
             VerificationSteps.REPUTATION_UPDATE.value: "Reputation Update",
             VerificationSteps.RESULT_STORAGE.value: "Result Storage"
         }
@@ -158,9 +158,9 @@ class Settings(BaseSettings):
             VerificationSteps.IMAGE_ANALYSIS.value: "Analyzing image content...",
             VerificationSteps.REPUTATION_RETRIEVAL.value: "Retrieving user reputation...",
             VerificationSteps.TEMPORAL_ANALYSIS.value: "Analyzing temporal context...",
-            VerificationSteps.MOTIVES_ANALYSIS.value: "Analyzing user motives...",
             VerificationSteps.FACT_CHECKING.value: "Fact-checking claims...",
             VerificationSteps.VERDICT_GENERATION.value: "Generating verdict...",
+            VerificationSteps.MOTIVES_ANALYSIS.value: "Analyzing user motives...",
             VerificationSteps.REPUTATION_UPDATE.value: "Updating reputation...",
             VerificationSteps.RESULT_STORAGE.value: "Saving results..."
         }

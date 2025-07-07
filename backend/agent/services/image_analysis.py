@@ -47,6 +47,7 @@ class ImageAnalysisService:
 
             # Format the final prompt with user input
             final_prompt = await prompt.aformat(user_prompt=user_prompt)
+            logger.info(f"Final prompt: {final_prompt}")
 
             llm_output = await self.llm_manager.invoke_multimodal(final_prompt, image_bytes)
 

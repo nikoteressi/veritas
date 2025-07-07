@@ -114,10 +114,6 @@ class ImageAnalysisResult(BaseModel):
         default=None,
         description="The timestamp of the post, e.g., 'May 21, 2024' or '15 hours ago' or '2 days ago'. Extract exactly as seen in the image."
     )
-    platform: Optional[str] = Field(
-        default="unknown",
-        description="The social media platform (Twitter, Instagram, Facebook, etc.) or 'unknown' if not identifiable."
-    )
     mentioned_dates: List[str] = Field(
         default_factory=list,
         description="A list of any other dates or time references found in the text."
@@ -137,11 +133,11 @@ class ImageAnalysisResult(BaseModel):
         description="Assessment of irony, chosen from: not_ironic, potentially_ironic, clearly_ironic."
     )
     visual_elements_summary: str = Field(
-        description="A brief summary of key visual elements like charts, graphs, or UI components."
+        description="A summary of key visual elements like charts, graphs, or UI components. If no visual elements are found, return 'No visual elements found'."
     )
     contextual_information: Dict[str, str] = Field(
         default_factory=dict,
-        description="Contextual info, including the current_date and the user_prompt."
+        description="Contextual info, including the current_date (take current date from the prompt) and the user_prompt."
     )
 
 
