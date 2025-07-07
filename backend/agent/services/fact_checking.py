@@ -48,8 +48,40 @@ class FactCheckingService:
         Returns:
             A FactCheckResult object containing the results.
         """
-        claims = extracted_info.get("claims", [])
-        if not claims:
+        # Try to get hierarchical facts first, fall back to legacy claims
+        fact_hierarchy = extracted_info.get("fact_hierarchy")
+        claims_to_check = []
+        primary_thesis = None
+        
+        if fact_hierarchy:
+            primary_thesis = fact_hierarchy.get("primary_thesis")
+            supporting_facts = fact_hierarchy.get("supporting_facts", [])
+            
+            # Convert supporting facts to claims with enhanced context
+            for fact in supporting_facts:
+                if isinstance(fact, dict):
+                    claims_to_check.append({
+                        "claim": fact.get("description", ""),
+                        "context": fact.get("context", {}),
+                        "primary_thesis": primary_thesis
+                    })
+                else:
+                    claims_to_check.append({
+                        "claim": str(fact),
+                        "context": {},
+                        "primary_thesis": primary_thesis
+                    })
+        else:
+            # Fall back to legacy claims format
+            legacy_claims = extracted_info.get("claims", [])
+            for claim in legacy_claims:
+                claims_to_check.append({
+                    "claim": claim,
+                    "context": {},
+                    "primary_thesis": None
+                })
+        
+        if not claims_to_check:
             logger.info("No claims to fact-check.")
             return FactCheckResult(
                 claim_results=[],
@@ -73,24 +105,38 @@ class FactCheckingService:
         all_examined_sources = set()
         all_search_queries = set()
         
-        num_claims = len(claims)
-        for i, claim in enumerate(claims):
+        num_claims = len(claims_to_check)
+        for i, claim_info in enumerate(claims_to_check):
             if progress_callback:
                 await progress_callback(i, num_claims)
 
-            search_queries = await self._generate_search_queries(
-                claim,
+            claim_text = claim_info["claim"]
+            claim_context = claim_info["context"]
+            claim_primary_thesis = claim_info["primary_thesis"]
+            
+            # Generate contextual search queries using both the claim and its context
+            search_queries = await self._generate_contextual_search_queries(
+                claim_text,
+                claim_context,
+                claim_primary_thesis,
                 DOMAIN_SPECIFIC_PROMPTS.get(primary_topic, "general fact-checking"),
                 extracted_info.get("temporal_analysis", {})
             )
             all_search_queries.update(search_queries)
 
-            claim_result_str = await fact_checker.check(claim, search_queries, extracted_info.get("temporal_analysis", {}))
+            claim_result_str = await fact_checker.check(claim_text, search_queries, extracted_info.get("temporal_analysis", {}))
             try:
                 claim_result = json.loads(claim_result_str)
+                # Add context information to the result
+                claim_result["context"] = claim_context
+                claim_result["primary_thesis"] = claim_primary_thesis
             except json.JSONDecodeError:
-                logger.error(f"Failed to decode fact-checker response for claim: '{claim}'")
-                claim_result = {"error": "Failed to get a valid response from fact-checker."}
+                logger.error(f"Failed to decode fact-checker response for claim: '{claim_text}'")
+                claim_result = {
+                    "error": "Failed to get a valid response from fact-checker.",
+                    "context": claim_context,
+                    "primary_thesis": claim_primary_thesis
+                }
             all_claim_results.append(claim_result)
             all_examined_sources.update(claim_result.get("examined_sources", []))
 
@@ -126,6 +172,53 @@ class FactCheckingService:
         except Exception as e:
             logger.error(f"Failed to generate search queries: {e}", exc_info=True)
             return [claim]  # Fallback to using the claim itself as a query
+    
+    async def _generate_contextual_search_queries(
+        self, 
+        claim: str, 
+        claim_context: Dict[str, Any], 
+        primary_thesis: Optional[str],
+        role_description: str, 
+        temporal_context: Dict[str, Any]
+    ) -> List[str]:
+        """Generate enhanced search queries using hierarchical context."""
+        try:
+            parser = JsonOutputParser()
+            
+            # Create enhanced context that includes both claim context and primary thesis
+            enhanced_context = {
+                "claim_context": claim_context,
+                "primary_thesis": primary_thesis,
+                "temporal_context": temporal_context
+            }
+            
+            # Create an enhanced claim description for search query generation
+            enhanced_claim = claim
+            if claim_context:
+                context_str = ", ".join([f"{k}: {v}" for k, v in claim_context.items() if v])
+                if context_str:
+                    enhanced_claim = f"{claim} (Context: {context_str})"
+            
+            if primary_thesis:
+                enhanced_claim = f"{enhanced_claim} (Supporting: {primary_thesis})"
+            
+            prompt = QUERY_GENERATION_PROMPT.partial(
+                claim=enhanced_claim,
+                role_description=role_description,
+                temporal_context=json.dumps(enhanced_context),
+                format_instructions=parser.get_format_instructions(),
+            )
+            
+            response = await self.llm_manager.invoke_text_only(prompt.format())
+            parsed_response = parser.parse(response)
+            
+            queries = parsed_response.get("search_queries", [])
+            logger.info(f"Generated {len(queries)} contextual search queries for claim: '{claim}'")
+            return queries
+        except Exception as e:
+            logger.error(f"Failed to generate contextual search queries: {e}", exc_info=True)
+            # Fallback to basic search queries
+            return await self._generate_search_queries(claim, role_description, temporal_context)
 
     def _compile_summary(self, claim_results: List[Dict[str, Any]]) -> FactCheckSummary:
         """Compile a summary from individual claim check results."""

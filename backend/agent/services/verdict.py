@@ -70,24 +70,43 @@ class VerdictService:
         """
         summary_lines = []
         all_sources = set()
+        primary_thesis = None
+        
+        # Check if we have hierarchical structure
+        for claim_result in fact_check_result.claim_results:
+            if claim_result.get('primary_thesis') and primary_thesis is None:
+                primary_thesis = claim_result.get('primary_thesis')
+                break
+        
+        # Add primary thesis context if available
+        if primary_thesis:
+            summary_lines.append(f"**Primary Thesis Being Evaluated:** {primary_thesis}\n")
         
         for claim_result in fact_check_result.claim_results:
             # Collect sources from each claim
             claim_sources = claim_result.get('examined_sources', [])
             all_sources.update(claim_sources)
             
-            # Format claim summary with sources
+            # Format claim summary with sources and context
             sources_text = ""
             if claim_sources:
                 sources_text = f"\nSources checked: {', '.join(claim_sources[:3])}"
                 if len(claim_sources) > 3:
                     sources_text += f" and {len(claim_sources) - 3} more"
             
+            # Add context information if available
+            context_text = ""
+            claim_context = claim_result.get('context', {})
+            if claim_context:
+                context_items = [f"{k}: {v}" for k, v in claim_context.items() if v]
+                if context_items:
+                    context_text = f"\nContext: {', '.join(context_items)}"
+            
             summary_lines.append(
-                f"Claim: '{claim_result.get('claim', 'N/A')}'\n"
+                f"Supporting Fact: '{claim_result.get('claim', 'N/A')}'\n"
                 f"Assessment: {claim_result.get('assessment', 'unverified')} "
                 f"(Confidence: {claim_result.get('confidence', 0.0):.2f})\n"
-                f"Summary: {claim_result.get('summary', 'No summary available.')}{sources_text}\n"
+                f"Summary: {claim_result.get('summary', 'No summary available.')}{context_text}{sources_text}\n"
             )
 
         # Include comprehensive sources list

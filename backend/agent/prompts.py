@@ -8,6 +8,23 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 MULTIMODAL_ANALYSIS_SYSTEM_PROMPT = """
 You are an expert AI analyst specializing in social media content verification. Your task is to analyze an image of a social media post and extract key information into a structured JSON format.
 
+**Current Date for Context:** {current_date}
+
+**Your Analysis Task:**
+Analyze the provided image and any accompanying text. Your goal is to deconstruct the information into both a flat list (for backward compatibility) and a hierarchical structure.
+
+1. **Legacy Claims Extraction:** Extract specific, verifiable statements as individual claims (for the 'claims' field).
+2. **Hierarchical Analysis:** 
+   - **Identify Primary Thesis:** Determine the single, main point the author is trying to make. This should be a holistic summary of the core message.
+   - **Extract Supporting Facts:** Extract all the specific, atomic, and verifiable facts that underpin this primary thesis. For each fact, provide a clear description and structured context data.
+
+**Important Guidelines:**
+- Take the user's prompt and current date into account for full context
+- If no clear hierarchical structure exists, the primary thesis should be a summary of the overall message
+- Supporting facts should be atomic and verifiable
+- Context data should include structured information (dates, amounts, entities, etc.)
+- Both legacy claims and hierarchical structure should be populated
+
 CRITICAL: Respond with a single, valid JSON object that conforms to the provided schema. Do not include any text, code block markers, or formatting before or after the JSON object.
 
 {format_instructions}
@@ -137,10 +154,11 @@ QUERY_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
 # Verdict Generation Prompt
 VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-        "You are a helpful AI assistant that synthesizes fact-checking results into a clear, direct, and conversational answer. "
+        "You are a professional fact-checking analyst that synthesizes fact-checking results into a clear, direct, and conversational answer. "
         "Your goal is to provide a final verdict that directly addresses the user's original question. "
         "Base your answer on the provided research summary and temporal analysis. "
-        "IMPORTANT: When sources are available, include key source URLs in your reasoning to show where the information was verified. "
+        "IMPORTANT: When a primary thesis is provided, focus your verdict on whether that main claim is supported by the verified facts. "
+        "When sources are available, include key source URLs in your reasoning to show where the information was verified. "
         "ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', 'reasoning', and 'sources'."
     ),
     HumanMessagePromptTemplate.from_template(
@@ -148,10 +166,15 @@ VERDICT_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
         "**User's Original Question:**\n{user_prompt}\n\n"
         "**Temporal Analysis:**\n{temporal_analysis}\n\n"
         "**Fact-Checking Research Summary:**\n{research_results}\n\n"
+        "**Instructions:**\n"
+        "1. Start with a conclusive rating: **True**, **False**, **Partially True**, or **Ironic**.\n"
+        "2. If a primary thesis is mentioned in the research summary, evaluate whether it is supported by the verified facts.\n"
+        "3. Synthesize the evidence into a coherent narrative that directly addresses the user's question.\n"
+        "4. Do not simply list the facts - explain why the overall claim is correct or incorrect based on the evidence.\n\n"
         "Based on all the information, provide a final JSON response with these keys:\n"
         "- 'verdict': One of 'true', 'partially_true', 'false', or 'ironic'\n"
         "- 'confidence_score': A number between 0.0 and 1.0\n"
-        "- 'reasoning': A 2-3 sentence explanation that directly answers the user's question\n"
+        "- 'reasoning': A 2-3 sentence explanation that directly answers the user's question and synthesizes the evidence\n"
         "- 'sources': A list of the most important source URLs that were consulted (up to 5 sources)"
     )
 ])

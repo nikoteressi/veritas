@@ -41,7 +41,8 @@ class ImageAnalysisService:
             current_date = datetime.now().strftime("%Y-%m-%d")
 
             prompt = MULTIMODAL_ANALYSIS_PROMPT.partial(
-                format_instructions=output_parser.get_format_instructions()
+                format_instructions=output_parser.get_format_instructions(),
+                current_date=current_date
             )
 
             # Format the final prompt with user input
