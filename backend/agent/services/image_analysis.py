@@ -50,7 +50,10 @@ class ImageAnalysisService:
 
             llm_output = await self.llm_manager.invoke_multimodal(final_prompt, image_bytes)
 
-            parsed_output = await output_parser.aparse(llm_output)
+            # Clean the output to fix common JSON issues
+            cleaned_output = self._clean_json_output(llm_output)
+            
+            parsed_output = await output_parser.aparse(cleaned_output)
 
             # Ensure we have a Pydantic model instance
             if isinstance(parsed_output, dict):
@@ -73,6 +76,28 @@ class ImageAnalysisService:
                 f"Image analysis failed during processing or parsing: {e}",
                 error_code="IMAGE_ANALYSIS_FAILED"
             )
+    
+    def _clean_json_output(self, output: str) -> str:
+        """
+        Clean JSON output to fix common formatting issues.
+        
+        Args:
+            output: Raw JSON output from LLM
+            
+        Returns:
+            Cleaned JSON string
+        """
+        import re
+        
+        # Remove underscores from numbers (e.g., 4_970 -> 4970)
+        # This regex finds numbers with underscores and removes the underscores
+        output = re.sub(r'(\d+)_(\d+)', r'\1\2', output)
+        
+        # Remove any additional underscores that might be in larger numbers
+        while '_' in output and re.search(r'\d+_\d+', output):
+            output = re.sub(r'(\d+)_(\d+)', r'\1\2', output)
+        
+        return output
 
 # Singleton instance
 image_analysis_service = ImageAnalysisService() 

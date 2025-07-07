@@ -24,8 +24,18 @@ Analyze the provided image and any accompanying text. Your goal is to deconstruc
 - Supporting facts should be atomic and verifiable
 - Context data should include structured information (dates, amounts, entities, etc.)
 - Both legacy claims and hierarchical structure should be populated
+- **Primary thesis should include specific temporal information** when dates are mentioned 
+- **Use proper JSON number format** - NO underscores in numbers (use 4970, not 4_970)
 
-CRITICAL: Respond with a single, valid JSON object that conforms to the provided schema. Do not include any text, code block markers, or formatting before or after the JSON object.
+**Example of Good Primary Thesis:**
+- Good: "BlackRock made a significant Bitcoin purchase on May 21, 2024, substantially increasing their institutional holdings"
+- Bad: "BlackRock has made a significant purchase of Bitcoin, increasing their holdings substantially"
+
+**Example of Proper JSON Numbers:**
+- Good: "amount_btc": 4970, "amount_usd": 530600000
+- Bad: "amount_btc": 4_970, "amount_usd": 530_600_000
+
+CRITICAL: Respond with a single, valid JSON object that conforms to the provided schema. Do not include any text, code block markers, or formatting before or after the JSON object. Use proper JSON number format without underscores.
 
 {format_instructions}
 """
