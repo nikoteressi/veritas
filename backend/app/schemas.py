@@ -71,6 +71,12 @@ class ReputationStatsResponse(BaseModel):
     users_with_notifications: int
 
 
+class ProgressEvent(BaseModel):
+    """Event model for progress tracking in the verification pipeline."""
+    event_name: str = Field(..., description="The unique name of the event, e.g., 'CLAIMS_EXTRACTED'.")
+    payload: Dict[str, Any] = Field(default_factory=dict, description="A dictionary containing event-specific data.")
+
+
 class WebSocketMessage(BaseModel):
     """WebSocket message model."""
     type: str  # status_update, progress, result, error

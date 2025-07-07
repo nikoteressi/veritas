@@ -14,6 +14,7 @@ from redis.asyncio.client import Redis
 
 from app.json_utils import json_dumps
 from app.redis_client import redis_manager
+from app.schemas import ProgressEvent
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,33 @@ class ConnectionManager:
         for session_id in disconnected:
             await self.disconnect(session_id)
     
+    async def send_event(
+        self, 
+        session_id: str, 
+        event: ProgressEvent
+    ):
+        """
+        Send a progress event to a specific session.
+        
+        Args:
+            session_id: Target session ID
+            event: Progress event to send
+        """
+        message = {
+            "type": "progress_event",
+            "data": event.model_dump(),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await self.send_message(session_id, message)
+        
+        # Update session state in Redis
+        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+        await self.redis.hset(session_key, mapping={
+            "current_event": event.event_name,
+            "last_update": datetime.now(timezone.utc).isoformat()
+        })
+
     async def send_progress_update(
         self, 
         session_id: str, 
@@ -303,8 +331,53 @@ class ConnectionManager:
         return sessions
 
 
+class EventProgressTracker:
+    """Event-driven progress tracker for verification operations."""
+    
+    def __init__(self, connection_manager: ConnectionManager, session_id: str):
+        self.connection_manager = connection_manager
+        self.session_id = session_id
+    
+    async def emit_event(self, event: ProgressEvent):
+        """
+        Emit a progress event to the WebSocket connection.
+        
+        Args:
+            event: Progress event to emit
+        """
+        await self.connection_manager.send_event(self.session_id, event)
+        logger.info(f"Progress event [{self.session_id}]: {event.event_name}")
+    
+    async def complete(self, result: Dict[str, Any]):
+        """
+        Mark progress as complete and send result.
+        
+        Args:
+            result: Final verification result
+        """
+        await self.connection_manager.send_verification_result(
+            self.session_id, result
+        )
+        
+        logger.info(f"Verification completed [{self.session_id}]")
+    
+    async def error(self, error_message: str, error_code: Optional[str] = None):
+        """
+        Mark progress as failed and send error.
+        
+        Args:
+            error_message: Error message
+            error_code: Optional error code
+        """
+        await self.connection_manager.send_error(
+            self.session_id, error_message, error_code
+        )
+        
+        logger.error(f"Verification failed [{self.session_id}]: {error_message}")
+
+
 class ProgressTracker:
-    """Tracks progress for verification operations."""
+    """Legacy progress tracker for backward compatibility."""
     
     def __init__(self, connection_manager: ConnectionManager, session_id: str):
         self.connection_manager = connection_manager

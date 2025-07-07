@@ -41,7 +41,7 @@ export const useWebSocketService = () => {
 
         // Subscribe to all message types for the lastMessage functionality
         const messageTypes = [
-          'progress_update',
+          'progress_event',
           'verification_result',
           'error',
           'connection_established',

@@ -21,7 +21,6 @@ class ConfigurationService {
 
     // UI configuration
     this.ui = {
-      progressUpdateInterval: 100, // ms
       connectionTimeout: 5000, // 5 seconds
       maxReconnectAttempts: 5,
       reconnectDelay: 1000, // 1 second
@@ -46,18 +45,7 @@ class ConfigurationService {
       connectionTimeout: 5000
     };
 
-    // Verification steps
-    this.verificationSteps = [
-      { key: 'validation', label: 'Validation', message: 'Validating request...' },
-      { key: 'image_analysis', label: 'Image Analysis', message: 'Analyzing image content...' },
-      { key: 'reputation_retrieval', label: 'Reputation Check', message: 'Checking user reputation...' },
-      { key: 'temporal_analysis', label: 'Temporal Analysis', message: 'Analyzing temporal context...' },
-      { key: 'fact_checking', label: 'Fact Checking', message: 'Fact-checking claims...' },
-      { key: 'verdict_generation', label: 'Verdict Generation', message: 'Generating verdict...' },
-      { key: 'motives_analysis', label: 'Motives Analysis', message: 'Analyzing user motives...' },
-      { key: 'reputation_update', label: 'Reputation Update', message: 'Updating reputation...' },
-      { key: 'result_storage', label: 'Saving Results', message: 'Saving results...' }
-    ];
+
 
     // Load environment overrides
     this._loadFromEnvironment();
@@ -107,34 +95,7 @@ class ConfigurationService {
     return cleanPrompt;
   }
 
-  /**
-   * Get step information by key.
-   * @param {string} stepKey - Step key
-   * @returns {Object|null} Step information
-   */
-  getStep(stepKey) {
-    return this.verificationSteps.find(step => step.key === stepKey) || null;
-  }
 
-  /**
-   * Get step label by key.
-   * @param {string} stepKey - Step key
-   * @returns {string} Step label
-   */
-  getStepLabel(stepKey) {
-    const step = this.getStep(stepKey);
-    return step ? step.label : stepKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  }
-
-  /**
-   * Get step message by key.
-   * @param {string} stepKey - Step key
-   * @returns {string} Step message
-   */
-  getStepMessage(stepKey) {
-    const step = this.getStep(stepKey);
-    return step ? step.message : `Processing ${this.getStepLabel(stepKey)}...`;
-  }
 
   /**
    * Check if file type is supported.
@@ -202,8 +163,7 @@ class ConfigurationService {
       validation: this.validation,
       ui: this.ui,
       api: this.api,
-      webSocket: this.webSocket,
-      verificationSteps: this.verificationSteps
+      webSocket: this.webSocket
     };
   }
 

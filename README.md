@@ -66,7 +66,7 @@ The system uses a modular, configurable pipeline with the following steps:
 - **`VerdictService`** - Final decision generation with confidence scoring
 - **`ReputationService`** - User reputation management and warning system
 - **`StorageService`** - Vector database operations and caching
-- **`ProgressTrackingService`** - Real-time WebSocket progress updates
+- **`EventEmissionService`** - Event-driven progress tracking with real-time WebSocket updates
 
 ### Specialized Analyzers
 - **`TemporalAnalyzer`** - Time-based verification and recency analysis

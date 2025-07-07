@@ -8,7 +8,7 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import BackgroundTasks
 
-from app.websocket_manager import connection_manager, ProgressTracker
+from app.websocket_manager import connection_manager, ProgressTracker, EventProgressTracker
 from app.schemas import VerificationResponse
 from app.exceptions import ValidationError, ImageProcessingError
 from app.database import async_session_factory
@@ -116,19 +116,19 @@ class VerificationService:
             filename: Original filename
         """
         db: Optional[AsyncSession] = None
-        progress_tracker = ProgressTracker(connection_manager, session_id)
+        event_tracker = EventProgressTracker(connection_manager, session_id)
         
         try:
             # Create a new database session for the background task
             async with async_session_factory() as db:
                 logger.info(f"Starting background verification for session {session_id}")
                 
-                # Run verification with progress callback
+                # Run verification with event callback
                 result = await self.coordinator.execute_verification(
                     image_bytes=image_content,
                     user_prompt=prompt,
                     db=db,
-                    progress_callback=progress_tracker.update,
+                    event_callback=event_tracker.emit_event,
                     session_id=session_id,
                     filename=filename,
                 )
@@ -146,7 +146,7 @@ class VerificationService:
                 
                 # Send final result - handle any WebSocket errors separately after DB commit
                 try:
-                    await progress_tracker.complete(result)
+                    await event_tracker.complete(result)
                     logger.info(f"Final result sent successfully for session {session_id}")
                 except Exception as ws_error:
                     logger.error(f"Failed to send WebSocket result for session {session_id}: {ws_error}", exc_info=True)
@@ -154,7 +154,7 @@ class VerificationService:
                     
         except Exception as e:
             logger.error(f"WebSocket verification failed for session {session_id}: {e}", exc_info=True)
-            await progress_tracker.error(str(e))
+            await event_tracker.error(str(e))
     
     async def get_verification_status(
         self,

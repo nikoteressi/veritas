@@ -4,10 +4,10 @@ import InitialState from './verification/InitialState'
 import ErrorState from './verification/ErrorState'
 import ResultDisplay from './verification/ResultDisplay'
 
-function VerificationResults({ result, isLoading, progressData, error }) {
+function VerificationResults({ result, isLoading, error }) {
   // Show loading state when verification is in progress
   if (isLoading) {
-    return <LoadingState progressData={progressData} />
+    return <LoadingState />
   }
 
   // Show error state if there's an error or if result status is error

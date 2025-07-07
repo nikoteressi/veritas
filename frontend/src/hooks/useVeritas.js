@@ -25,7 +25,6 @@ export const useVeritas = () => {
   const {
     verificationResult,
     isLoading,
-    progressData,
     error,
     startVerification,
     completeVerification,
@@ -41,7 +40,7 @@ export const useVeritas = () => {
   useEffect(() => {
     if (lastMessage) {
       // Handle verification-related messages
-      const verificationMessageTypes = ['progress_update', 'verification_result', 'error', 'verification_started'];
+      const verificationMessageTypes = ['progress_event', 'verification_result', 'error', 'verification_started'];
       
       if (verificationMessageTypes.includes(lastMessage.type)) {
         handleWebSocketMessage(lastMessage.type, lastMessage.data);
@@ -114,7 +113,6 @@ export const useVeritas = () => {
     // Verification state
     verificationResult,
     isLoading,
-    progressData,
     error,
     
     // Actions

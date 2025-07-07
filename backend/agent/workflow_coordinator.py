@@ -28,6 +28,7 @@ class WorkflowCoordinator:
         db: AsyncSession,
         session_id: str,
         progress_callback: Optional[callable] = None,
+        event_callback: Optional[callable] = None,
         filename: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -54,6 +55,7 @@ class WorkflowCoordinator:
                 db=db,
                 session_id=session_id,
                 progress_callback=progress_callback,
+                event_callback=event_callback,
                 filename=filename
             )
         except Exception as e:

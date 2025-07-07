@@ -9,7 +9,7 @@ from app.exceptions import AgentError
 from app.config import settings
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.pipeline_steps import step_registry, BasePipelineStep
-from agent.services.progress_tracking import ProgressTrackingService
+from agent.services.event_emission import EventEmissionService
 from agent.services.result_compiler import ResultCompiler
 from agent.services.storage import storage_service
 from agent.services.reputation import reputation_service
@@ -51,6 +51,7 @@ class VerificationPipeline:
         db: AsyncSession,
         session_id: str,
         progress_callback: Optional[callable] = None,
+        event_callback: Optional[callable] = None,
         filename: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -75,7 +76,7 @@ class VerificationPipeline:
                 session_id=session_id,
                 filename=filename,
                 db=db,
-                progress_service=ProgressTrackingService(progress_callback) if progress_callback else None,
+                event_service=EventEmissionService(event_callback) if event_callback else None,
                 result_compiler=ResultCompiler()
             )
         except Exception as e:
@@ -86,17 +87,13 @@ class VerificationPipeline:
         if context.result_compiler:
             context.result_compiler.start_timing()
         
-        # Execute progress tracking
-        if context.progress_service:
-            await context.progress_service.start_verification()
+        # Emit verification started event
+        if context.event_service:
+            await context.event_service.emit_verification_started()
         
         try:
             # Execute each step in sequence
-            for i, step in enumerate(self.steps):
-                # Update progress
-                if context.progress_service:
-                    await self._update_progress_for_step(context.progress_service, i)
-                
+            for step in self.steps:
                 # Execute step safely
                 context = await step.safe_execute(context)
             
@@ -106,9 +103,9 @@ class VerificationPipeline:
             # Store in vector database
             await storage_service.store_in_vector_db(final_result)
             
-            # Complete progress tracking
-            if context.progress_service:
-                await context.progress_service.complete_verification()
+            # Emit verification completed event
+            if context.event_service:
+                await context.event_service.emit_verification_completed()
             
             processing_time = context.result_compiler.get_processing_time()
             logger.info(f"Verification completed in {processing_time}s: {context.verdict_result.verdict}")
@@ -119,28 +116,7 @@ class VerificationPipeline:
             logger.error(f"Pipeline execution failed: {e}", exc_info=True)
             raise AgentError(f"Verification pipeline failed: {e}") from e
     
-    async def _update_progress_for_step(self, progress_service: ProgressTrackingService, step_index: int):
-        """Update progress based on current step."""
-        step_progress_methods = {
-            'validation': 'start_verification',
-            'image_analysis': 'start_analysis',
-            'reputation_retrieval': 'start_analysis',
-            'temporal_analysis': 'start_temporal_analysis',
-            'motives_analysis': 'start_motives_analysis',
-            'fact_checking': 'start_fact_checking',
-            'verdict_generation': 'start_verdict_generation',
-            'reputation_update': 'start_reputation_update',
-            'result_storage': 'start_saving_results'
-        }
-        
-        if step_index < len(self.step_names):
-            step_name = self.step_names[step_index]
-            method_name = step_progress_methods.get(step_name)
-            
-            if method_name:
-                method = getattr(progress_service, method_name, None)
-                if method:
-                    await method()
+
     
     async def _compile_final_result(self, context: VerificationContext) -> Dict[str, Any]:
         """Compile the final verification result."""

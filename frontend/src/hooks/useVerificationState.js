@@ -30,13 +30,7 @@ export const useVerificationState = () => {
     verificationStateService.startVerification(options);
   };
 
-  /**
-   * Update verification progress.
-   * @param {Object} progressData - Progress information
-   */
-  const updateProgress = (progressData) => {
-    verificationStateService.updateProgress(progressData);
-  };
+
 
   /**
    * Complete verification with result.
@@ -89,12 +83,10 @@ export const useVerificationState = () => {
     // State
     verificationResult: state.verificationResult,
     isLoading: state.isLoading,
-    progressData: state.progressData,
     error: state.error,
     
     // Actions
     startVerification,
-    updateProgress,
     completeVerification,
     setError,
     clearState,

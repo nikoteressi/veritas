@@ -14,7 +14,7 @@ from agent.services.fact_checking import FactCheckingService
 from agent.services.verdict import verdict_service
 from agent.services.reputation import reputation_service
 from agent.services.storage import storage_service
-from agent.services.progress_tracking import ProgressTrackingService
+
 from agent.services.result_compiler import ResultCompiler
 from agent.tools import searxng_tool
 
@@ -88,6 +88,10 @@ class ImageAnalysisStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Perform image analysis."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_image_analysis_started()
+        
         analysis_result = await image_analysis_service.analyze(
             context.image_bytes, 
             context.user_prompt
@@ -96,6 +100,11 @@ class ImageAnalysisStep(BasePipelineStep):
         context.analysis_result = analysis_result
         # Set extracted_info based on analysis result
         context.extracted_info = analysis_result.dict()
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_image_analysis_completed(context.extracted_info)
+        
         return context
 
 
@@ -107,6 +116,10 @@ class ReputationRetrievalStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Get or create user reputation."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_reputation_retrieval_started()
+        
         analysis_result = context.analysis_result
         username = getattr(analysis_result, 'username', None) or "unknown"
         
@@ -116,6 +129,11 @@ class ReputationRetrievalStep(BasePipelineStep):
         )
         
         context.user_reputation = user_reputation
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_reputation_retrieval_completed(username)
+        
         return context
 
 
@@ -128,8 +146,17 @@ class TemporalAnalysisStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Perform temporal analysis."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_temporal_analysis_started()
+        
         temporal_analysis = await self.analyzer.safe_analyze(context)
         context.set_temporal_analysis(temporal_analysis)
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_temporal_analysis_completed()
+        
         return context
 
 
@@ -142,8 +169,17 @@ class MotivesAnalysisStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Perform motives analysis."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_motives_analysis_started()
+        
         motives_analysis = await self.analyzer.safe_analyze(context)
         context.set_motives_analysis(motives_analysis)
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_motives_analysis_completed()
+        
         return context
 
 
@@ -156,17 +192,41 @@ class FactCheckingStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Perform fact-checking."""
-        progress_callback = None
-        if context.progress_service:
-            progress_callback = context.progress_service.update_fact_checking_progress
+        # Extract claims to determine total count
+        extracted_info = context.get_extracted_info()
+        fact_hierarchy = extracted_info.get("fact_hierarchy", {})
+        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        total_claims = len(supporting_facts)
+        
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_fact_checking_started(total_claims)
+        
+        # Create event-aware callback for individual items
+        event_callback = None
+        if context.event_service:
+            async def event_callback(claim_index: int, total_claims: int):
+                # For event system, we need the claim text
+                if claim_index < len(supporting_facts):
+                    claim_text = supporting_facts[claim_index].get("description", "") if isinstance(supporting_facts[claim_index], dict) else str(supporting_facts[claim_index])
+                    await context.event_service.emit_fact_checking_item_completed(
+                        claim_index + 1, total_claims, claim_text
+                    )
+        
+
         
         fact_check_result = await self.fact_checking_service.check(
-            context.get_extracted_info(),
+            extracted_info,
             context.user_prompt,
-            progress_callback
+            event_callback
         )
         
         context.fact_check_result = fact_check_result
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_fact_checking_completed()
+        
         return context
 
 
@@ -178,6 +238,10 @@ class VerdictGenerationStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Generate final verdict."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_verdict_generation_started()
+        
         extracted_info = context.get_extracted_info()
         verdict_result = await verdict_service.generate(
             context.fact_check_result,
@@ -187,6 +251,11 @@ class VerdictGenerationStep(BasePipelineStep):
         )
         
         context.verdict_result = verdict_result
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_verdict_generation_completed(verdict_result.verdict)
+        
         return context
 
 
@@ -198,6 +267,10 @@ class ReputationUpdateStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Update user reputation."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_reputation_update_started()
+        
         extracted_info = context.get_extracted_info()
         username = extracted_info.get("username", "unknown")
         
@@ -208,6 +281,11 @@ class ReputationUpdateStep(BasePipelineStep):
         )
         
         context.updated_reputation = updated_reputation
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_reputation_update_completed()
+        
         return context
 
 
@@ -219,6 +297,10 @@ class ResultStorageStep(BasePipelineStep):
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Save verification result to database."""
+        # Emit start event
+        if context.event_service:
+            await context.event_service.emit_result_storage_started()
+        
         reputation_data = self._compile_reputation_data(context.updated_reputation)
         
         verification_record = await storage_service.save_verification_result(
@@ -232,6 +314,11 @@ class ResultStorageStep(BasePipelineStep):
         )
         
         context.verification_record = verification_record
+        
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_result_storage_completed()
+        
         return context
     
     def _compile_reputation_data(self, reputation) -> Dict[str, Any]:

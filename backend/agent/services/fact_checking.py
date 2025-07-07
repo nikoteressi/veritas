@@ -35,7 +35,7 @@ class FactCheckingService:
         self,
         extracted_info: Dict[str, Any],
         user_prompt: str,
-        progress_callback: Optional[callable] = None
+        event_callback: Optional[callable] = None
     ) -> FactCheckResult:
         """
         Fact-check all identified claims from the extracted information.
@@ -43,7 +43,7 @@ class FactCheckingService:
         Args:
             extracted_info: The structured information from the image analysis.
             user_prompt: The original user prompt.
-            progress_callback: Optional callback for progress updates.
+            event_callback: Optional callback for event emission.
 
         Returns:
             A FactCheckResult object containing the results.
@@ -111,8 +111,8 @@ class FactCheckingService:
         
         num_claims = len(claims_to_check)
         for i, claim_info in enumerate(claims_to_check):
-            if progress_callback:
-                await progress_callback(i, num_claims)
+            if event_callback:
+                await event_callback(i, num_claims)
 
             claim_text = claim_info["claim"]
             claim_context = claim_info["context"]

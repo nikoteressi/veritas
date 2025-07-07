@@ -12,7 +12,6 @@ function App() {
     sessionId,
     verificationResult,
     isLoading,
-    progressData,
     error,
     onVerificationStart,
     onVerificationComplete
@@ -50,7 +49,6 @@ function App() {
             <VerificationResults
               result={verificationResult}
               isLoading={isLoading}
-              progressData={progressData}
               error={error}
             />
           </div>

@@ -9,7 +9,6 @@ class VerificationStateService {
     this.state = {
       verificationResult: null,
       isLoading: false,
-      progressData: null,
       error: null
     };
   }
@@ -45,32 +44,13 @@ class VerificationStateService {
     this.updateState({
       isLoading: true,
       verificationResult: null,
-      progressData: null,
       error: null
     });
 
     this._emit('verification_started', options);
   }
 
-  /**
-   * Update verification progress.
-   * @param {Object} progressData - Progress information
-   */
-  updateProgress(progressData) {
-    // Prevent duplicate progress updates
-    const currentProgress = this.state.progressData;
-    if (currentProgress && 
-        currentProgress.step === progressData.step && 
-        currentProgress.progress === progressData.progress) {
-      return; // Skip duplicate update
-    }
 
-    this.updateState({
-      progressData
-    });
-
-    this._emit('progress_updated', progressData);
-  }
 
   /**
    * Complete verification with result.
@@ -80,7 +60,6 @@ class VerificationStateService {
     this.updateState({
       verificationResult: result,
       isLoading: false,
-      progressData: null,
       error: null
     });
 
@@ -96,8 +75,7 @@ class VerificationStateService {
     
     this.updateState({
       error: errorMessage,
-      isLoading: false,
-      progressData: null
+      isLoading: false
     });
 
     this._emit('verification_error', errorMessage);
@@ -110,7 +88,6 @@ class VerificationStateService {
     this.updateState({
       verificationResult: null,
       isLoading: false,
-      progressData: null,
       error: null
     });
 
@@ -151,10 +128,7 @@ class VerificationStateService {
     // This could be extended to support event-specific listeners
     // For now, all listeners receive state updates
     
-    // Only log important events, not progress updates
-    if (eventType !== 'progress_updated') {
-      logger.debug(`Verification state event: ${eventType}`, data);
-    }
+    logger.debug(`Verification state event: ${eventType}`, data);
   }
 
   /**
@@ -164,8 +138,8 @@ class VerificationStateService {
    */
   handleWebSocketMessage(messageType, data) {
     switch (messageType) {
-      case 'progress_update':
-        this.updateProgress(data);
+      case 'progress_event':
+        this.handleProgressEvent(data);
         break;
       
       case 'verification_result':
@@ -186,18 +160,29 @@ class VerificationStateService {
   }
 
   /**
+   * Handle progress event from the new event-driven system.
+   * @param {Object} eventData - Event data containing event_name and payload
+   */
+  handleProgressEvent(eventData) {
+    if (!eventData || !eventData.event_name) {
+      logger.warn('Invalid progress event data:', eventData);
+      return;
+    }
+
+    this._emit('progress_event', eventData);
+  }
+
+  /**
    * Get verification summary for display.
    * @returns {Object} Verification summary
    */
   getVerificationSummary() {
-    const { verificationResult, isLoading, progressData, error } = this.state;
+    const { verificationResult, isLoading, error } = this.state;
     
     return {
       hasResult: !!verificationResult,
       isProcessing: isLoading,
       hasError: !!error,
-      progressStep: progressData?.step || null,
-      progressMessage: progressData?.message || null,
       status: this._getStatus()
     };
   }
