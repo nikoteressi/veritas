@@ -24,6 +24,7 @@ requests
 python-dotenv
 pydantic
 pydantic-settings
+PyYAML
 
 # Development and testing
 pytest

@@ -6,8 +6,9 @@ import json
 import re
 from typing import Dict, Any
 
+from langchain_core.output_parsers import JsonOutputParser
 from agent.llm import llm_manager
-from agent.prompts import VERDICT_GENERATION_PROMPT
+from agent.prompt_manager import prompt_manager
 from app.exceptions import LLMError
 from app.schemas import FactCheckResult, VerdictResult
 
@@ -43,17 +44,19 @@ class VerdictService:
         motives_summary = self._summarize_motives_analysis(motives_analysis or {})
 
         try:
-            prompt = await VERDICT_GENERATION_PROMPT.aformat(
+            prompt_template = prompt_manager.get_prompt_template("verdict_generation")
+
+            prompt = await prompt_template.aformat(
                 research_results=summary + "\n\n" + motives_summary,
                 user_prompt=user_prompt,
                 temporal_analysis=json.dumps(temporal_analysis)
             )
             response = await self.llm_manager.invoke_text_only(prompt)
-            
+
             # Clean and parse the response directly with Pydantic
             clean_response = re.sub(r"```json\n|```", "", response).strip()
             verdict_result = VerdictResult.model_validate_json(clean_response)
-            
+
             # Ensure motives_analysis is included in the result
             if motives_analysis:
                 verdict_result.motives_analysis = motives_analysis

@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Type, Optional
 from langchain_core.output_parsers import JsonOutputParser
 
 from agent.llm import llm_manager
-from agent.prompts import QUERY_GENERATION_PROMPT, DOMAIN_SPECIFIC_PROMPTS
+from agent.prompt_manager import prompt_manager
 from agent.fact_checkers.base import BaseFactChecker
 from agent.fact_checkers.general_checker import GeneralFactChecker
 from agent.fact_checkers.financial_checker import FinancialFactChecker
@@ -123,7 +123,7 @@ class FactCheckingService:
                 claim_text,
                 claim_context,
                 claim_primary_thesis,
-                DOMAIN_SPECIFIC_PROMPTS.get(primary_topic, "general fact-checking"),
+                prompt_manager.domain_specific_descriptions.get(primary_topic, "general fact-checking"),
                 extracted_info.get("temporal_analysis", {})
             )
             all_search_queries.update(search_queries)
@@ -160,7 +160,8 @@ class FactCheckingService:
         """Generate search queries for a given claim using the LLM."""
         try:
             parser = JsonOutputParser()
-            prompt = QUERY_GENERATION_PROMPT.partial(
+            prompt_template = prompt_manager.get_prompt_template("query_generation")
+            prompt = prompt_template.partial(
                 claim=claim,
                 role_description=role_description,
                 temporal_context=json.dumps(temporal_context),
@@ -206,7 +207,8 @@ class FactCheckingService:
             if primary_thesis:
                 enhanced_claim = f"{enhanced_claim} (Supporting: {primary_thesis})"
             
-            prompt = QUERY_GENERATION_PROMPT.partial(
+            prompt_template = prompt_manager.get_prompt_template("query_generation")
+            prompt = prompt_template.partial(
                 claim=enhanced_claim,
                 role_description=role_description,
                 temporal_context=json.dumps(enhanced_context),

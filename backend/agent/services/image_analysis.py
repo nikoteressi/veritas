@@ -8,7 +8,7 @@ from typing import Dict, Any
 from langchain_core.output_parsers import JsonOutputParser
 
 from agent.llm import llm_manager
-from agent.prompts import MULTIMODAL_ANALYSIS_PROMPT
+from agent.prompt_manager import prompt_manager
 from app.exceptions import LLMError
 from app.schemas import ImageAnalysisResult
 
@@ -40,9 +40,11 @@ class ImageAnalysisService:
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
 
-            prompt = MULTIMODAL_ANALYSIS_PROMPT.partial(
+            prompt_template = prompt_manager.get_prompt_template("multimodal_analysis")
+
+            prompt = prompt_template.partial(
                 format_instructions=output_parser.get_format_instructions(),
-                current_date=current_date
+                current_date=current_date,
             )
 
             # Format the final prompt with user input

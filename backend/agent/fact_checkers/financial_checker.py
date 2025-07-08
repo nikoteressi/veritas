@@ -6,7 +6,7 @@ from langchain.output_parsers import PydanticOutputParser
 
 from .base import BaseFactChecker
 from agent.llm import llm_manager
-from agent.prompts import CLAIM_ANALYSIS_PROMPT
+from agent.prompt_manager import prompt_manager
 from app.schemas import FactCheckerResponse
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,8 @@ class FinancialFactChecker(BaseFactChecker):
         parser = PydanticOutputParser(pydantic_object=FactCheckerResponse)
         
         try:
-            prompt = CLAIM_ANALYSIS_PROMPT.format(
+            prompt_template = prompt_manager.get_prompt_template("claim_analysis")
+            prompt = await prompt_template.aformat(
                 role_description=self.role_description,
                 claim=claim,
                 search_results=json.dumps(search_results),

@@ -10,7 +10,7 @@ import re
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.verification_context import VerificationContext
 from agent.llm import llm_manager
-from agent.prompts import MOTIVES_ANALYSIS_PROMPT
+from agent.prompt_manager import prompt_manager
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,8 @@ class MotivesAnalyzer(BaseAnalyzer):
         temporal_summary = self._format_temporal_analysis(temporal_analysis)
         
         # Create prompt with fact-check context
-        prompt = MOTIVES_ANALYSIS_PROMPT.format(
+        prompt_template = prompt_manager.get_prompt_template("motives_analysis")
+        prompt = await prompt_template.aformat(
             fact_check_verdict=fact_check_verdict,
             fact_check_confidence=fact_check_confidence,
             temporal_analysis=temporal_summary,
@@ -188,7 +189,8 @@ class MotivesAnalyzer(BaseAnalyzer):
         dates_info = f"Post Date: {post_date}, Mentioned Dates: {', '.join(mentioned_dates) if mentioned_dates else 'None'}"
         
         # Create prompt with verdict context
-        prompt = MOTIVES_ANALYSIS_PROMPT.format(
+        prompt_template = prompt_manager.get_prompt_template("motives_analysis")
+        prompt = await prompt_template.aformat(
             fact_check_verdict=f"{final_verdict} (Confidence: {verdict_confidence:.2f})",
             fact_check_confidence=verdict_confidence,
             temporal_analysis=f"{temporal_summary} | {dates_info}",
