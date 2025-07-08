@@ -12,8 +12,7 @@ from agent.prompt_manager import prompt_manager
 from agent.fact_checkers.base import BaseFactChecker
 from agent.fact_checkers.general_checker import GeneralFactChecker
 from agent.fact_checkers.financial_checker import FinancialFactChecker
-from app.exceptions import AgentError
-from app.schemas import FactCheckResult, FactCheckSummary
+from agent.models import FactCheckResult, FactCheckSummary
 from agent.tools import SearxNGSearchTool
 
 logger = logging.getLogger(__name__)

@@ -4,13 +4,13 @@ Service for generating the final verdict.
 import logging
 import json
 import re
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from langchain_core.output_parsers import JsonOutputParser
 from agent.llm import llm_manager
 from agent.prompt_manager import prompt_manager
 from app.exceptions import LLMError
-from app.schemas import FactCheckResult, VerdictResult
+from agent.models import FactCheckResult, VerdictResult
 
 logger = logging.getLogger(__name__)
 

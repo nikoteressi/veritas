@@ -7,6 +7,8 @@ import re
 if TYPE_CHECKING:
     from ..tools import SearxNGSearchTool
 
+from agent.prompt_manager import PromptManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,6 +16,7 @@ class BaseFactChecker(ABC):
     """Abstract base class for a domain-specific fact-checker."""
 
     role_description: str = "A generic fact-checker."
+    prompt_manager = PromptManager()
 
     def __init__(self, search_tool: 'SearxNGSearchTool'):
         """

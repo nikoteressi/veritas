@@ -5,7 +5,8 @@ import logging
 import time
 from typing import Dict, Any, Optional
 
-from app.schemas import ImageAnalysisResult, FactCheckResult, VerdictResult
+from agent.models import ImageAnalysisResult, FactCheckResult, VerdictResult
+from app.schemas import VerificationResponse, UserReputation
 from app.json_utils import json_dumps, prepare_for_json_serialization
 
 logger = logging.getLogger(__name__)

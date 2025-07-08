@@ -10,7 +10,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from agent.llm import llm_manager
 from agent.prompt_manager import prompt_manager
 from app.exceptions import LLMError
-from app.schemas import ImageAnalysisResult
+from agent.models import ImageAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +46,9 @@ class ImageAnalysisService:
                 format_instructions=output_parser.get_format_instructions(),
                 current_date=current_date,
             )
+            logger.info(f"Final prompt: {prompt}")
 
-            # Format the final prompt with user input
-            final_prompt = await prompt.aformat(user_prompt=user_prompt)
-            logger.info(f"Final prompt: {final_prompt}")
-
-            llm_output = await self.llm_manager.invoke_multimodal(final_prompt, image_bytes)
+            llm_output = await self.llm_manager.invoke_multimodal(prompt, image_bytes)
 
             # Clean the output to fix common JSON issues
             cleaned_output = self._clean_json_output(llm_output)

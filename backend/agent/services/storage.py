@@ -7,12 +7,14 @@ import hashlib
 from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
+from agent.models import ImageAnalysisResult, FactCheckResult, VerdictResult
 from app.crud import VerificationResultCRUD
 from app.config import settings
 from agent.vector_store import vector_store
 from app.exceptions import StorageError
-from app.schemas import ImageAnalysisResult, FactCheckResult, VerdictResult, UserReputation
+from app.schemas import UserReputation
 
 logger = logging.getLogger(__name__)
 

@@ -28,7 +28,7 @@ multimodal_analysis:
 
       {format_instructions}
   - role: "human"
-    template: "Please analyze this social media post image and the user's question: {user_prompt}"
+    template: "Please analyze this social media post image"
 
 query_generation:
   - role: "system"

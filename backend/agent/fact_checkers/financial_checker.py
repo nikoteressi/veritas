@@ -3,19 +3,19 @@ import logging
 from typing import Any, Dict, List
 
 from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 
-from .base import BaseFactChecker
+from agent.models import FactCheckerResponse
+from agent.fact_checkers.base import BaseFactChecker
 from agent.llm import llm_manager
-from agent.prompt_manager import prompt_manager
-from app.schemas import FactCheckerResponse
 
 logger = logging.getLogger(__name__)
 
 
 class FinancialFactChecker(BaseFactChecker):
     """
-    Fact-checker specializing in financial claims, using a structured
-    Pydantic output for robustness.
+    A fact-checker specialized for financial claims.
     """
     role_description = "A financial fact-checker responsible for verifying claims about stocks, companies, and market activities."
 
@@ -24,7 +24,7 @@ class FinancialFactChecker(BaseFactChecker):
         parser = PydanticOutputParser(pydantic_object=FactCheckerResponse)
         
         try:
-            prompt_template = prompt_manager.get_prompt_template("claim_analysis")
+            prompt_template = self.prompt_manager.get_prompt_template("claim_analysis")
             prompt = await prompt_template.aformat(
                 role_description=self.role_description,
                 claim=claim,
