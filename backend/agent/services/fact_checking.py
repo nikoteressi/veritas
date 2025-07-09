@@ -5,7 +5,7 @@ import logging
 import json
 from typing import Dict, Any, List, Type, Optional
 
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.prompt_manager import prompt_manager
@@ -13,6 +13,7 @@ from agent.fact_checkers.base import BaseFactChecker
 from agent.fact_checkers.general_checker import GeneralFactChecker
 from agent.fact_checkers.financial_checker import FinancialFactChecker
 from agent.models import FactCheckResult, FactCheckSummary
+from agent.models.fact_checking_models import QueryGenerationOutput, SearchQuery
 from agent.tools import SearxNGSearchTool
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,8 @@ class FactCheckingService:
                 )
             )
 
+        logger.info(f"Claims to check: {claims_to_check}")
+
         primary_topic = extracted_info.get("primary_topic", "general").lower()
         checker_class = self.FACT_CHECKER_REGISTRY.get(primary_topic, GeneralFactChecker)
         fact_checker = checker_class(self.search_tool)
@@ -121,9 +124,7 @@ class FactCheckingService:
             search_queries = await self._generate_contextual_search_queries(
                 claim_text,
                 claim_context,
-                claim_primary_thesis,
-                prompt_manager.domain_specific_descriptions.get(primary_topic, "general fact-checking"),
-                extracted_info.get("temporal_analysis", {})
+                claim_primary_thesis
             )
             all_search_queries.update(search_queries)
 
@@ -152,49 +153,16 @@ class FactCheckingService:
             search_queries_used=list(all_search_queries),
             summary=summary,
         )
-
-    async def _generate_search_queries(
-        self, claim: str, role_description: str, temporal_context: Dict[str, Any]
-    ) -> List[str]:
-        """Generate search queries for a given claim using the LLM."""
-        try:
-            parser = JsonOutputParser()
-            prompt_template = prompt_manager.get_prompt_template("query_generation")
-            prompt = prompt_template.partial(
-                claim=claim,
-                role_description=role_description,
-                temporal_context=json.dumps(temporal_context),
-                format_instructions=parser.get_format_instructions(),
-            )
-            
-            response = await self.llm_manager.invoke_text_only(prompt.format())
-            parsed_response = parser.parse(response)
-            
-            queries = parsed_response.get("search_queries", [])
-            logger.info(f"Generated {len(queries)} search queries for claim: '{claim}'")
-            return queries
-        except Exception as e:
-            logger.error(f"Failed to generate search queries: {e}", exc_info=True)
-            return [claim]  # Fallback to using the claim itself as a query
     
     async def _generate_contextual_search_queries(
         self, 
         claim: str, 
         claim_context: Dict[str, Any], 
         primary_thesis: Optional[str],
-        role_description: str, 
-        temporal_context: Dict[str, Any]
     ) -> List[str]:
         """Generate enhanced search queries using hierarchical context."""
         try:
-            parser = JsonOutputParser()
-            
-            # Create enhanced context that includes both claim context and primary thesis
-            enhanced_context = {
-                "claim_context": claim_context,
-                "primary_thesis": primary_thesis,
-                "temporal_context": temporal_context
-            }
+            parser = PydanticOutputParser(pydantic_object=QueryGenerationOutput)
             
             # Create an enhanced claim description for search query generation
             enhanced_claim = claim
@@ -208,22 +176,24 @@ class FactCheckingService:
             
             prompt_template = prompt_manager.get_prompt_template("query_generation")
             prompt = prompt_template.partial(
-                claim=enhanced_claim,
-                role_description=role_description,
-                temporal_context=json.dumps(enhanced_context),
-                format_instructions=parser.get_format_instructions(),
+                claim=enhanced_claim
             )
             
-            response = await self.llm_manager.invoke_text_only(prompt.format())
+            formatted_prompt = prompt.format(format_instructions=parser.get_format_instructions())
+            logger.info(f"Formatted prompt for QUERY GENERATION: {formatted_prompt}")
+            
+            response = await self.llm_manager.invoke_text_only(formatted_prompt)
+            logger.info(f"Response from QUERY GENERATION: {response}")
             parsed_response = parser.parse(response)
             
-            queries = parsed_response.get("search_queries", [])
+            # Extract query strings from the parsed Pydantic objects
+            queries = [query.query for query in parsed_response.queries]
+            
             logger.info(f"Generated {len(queries)} contextual search queries for claim: '{claim}'")
             return queries
         except Exception as e:
             logger.error(f"Failed to generate contextual search queries: {e}", exc_info=True)
-            # Fallback to basic search queries
-            return await self._generate_search_queries(claim, role_description, temporal_context)
+            return []
 
     def _compile_summary(self, claim_results: List[Dict[str, Any]]) -> FactCheckSummary:
         """Compile a summary from individual claim check results."""

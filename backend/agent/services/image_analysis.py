@@ -46,7 +46,6 @@ class ImageAnalysisService:
                 format_instructions=output_parser.get_format_instructions(),
                 current_date=current_date,
             )
-            logger.info(f"Final prompt: {prompt}")
 
             llm_output = await self.llm_manager.invoke_multimodal(prompt, image_bytes)
 
@@ -60,12 +59,6 @@ class ImageAnalysisService:
                 analysis_result = ImageAnalysisResult(**parsed_output)
             else:
                 analysis_result = parsed_output
-
-            # Inject additional context that wasn't part of the initial model analysis
-            analysis_result.contextual_information = {
-                "current_date": current_date,
-                "user_prompt": user_prompt
-            }
             
             logger.info("Image analysis completed and JSON extracted.")
             return analysis_result

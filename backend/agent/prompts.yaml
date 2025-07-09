@@ -8,23 +8,12 @@ multimodal_analysis:
       **Your Analysis Task:**
       Analyze the provided image and any accompanying text. Your goal is to deconstruct the information into a hierarchical structure that captures the logical relationship between facts.
 
-      **Post Metadata Extraction:**
-      - **Post Date/Timestamp:** Look for any temporal indicators like "15h ago", "2 days ago", "posted yesterday", etc. in the image
-      - **Username/Author:** Extract the COMPLETE username or account name that posted the content. Be careful to capture the full username without truncation (e.g., "cryptopatel" not "cryptopat")
-
-      **Hierarchical Analysis:** 
-      - **Identify Primary Thesis:** Determine the single, main point the author is trying to make. This should be a holistic summary of the core message that includes specific temporal information when dates are mentioned.
-      - **Extract Supporting Facts:** Extract all the specific, atomic, and verifiable facts that underpin this primary thesis. For each fact, provide a clear description and structured context data.
-
       **Important Guidelines:**
-      - Take the user's prompt and current date into account for full context
+      - Take the current date into account for full context
       - ALWAYS extract post metadata including timestamps (e.g., "15h ago", "2 days ago") visible in the image
       - Primary thesis should be comprehensive and include temporal information (dates, timeframes)
       - Supporting facts should be atomic and verifiable
-      - Context data should include structured information (dates, amounts, entities, etc.)
       - **Use proper JSON number format** - NO underscores in numbers (use 4970, not 4_970)
-
-      CRITICAL: Respond with a single, valid JSON object that conforms to the provided schema. Do not include any text, code block markers, or formatting before or after the JSON object. Use proper JSON number format without underscores.
 
       {format_instructions}
   - role: "human"
@@ -33,21 +22,31 @@ multimodal_analysis:
 query_generation:
   - role: "system"
     template: |
-      You are an expert search query generator. Your task is to create a list of diverse and effective search queries to fact-check a given claim. Consider the claim's specific entities, the domain it belongs to, and any temporal context. Generate a JSON object containing a list of 5-7 distinct search queries.
+      You are a highly analytical query generation engine. 
+      Your function is to deconstruct a claim into a set of neutral, logical search queries for fact-checking. 
+      You will reason step-by-step to create a comprehensive and unbiased research plan and return it as a single JSON object.
   - role: "human"
     template: |
-      Please generate search queries for the following claim:
+      Generate a structured JSON response to investigate the following claim. Also pay attention to the supporting claim.
 
       **Claim:**
       {claim}
 
-      **Fact-Checker Role:**
-      {role_description}
+      **Instructions:**
+      Your response must be a single, valid JSON object that conforms to the schema provided in the format instructions.
+      The JSON object should contain two main parts:
+      1.  **Reasoning:** Your detailed, step-by-step analysis.
+          *   **Claim Analysis:** Identify the key entities, actions, quantities, and dates.
+          *   **Domain Determination:** Determine the most likely domain of the claim (e.g., Finance, Science). Use the provided role description as the primary domain.
+          *   **Query Formulation Plan:** Briefly explain your strategy for generating the queries.
+      2.  **Queries:** A list of 5-7 neutral, distinct search queries based on your analysis. The queries must be tailored to the claim's domain and cover these categories:
+          *   **Direct Verification:** A query to check the core statement as literally as possible, using quotation marks for exact phrases.
+          *   **Primary Source Verification:** Queries to find official sources most relevant to the claim's domain. *Example: For Finance, target "SEC filing"; for Science, "peer-reviewed study"; for Politics, "official records"*.
+          *   **Contextual Analysis:** Queries to understand the situation surrounding the claim's entities and domain at the time of any specified dates.
+          *   **Alternative Perspectives & Independent Analysis:** Neutral queries to find reputable discussion, criticism, or analysis. Use keywords like "analysis," "impact of," "risks," "debate on."
+          *   **Current Status:** Queries to find the most recent information about the claim's core subjects to check for updates or changes.
 
-      **Temporal Context:**
-      {temporal_context}
-
-      Generate a JSON object with a single key 'search_queries' which is a list of strings. For example: {{"search_queries": ["query 1", "query 2"]}}.
+      {format_instructions}
 
 verdict_generation:
   - role: "system"
