@@ -69,7 +69,9 @@ services:
     container_name: veritas-backend
     ports:
       - "8000:8000"
+    shm_size: '2gb' # Add shared memory for Playwright
     environment:
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright # Ensure app uses the correct path
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=veritas_db

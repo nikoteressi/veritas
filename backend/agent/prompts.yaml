@@ -78,22 +78,48 @@ verdict_generation:
       - 'reasoning': A 2-3 sentence explanation that directly answers the user's question and synthesizes the evidence
       - 'sources': A list of the most important source URLs that were consulted (up to 5 sources) 
 
-claim_analysis:
+claim_analysis_with_scraped_content:
   - role: "human"
     template: |
       You are a fact-checker with the role: {role_description}.
-      Analyze the provided search results to assess the validity of the claim.
+      Analyze the provided FULL-TEXT content from scraped web pages to assess the validity of the claim. Do NOT rely on snippets; use the complete content provided.
 
       **Claim:**
       {claim}
 
-      **Search Results:**
-      {search_results}
+      **Scraped Content from Vetted Sources:**
+      {scraped_content}
 
       **Temporal Context (details about when the post was made):**
       {temporal_context}
 
-      Based on the search results and temporal context, provide a JSON object that conforms to the following schema.
+      Based on the full-text content and temporal context, provide a JSON object that conforms to the following schema.
+
+      {format_instructions}
+
+source_selection:
+  - role: "human"
+    template: |
+      You are an expert research analyst. Your task is to act as a filter. Review the following list of search results and select the top 2-3 most credible and authoritative URLs that are most relevant to the user's claim.
+
+      **Claim:**
+      {claim}
+
+      **Search Results (JSON array of objects, each with a 'url' key):**
+      {search_results}
+
+      **CRITICAL INSTRUCTIONS:**
+      1.  Analyze the provided `search_results` JSON array.
+      2.  Identify the 2-3 results that are the most credible and directly relevant to the claim.
+      3.  You MUST return a JSON object containing a single key, `credible_urls`.
+      4.  The value of `credible_urls` MUST be a JSON list of strings.
+      5.  Each string in the list MUST be the **exact, unmodified URL** taken directly from the `url` field of your selected objects in the input `search_results`. Do NOT summarize, shorten, or change the URLs in any way.
+
+      **Example:**
+      If you select a search result object that looks like this:
+      `{{"title": "Example News", "url": "https://example.com/news/article123", "snippet": "..."}}`
+      Then the string you must include in your output list is exactly:
+      `"https://example.com/news/article123"`
 
       {format_instructions}
 

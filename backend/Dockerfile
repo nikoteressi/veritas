@@ -16,12 +16,21 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Set a non-user-specific path for Playwright browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Install browsers and their dependencies as root
+RUN crawl4ai-setup
+
 # Copy application code
 COPY . .
 
-# Create non-root user
+# Create a non-root user and set permissions
 RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
+    && chown -R app:app /app \
+    && chown -R app:app /ms-playwright  # Give the app user ownership of browsers
+
+# Switch to the non-root user
 USER app
 
 # Expose port

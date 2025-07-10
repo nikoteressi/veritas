@@ -41,3 +41,5 @@ watchfiles
 redis
 
 pillow
+
+crawl4ai
