@@ -35,17 +35,25 @@ class VerificationResponse(BaseModel):
     """Response model for verification results."""
     status: str
     message: str
-    verification_id: Optional[str] = None  # Changed from int to str to support UUIDs
-    user_nickname: Optional[str] = None
+    verification_id: Optional[str] = None
+    nickname: Optional[str] = None
     extracted_text: Optional[str] = None
     primary_topic: Optional[str] = None
     identified_claims: Optional[List[str]] = None
-    verdict: Optional[str] = None  # true, partially_true, false, ironic
+    verdict: Optional[str] = None
     justification: Optional[str] = None
     confidence_score: Optional[float] = None
     processing_time_seconds: Optional[int] = None
+    temporal_analysis: Optional[dict] = None
+    motives_analysis: Optional[dict] = None
+    fact_check_results: Optional[dict] = None
+    sources: Optional[List[dict]] = None
     user_reputation: Optional[UserReputation] = None
     warnings: Optional[List[str]] = None
+    prompt: Optional[str] = None
+    filename: Optional[str] = None
+    file_size: Optional[int] = None
+    summary: Optional[str] = None
 
 
 class VerificationStatusResponse(BaseModel):
@@ -73,4 +81,4 @@ class ErrorResponse(BaseModel):
     """Error response model."""
     error: str
     detail: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow) 
+    timestamp: datetime = Field(default_factory=datetime.now())

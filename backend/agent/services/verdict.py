@@ -6,7 +6,7 @@ import json
 import re
 from typing import Dict, Any, List
 
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from agent.llm import llm_manager
 from agent.prompt_manager import prompt_manager
 from app.exceptions import LLMError
@@ -42,6 +42,7 @@ class VerdictService:
         """
         summary = self._summarize_fact_check(fact_check_result)
         motives_summary = self._summarize_motives_analysis(motives_analysis or {})
+        parser = PydanticOutputParser(pydantic_object=VerdictResult)
 
         try:
             prompt_template = prompt_manager.get_prompt_template("verdict_generation")
@@ -49,19 +50,24 @@ class VerdictService:
             prompt = await prompt_template.aformat(
                 research_results=summary + "\n\n" + motives_summary,
                 user_prompt=user_prompt,
-                temporal_analysis=json.dumps(temporal_analysis)
+                temporal_analysis=json.dumps(temporal_analysis),
+                format_instructions=parser.get_format_instructions()
             )
+
+            logger.info(f"Formatted prompt for LLM: {prompt}")
+
             response = await self.llm_manager.invoke_text_only(prompt)
+            logger.info(f"Raw response from LLM: {response}")
 
             # Clean and parse the response directly with Pydantic
-            clean_response = re.sub(r"```json\n|```", "", response).strip()
-            verdict_result = VerdictResult.model_validate_json(clean_response)
+            parsed_response = parser.parse(response)
+            logger.info(f"Cleaned response: {parsed_response}")
 
             # Ensure motives_analysis is included in the result
             if motives_analysis:
-                verdict_result.motives_analysis = motives_analysis
+                parsed_response.motives_analysis = motives_analysis
             
-            return verdict_result
+            return parsed_response
 
         except Exception as e:
             logger.error(f"Failed to generate verdict: {e}", exc_info=True)

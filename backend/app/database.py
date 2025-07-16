@@ -62,7 +62,8 @@ class VerificationResult(Base):
     
     # Processing metadata
     processing_time_seconds = Column(Integer)
-    model_used = Column(String(100))
+    vision_model_used = Column(String(100))
+    reasoning_model_used = Column(String(100))
     tools_used = Column(Text)  # JSON string of tools used
     
     # Timestamps

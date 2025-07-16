@@ -49,7 +49,8 @@ class StorageService:
             "user_prompt": user_prompt,
             "confidence_score": verdict_result.get("confidence_score"),
             "processing_time_seconds": extracted_info.get("processing_time_seconds", 0),
-            "model_used": settings.ollama_model,
+            "vision_model_used": settings.vision_model_name,
+            "reasoning_model_used": settings.reasoning_model_name,
             "tools_used": json.dumps(["SearxNGSearchTool"])
         }
         
@@ -75,4 +76,4 @@ class StorageService:
             # This operation should not fail the entire request, so we just log the error.
 
 # Singleton instance
-storage_service = StorageService() 
+storage_service = StorageService()

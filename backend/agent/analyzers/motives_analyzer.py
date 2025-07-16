@@ -3,87 +3,65 @@ Refactored motives analysis module for analyzing potential motives behind social
 Now uses fact-check verdicts and temporal analysis as primary inputs for informed motive determination.
 """
 import logging
-from typing import Dict, Any, Optional
-import json
-import re
+from typing import Dict, Any, List
+from pydantic import BaseModel, Field
+
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.verification_context import VerificationContext
-from agent.llm import llm_manager
-from agent.prompt_manager import prompt_manager
+
+from app.exceptions import MotivesAnalysisError
 
 logger = logging.getLogger(__name__)
 
 
+class MotiveAnalysisResult(BaseModel):
+    primary_motive: str = Field(..., description="The most likely motive behind the post.")
+    confidence_score: float = Field(..., description="Confidence in the motive analysis, from 0.0 to 1.0.")
+    reasoning: str = Field(..., description="Explanation for the identified motive.")
+    risk_level: str = Field(..., description="Estimated risk level (e.g., low, moderate, high).")
+    manipulation_indicators: List[str] = Field(default_factory=list, description="Indicators of manipulation detected.")
+
+
 class MotivesAnalyzer(BaseAnalyzer):
-    """
-    Analyzes potential motives behind social media posts using fact-check verdicts 
-    and temporal analysis as primary inputs.
-    """
-    
-    def __init__(self):
+    """Analyzes potential motives behind social media posts using an LLM."""
+
+    def __init__(self, llm_manager, prompt_manager):
         super().__init__("motives")
-    
+        self.llm_manager = llm_manager
+        self.prompt_manager = prompt_manager
+
     async def analyze(self, context: VerificationContext) -> Dict[str, Any]:
-        """
-        Analyze potential motives behind a social media post using the final verdict.
-        
-        Args:
-            context: Verification context containing all necessary data including final verdict
-            
-        Returns:
-            Dictionary with motives analysis results
-        """
-        # Get final verdict results - these are now our primary inputs
-        verdict_result = context.verdict_result
-        if not verdict_result:
-            logger.warning("No verdict results available for motives analysis")
-            return self._create_fallback_analysis("No verdict results available")
-        
-        # Get temporal analysis and extracted information
-        temporal_analysis = context.get_temporal_analysis()
-        extracted_info = context.get_extracted_info()
-        
-        # Extract key information
-        content = extracted_info.get("extracted_text", "")
-        primary_topic = extracted_info.get("primary_topic", "general")
-        post_date = extracted_info.get("post_date", "unknown")
-        mentioned_dates = extracted_info.get("mentioned_dates", [])
-        
-        # Extract verdict information
-        final_verdict = verdict_result.verdict if hasattr(verdict_result, 'verdict') else "unknown"
-        verdict_confidence = verdict_result.confidence_score if hasattr(verdict_result, 'confidence_score') else 0.5
-        verdict_reasoning = verdict_result.reasoning if hasattr(verdict_result, 'reasoning') else "No reasoning available"
-        
-        # Use LLM to analyze motives based on final verdict
+        """Analyzes motives using the reasoning LLM and context data."""
+        if not all([context.screenshot_data, context.temporal_analysis, context.verdict_result]):
+            raise MotivesAnalysisError("Missing required data in context for motives analysis.")
+
+        output_parser = PydanticOutputParser(pydantic_object=MotiveAnalysisResult)
+
         try:
-            motives_analysis = await self._analyze_motives_with_verdict(
-                content=content,
-                final_verdict=final_verdict,
-                verdict_confidence=verdict_confidence,
-                verdict_reasoning=verdict_reasoning,
-                temporal_analysis=temporal_analysis,
-                primary_topic=primary_topic,
-                post_date=post_date,
-                mentioned_dates=mentioned_dates
-            )
-            
-            # Enhance with additional context
-            motives_analysis = self._enhance_analysis_with_verdict_context(
-                motives_analysis, 
-                final_verdict, 
-                primary_topic, 
-                temporal_analysis,
-                post_date,
-                mentioned_dates
-            )
-            
-            logger.info(f"Motives analysis: {motives_analysis}")
-            return motives_analysis
-            
+            prompt_template = self.prompt_manager.get_prompt_template("motives_analysis_llm")
+            prompt = await prompt_template.aformat(final_verdict=context.verdict_result.verdict,
+                                             verdict_confidence=context.verdict_result.confidence_score,
+                                             temporal_analysis=context.temporal_analysis,
+                                             primary_topic=context.primary_topic,
+                                             screenshot_data=context.screenshot_data,
+                                             format_instructions=output_parser.get_format_instructions())
+
+            logger.info(f"Formatted prompt for LLM: {prompt}")
+
+            response = await self.llm_manager.invoke_text_only(prompt)
+            parsed_response = output_parser.parse(response)
+
+            if not isinstance(parsed_response, MotiveAnalysisResult):
+                raise MotivesAnalysisError("Failed to parse motive analysis from LLM response.")
+
+            logger.info("Successfully performed LLM-based motives analysis.")
+            return parsed_response
+
         except Exception as e:
-            logger.error(f"Motives analysis failed: {e}")
-            return self._create_fallback_analysis(f"Analysis failed: {str(e)}")
+            logger.error(f"Error during LLM-based motives analysis: {e}", exc_info=True)
+            raise MotivesAnalysisError(f"An unexpected error occurred during motives analysis: {e}") from e
     
     def _extract_fact_check_verdict(self, fact_check_result) -> str:
         """Extract the fact-check verdict from the result."""
@@ -470,4 +448,4 @@ class MotivesAnalyzer(BaseAnalyzer):
             "manipulation_indicators": [],
             "fact_check_informed": False,
             "analysis_method": "fallback"
-        } 
+        }

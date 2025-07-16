@@ -35,15 +35,23 @@ class EventEmissionService:
         """Signal the start of verification."""
         await self.emit_event("VERIFICATION_STARTED")
     
-    async def emit_image_analysis_started(self):
-        """Signal the start of image analysis."""
-        await self.emit_event("IMAGE_ANALYSIS_STARTED")
-    
-    async def emit_image_analysis_completed(self, extracted_info: Dict[str, Any]):
-        """Signal the completion of image analysis."""
-        await self.emit_event("IMAGE_ANALYSIS_COMPLETED", {
+    async def emit_screenshot_parsing_started(self):
+        """Signal the start of screenshot parsing."""
+        await self.emit_event("SCREENSHOT_PARSING_STARTED")
+
+    async def emit_screenshot_parsing_completed(self, extracted_info: Dict[str, Any]):
+        """Signal the completion of screenshot parsing."""
+        await self.emit_event("SCREENSHOT_PARSING_COMPLETED", {
             "extracted_info": extracted_info
         })
+
+    async def emit_post_analysis_started(self):
+        """Signal the start of post analysis."""
+        await self.emit_event("POST_ANALYSIS_STARTED")
+
+    async def emit_post_analysis_completed(self):
+        """Signal the completion of post analysis."""
+        await self.emit_event("POST_ANALYSIS_COMPLETED")
     
     async def emit_reputation_retrieval_started(self):
         """Signal the start of reputation retrieval."""
@@ -88,6 +96,14 @@ class EventEmissionService:
     async def emit_fact_checking_completed(self):
         """Signal the completion of fact-checking."""
         await self.emit_event("FACT_CHECKING_COMPLETED")
+
+    async def emit_summarization_started(self):
+        """Signal the start of summarization."""
+        await self.emit_event("SUMMARIZATION_STARTED")
+
+    async def emit_summarization_completed(self):
+        """Signal the completion of summarization."""
+        await self.emit_event("SUMMARIZATION_COMPLETED")
     
     async def emit_verdict_generation_started(self):
         """Signal the start of verdict generation."""
@@ -125,4 +141,4 @@ class EventEmissionService:
     
     def has_callback(self) -> bool:
         """Check if an event callback is set."""
-        return self.event_callback is not None 
+        return self.event_callback is not None

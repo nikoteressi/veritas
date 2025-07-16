@@ -67,3 +67,15 @@ class ToolError(VeritasException):
 class StorageError(VeritasException):
     """Exception raised for storage operations."""
     pass
+
+class TemporalAnalysisError(VeritasException):
+    """Exception raised for temporal analysis operations."""
+    pass
+
+class MotivesAnalysisError(VeritasException):
+    """Exception raised for motives analysis operations."""
+    pass
+
+class ScreenshotParsingError(VeritasException):
+    """Exception raised for screenshot parsing operations."""
+    pass

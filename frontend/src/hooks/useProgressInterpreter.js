@@ -43,10 +43,12 @@ export function useProgressInterpreter() {
   // Define verification steps with smooth progress ranges
   const verificationSteps = [
     { key: 'validation', label: 'Validation', progress: 5, duration: 500 },
-    { key: 'image_analysis', label: 'Image Analysis', progress: 15, duration: 800 },
-    { key: 'reputation_retrieval', label: 'Reputation Check', progress: 25, duration: 600 },
-    { key: 'temporal_analysis', label: 'Temporal Analysis', progress: 35, duration: 700 },
+    { key: 'screenshot_parsing', label: 'Screenshot Parsing', progress: 15, duration: 800 },
+    { key: 'temporal_analysis', label: 'Temporal Analysis', progress: 25, duration: 700 },
+    { key: 'post_analysis', label: 'Post Analysis', progress: 35, duration: 800 },
+    { key: 'reputation_retrieval', label: 'Reputation Check', progress: 45, duration: 600 },
     { key: 'fact_checking', label: 'Fact Checking', progress: 80, duration: 2000 },
+    { key: 'summarization', label: 'Summarization', progress: 85, duration: 600 },
     { key: 'verdict_generation', label: 'Verdict Generation', progress: 90, duration: 800 },
     { key: 'motives_analysis', label: 'Motives Analysis', progress: 95, duration: 500 },
     { key: 'reputation_update', label: 'Reputation Update', progress: 97, duration: 300 },
@@ -77,15 +79,26 @@ export function useProgressInterpreter() {
           setCurrentStep('validation');
           break;
         
-        case 'IMAGE_ANALYSIS_STARTED':
+        case 'SCREENSHOT_PARSING_STARTED':
           animateProgress(15, 800);
-          setMessage('Analyzing image content...');
-          setCurrentStep('image_analysis');
+          setMessage('Parsing screenshot...');
+          setCurrentStep('screenshot_parsing');
           break;
-        
-        case 'IMAGE_ANALYSIS_COMPLETED':
+
+        case 'SCREENSHOT_PARSING_COMPLETED':
           animateProgress(22, 400);
-          setMessage('Image analysis complete. Extracting information...');
+          setMessage('Screenshot parsing complete.');
+          break;
+
+        case 'POST_ANALYSIS_STARTED':
+          animateProgress(35, 800);
+          setMessage('Analyzing post...');
+          setCurrentStep('post_analysis');
+          break;
+
+        case 'POST_ANALYSIS_COMPLETED':
+          animateProgress(42, 400);
+          setMessage('Post analysis complete.');
           break;
         
         case 'REPUTATION_RETRIEVAL_STARTED':
@@ -135,6 +148,17 @@ export function useProgressInterpreter() {
         case 'FACT_CHECKING_COMPLETED':
           animateProgress(80, 600);
           setMessage('Fact-checking complete');
+          break;
+
+        case 'SUMMARIZATION_STARTED':
+          animateProgress(85, 600);
+          setMessage('Summarizing results...');
+          setCurrentStep('summarization');
+          break;
+
+        case 'SUMMARIZATION_COMPLETED':
+          animateProgress(88, 400);
+          setMessage('Summarization complete.');
           break;
 
         case 'VERDICT_GENERATION_STARTED':
@@ -228,4 +252,4 @@ export function useProgressInterpreter() {
     verificationSteps,
     getCurrentStep: getCurrentStep
   };
-} 
+}

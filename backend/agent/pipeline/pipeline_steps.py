@@ -8,12 +8,17 @@ from abc import ABC, abstractmethod
 from agent.models.verification_context import VerificationContext
 from agent.analyzers.temporal_analyzer import TemporalAnalyzer
 from agent.analyzers.motives_analyzer import MotivesAnalyzer
+from agent.llm import llm_manager
+from agent.prompt_manager import prompt_manager
 from agent.services.validation_service import validation_service
 from agent.services.image_analysis import image_analysis_service
 from agent.services.fact_checking import FactCheckingService
 from agent.services.verdict import verdict_service
 from agent.services.reputation import reputation_service
 from agent.services.storage import storage_service
+from agent.services.screenshot_parser import screenshot_parser_service
+from agent.services.post_analyzer import PostAnalyzerService
+from agent.services.summarizer import SummarizerService
 
 from agent.services.result_compiler import ResultCompiler
 from agent.tools import searxng_tool
@@ -80,32 +85,47 @@ class ValidationStep(BasePipelineStep):
         return context
 
 
-class ImageAnalysisStep(BasePipelineStep):
-    """Step for analyzing the uploaded image."""
+class SummarizationStep(BasePipelineStep):
+    """Step for generating the final summary."""
+
+    def __init__(self):
+        super().__init__("Summarization")
+        self.summarizer_service = SummarizerService(llm_manager, prompt_manager)
+
+    async def execute(self, context: VerificationContext) -> VerificationContext:
+        """Generate the final summary."""
+        if context.event_service:
+            await context.event_service.emit_summarization_started()
+
+        summary = await self.summarizer_service.summarize(context)
+        context.summary = summary
+
+        if context.event_service:
+            await context.event_service.emit_summarization_completed()
+
+        return context
+
+class ScreenshotParsingStep(BasePipelineStep):
+    """Step for parsing the screenshot into structured data."""
     
     def __init__(self):
-        super().__init__("Image Analysis")
+        super().__init__("Screenshot Parsing")
     
     async def execute(self, context: VerificationContext) -> VerificationContext:
-        """Perform image analysis."""
-        # Emit start event
+        """Parse the screenshot and save the result to the context."""
         if context.event_service:
-            await context.event_service.emit_image_analysis_started()
+            await context.event_service.emit_screenshot_parsing_started()
         
-        analysis_result = await image_analysis_service.analyze(
-            context.image_bytes, 
-            context.user_prompt
-        )
+        screenshot_data = await screenshot_parser_service.parse(context.image_bytes)
+        context.screenshot_data = screenshot_data
         
-        context.analysis_result = analysis_result
-        # Set extracted_info based on analysis result
-        context.extracted_info = analysis_result.dict()
-        
-        # Emit completion event
         if context.event_service:
-            await context.event_service.emit_image_analysis_completed(context.extracted_info)
-        
+            await context.event_service.emit_screenshot_parsing_completed(screenshot_data.model_dump())
+            
         return context
+
+
+
 
 
 class ReputationRetrievalStep(BasePipelineStep):
@@ -138,48 +158,65 @@ class ReputationRetrievalStep(BasePipelineStep):
 
 
 class TemporalAnalysisStep(BasePipelineStep):
-    """Step for performing temporal analysis."""
-    
+    """Step for performing LLM-based temporal analysis."""
+
     def __init__(self):
         super().__init__("Temporal Analysis")
-        self.analyzer = TemporalAnalyzer()
-    
+        self.analyzer = TemporalAnalyzer(llm_manager, prompt_manager)
+
     async def execute(self, context: VerificationContext) -> VerificationContext:
-        """Perform temporal analysis."""
-        # Emit start event
+        """Executes the temporal analysis and updates the context."""
         if context.event_service:
             await context.event_service.emit_temporal_analysis_started()
-        
-        temporal_analysis = await self.analyzer.safe_analyze(context)
-        context.set_temporal_analysis(temporal_analysis)
-        
-        # Emit completion event
+
+        temporal_analysis_result = await self.analyzer.analyze(context)
+        context.temporal_analysis = temporal_analysis_result
+
         if context.event_service:
             await context.event_service.emit_temporal_analysis_completed()
-        
+
+        return context
+
+
+class PostAnalysisStep(BasePipelineStep):
+    """Step for analyzing the parsed post data to extract thesis and facts."""
+
+    def __init__(self):
+        super().__init__("Post Analysis")
+        self.analyzer = PostAnalyzerService(llm_manager, prompt_manager)
+
+    async def execute(self, context: VerificationContext) -> VerificationContext:
+        """Executes the post analysis and updates the context."""
+        if context.event_service:
+            await context.event_service.emit_post_analysis_started()
+
+        analysis_result = await self.analyzer.analyze(context)
+        context.fact_hierarchy = analysis_result.fact_hierarchy
+        context.primary_topic = analysis_result.primary_topic
+        if context.event_service:
+            await context.event_service.emit_post_analysis_completed()
+
         return context
 
 
 class MotivesAnalysisStep(BasePipelineStep):
-    """Step for performing motives analysis."""
-    
+    """Step for performing LLM-based motives analysis."""
+
     def __init__(self):
         super().__init__("Motives Analysis")
-        self.analyzer = MotivesAnalyzer()
-    
+        self.analyzer = MotivesAnalyzer(llm_manager, prompt_manager)
+
     async def execute(self, context: VerificationContext) -> VerificationContext:
-        """Perform motives analysis."""
-        # Emit start event
+        """Executes the motives analysis and updates the context."""
         if context.event_service:
             await context.event_service.emit_motives_analysis_started()
-        
-        motives_analysis = await self.analyzer.safe_analyze(context)
-        context.set_motives_analysis(motives_analysis)
-        
-        # Emit completion event
+
+        motives_analysis_result = await self.analyzer.analyze(context)
+        context.motives_analysis = motives_analysis_result
+
         if context.event_service:
             await context.event_service.emit_motives_analysis_completed()
-        
+
         return context
 
 
@@ -193,33 +230,14 @@ class FactCheckingStep(BasePipelineStep):
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Perform fact-checking."""
         # Extract claims to determine total count
-        extracted_info = context.get_extracted_info()
-        fact_hierarchy = extracted_info.get("fact_hierarchy", {})
-        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        supporting_facts = context.fact_hierarchy.supporting_facts
         total_claims = len(supporting_facts)
         
         # Emit start event
         if context.event_service:
             await context.event_service.emit_fact_checking_started(total_claims)
         
-        # Create event-aware callback for individual items
-        event_callback = None
-        if context.event_service:
-            async def event_callback(claim_index: int, total_claims: int):
-                # For event system, we need the claim text
-                if claim_index < len(supporting_facts):
-                    claim_text = supporting_facts[claim_index].get("description", "") if isinstance(supporting_facts[claim_index], dict) else str(supporting_facts[claim_index])
-                    await context.event_service.emit_fact_checking_item_completed(
-                        claim_index + 1, total_claims, claim_text
-                    )
-        
-
-        
-        fact_check_result = await self.fact_checking_service.check(
-            extracted_info,
-            context.user_prompt,
-            event_callback
-        )
+        fact_check_result = await self.fact_checking_service.check(context)
         
         context.fact_check_result = fact_check_result
         
@@ -309,11 +327,12 @@ class ResultStorageStep(BasePipelineStep):
             image_bytes=context.image_bytes,
             user_prompt=context.user_prompt,
             extracted_info=context.get_extracted_info(),
-            verdict_result=context.verdict_result.dict(),
+            verdict_result=context.verdict_result.model_dump(),
             reputation_data=reputation_data
         )
         
         context.verification_record = verification_record
+        context.verification_id = str(verification_record.id)
         
         # Emit completion event
         if context.event_service:
@@ -343,12 +362,14 @@ class PipelineStepRegistry:
     def __init__(self):
         self._steps: Dict[str, Type[BasePipelineStep]] = {
             "validation": ValidationStep,
-            "image_analysis": ImageAnalysisStep,
-            "reputation_retrieval": ReputationRetrievalStep,
+            "screenshot_parsing": ScreenshotParsingStep,
             "temporal_analysis": TemporalAnalysisStep,
-            "motives_analysis": MotivesAnalysisStep,
+            "post_analysis": PostAnalysisStep,
+            "reputation_retrieval": ReputationRetrievalStep,
             "fact_checking": FactCheckingStep,
+            "summarization": SummarizationStep,
             "verdict_generation": VerdictGenerationStep,
+            "motives_analysis": MotivesAnalysisStep,
             "reputation_update": ReputationUpdateStep,
             "result_storage": ResultStorageStep,
         }
@@ -386,4 +407,4 @@ class PipelineStepRegistry:
 
 
 # Global step registry instance
-step_registry = PipelineStepRegistry() 
+step_registry = PipelineStepRegistry()

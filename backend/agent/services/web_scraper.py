@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class WebScraper:
     """
-    A service to scrape web pages using Crawl4AI.
+    A service to scrape web pages.
     """
     def __init__(self):
         self.crawler = AsyncWebCrawler()
@@ -33,17 +33,15 @@ class WebScraper:
             """Helper function to scrape a single URL and handle errors."""
             try:
                 logger.info(f"Scraping URL: {url}")
-                # The crawler is configured for single-page scraping by default
                 result = await self.crawler.arun(url, output_format="markdown")
-                
                 if result and result.success and result.markdown and result.markdown.fit_markdown:
                     logger.info(f"Successfully scraped content from {url}.")
                     return {"url": url, "content": result.markdown.fit_markdown, "status": "success"}
                 elif result and not result.success:
-                    logger.error(f"Crawling error for URL {url}: {result.error_message}")
-                    return {"url": url, "content": None, "status": "error", "error_message": result.error_message}
+                    logger.error(f"Scraping failed for {url}: {result.error}")
+                    return {"url": url, "content": None, "status": "error", "error_message": result.error}
                 else:
-                    logger.warning(f"No meaningful content found for URL: {url}")
+                    logger.warning(f"No content found for URL: {url}")
                     return {"url": url, "content": None, "status": "no_content"}
             except Exception as e:
                 logger.error(f"An unexpected error occurred while scraping {url}: {e}")
@@ -52,4 +50,4 @@ class WebScraper:
         tasks = [scrape_single_url(url) for url in urls]
         results = await asyncio.gather(*tasks)
         logger.info("Finished scraping all URLs.")
-        return results 
+        return results

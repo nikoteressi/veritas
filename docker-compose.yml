@@ -70,20 +70,8 @@ services:
     ports:
       - "8000:8000"
     shm_size: '2gb' # Add shared memory for Playwright
-    environment:
-      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright # Ensure app uses the correct path
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=veritas_db
-      - DB_USER=veritas_user
-      - DB_PASSWORD=veritas_password
-      - REDIS_URL=redis://redis:6379/0
-      - SEARXNG_URL=http://searxng:8080
-      - OLLAMA_BASE_URL=http://192.168.11.130:11434
-      - OLLAMA_MODEL=llama4
-      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
-      - DEBUG=true
-      - LOG_LEVEL=DEBUG
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/app
       - chroma_data:/app/data/chroma_db

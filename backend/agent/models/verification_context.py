@@ -36,12 +36,15 @@ class VerificationContext(BaseModel):
     # Step-specific data
     validated_data: Optional[Dict[str, Any]] = None
     screenshot_data: Optional[ScreenshotData] = None
+    primary_topic: Optional[str] = Field(None, description="The primary topic or domain of the post (e.g., financial, political).")
     fact_hierarchy: Optional[FactHierarchy] = None
+    summary: Optional[str] = None
     claims: List[str] = Field(default_factory=list, description="A simple list of claims, for components that need it. Will be derived from fact_hierarchy.")
     user_reputation: Optional[Any] = None
     updated_reputation: Optional[Any] = Field(None, description="Reputation object after update")
     temporal_analysis: Optional[Dict[str, Any]] = None
     motives_analysis: Optional[Dict[str, Any]] = None
+    warnings: List[str] = Field(default_factory=list, description="A list of warnings generated during the verification process.")
     
     # Extracted information - maintained for compatibility
     extracted_info: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Generic dictionary for extracted info, used for compatibility.")
@@ -57,6 +60,7 @@ class VerificationContext(BaseModel):
     
     # Storage results
     verification_record: Optional[Any] = Field(None, description="Verification record from database")
+    verification_id: Optional[str] = Field(None, description="ID of the verification record")
     
     class Config:
         """Pydantic configuration."""
@@ -112,4 +116,4 @@ class VerificationContext(BaseModel):
         """Update a specific key in extracted_info."""
         extracted_info = self.get_extracted_info()
         extracted_info[key] = value
-        self.extracted_info = extracted_info 
+        self.extracted_info = extracted_info

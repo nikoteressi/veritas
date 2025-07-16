@@ -17,24 +17,35 @@ logger = logging.getLogger(__name__)
 
 class OllamaLLMManager:
     """Manager for Ollama LLM interactions."""
-    
+
     def __init__(self):
-        self.llm = None
-        self._initialize_llm()
-    
-    def _initialize_llm(self):
-        """Initialize the Ollama LLM."""
+        self.vision_llm = None
+        self.reasoning_llm = None
+        self._initialize_llms()
+
+    def _initialize_llms(self):
+        """Initialize the Ollama LLMs for vision and reasoning."""
         try:
-            self.llm = ChatOllama(
+            self.vision_llm = ChatOllama(
                 base_url=settings.ollama_base_url,
-                model=settings.ollama_model,
-                temperature=0.1,  # Low temperature for factual accuracy
-                num_predict=2048,  # Max tokens to generate
-                timeout=120,  # 2 minute timeout
+                model=settings.vision_model_name,
+                temperature=0.1,
+                num_predict=2048,
+                timeout=120,
             )
-            logger.info(f"Initialized Ollama LLM: {settings.ollama_model}")
+            logger.info(f"Initialized Vision LLM: {settings.vision_model_name}")
+
+            self.reasoning_llm = ChatOllama(
+                base_url=settings.ollama_base_url,
+                model=settings.reasoning_model_name,
+                temperature=0.1,
+                num_predict=2048,
+                timeout=120,
+            )
+            logger.info(f"Initialized Reasoning LLM: {settings.reasoning_model_name}")
+
         except Exception as e:
-            logger.error(f"Failed to initialize Ollama LLM: {e}")
+            logger.error(f"Failed to initialize Ollama LLMs: {e}")
             raise
     
     def encode_image_to_base64(self, image_bytes: bytes) -> str:
@@ -125,7 +136,7 @@ class OllamaLLMManager:
             message = self.create_multimodal_message(text, image_base64)
             
             # Invoke LLM
-            response = await self.llm.ainvoke([message], **kwargs)
+            response = await self.vision_llm.ainvoke([message], **kwargs)
             
             logger.info("Successfully invoked multimodal LLM")
             logger.info(f"Image parsing response: {response.content}")
@@ -148,7 +159,7 @@ class OllamaLLMManager:
         """
         try:
             logger.debug(f"Invoking text-only LLM with prompt:\n---PROMPT START---\n{text}\n---PROMPT END---")
-            response = await self.llm.ainvoke([HumanMessage(content=text)], **kwargs)
+            response = await self.reasoning_llm.ainvoke([HumanMessage(content=text)], **kwargs)
             logger.debug(f"LLM text-only response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---")
             logger.info("Successfully invoked text-only LLM")
             return response.content
@@ -157,11 +168,17 @@ class OllamaLLMManager:
             raise
     
     def get_model_info(self) -> Dict[str, Any]:
-        """Get information about the current model."""
+        """Get information about the current models."""
         return {
             "base_url": settings.ollama_base_url,
-            "model": settings.ollama_model,
-            "status": "initialized" if self.llm else "not_initialized"
+            "vision_model": {
+                "name": settings.vision_model_name,
+                "status": "initialized" if self.vision_llm else "not_initialized"
+            },
+            "reasoning_model": {
+                "name": settings.reasoning_model_name,
+                "status": "initialized" if self.reasoning_llm else "not_initialized"
+            }
         }
 
 

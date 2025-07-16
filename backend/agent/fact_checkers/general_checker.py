@@ -1,12 +1,11 @@
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from langchain.output_parsers import PydanticOutputParser
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
 
 from agent.models import FactCheckerResponse
+from agent.analyzers.temporal_analyzer import TemporalAnalysisResult
 from agent.fact_checkers.base import BaseFactChecker
 from agent.llm import llm_manager
 
@@ -22,7 +21,7 @@ class GeneralFactChecker(BaseFactChecker):
         "reputable news sources and established fact-checking organizations."
     )
 
-    async def analyze_search_results(self, claim: str, search_results: List[Dict[str, Any]], temporal_context: Dict[str, Any]) -> str:
+    async def analyze_search_results(self, claim: str, search_results: List[Dict[str, Any]], temporal_context: Optional[TemporalAnalysisResult]) -> str:
         """Analyze general search results asynchronously."""
         parser = PydanticOutputParser(pydantic_object=FactCheckerResponse)
         
@@ -32,7 +31,7 @@ class GeneralFactChecker(BaseFactChecker):
                 role_description=self.role_description,
                 claim=claim,
                 search_results=json.dumps(search_results),
-                temporal_context=json.dumps(temporal_context),
+                temporal_context=temporal_context.model_dump_json() if temporal_context else "{}",
                 format_instructions=parser.get_format_instructions(),
             )
             response = await llm_manager.invoke_text_only(prompt)
@@ -49,4 +48,4 @@ class GeneralFactChecker(BaseFactChecker):
                 contradicting_evidence=0,
                 credible_sources=0,
             )
-            return error_response.model_dump_json() 
+            return error_response.model_dump_json()

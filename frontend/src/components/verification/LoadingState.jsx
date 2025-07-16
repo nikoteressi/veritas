@@ -56,10 +56,12 @@ function LoadingState() {
 function getStepMessage(step) {
   const messages = {
     'validation': 'Validating request...',
-    'image_analysis': 'Analyzing image content...',
-    'reputation_retrieval': 'Retrieving user reputation...',
+    'screenshot_parsing': 'Parsing screenshot...',
     'temporal_analysis': 'Analyzing temporal context...',
+    'post_analysis': 'Analyzing post...',
+    'reputation_retrieval': 'Retrieving user reputation...',
     'fact_checking': 'Fact-checking with external sources...',
+    'summarization': 'Summarizing results...',
     'verdict_generation': 'Generating final verdict...',
     'motives_analysis': 'Analyzing potential motives...',
     'reputation_update': 'Updating user reputation...',
@@ -100,4 +102,4 @@ function ProgressStep({ text, isActive, isComplete, isUpcoming }) {
   )
 }
 
-export default LoadingState 
+export default LoadingState

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import List, Dict, Any, TYPE_CHECKING, Optional
 import logging
 import json
 import re
@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from ..tools import SearxNGSearchTool
 
 from agent.prompt_manager import PromptManager
+from agent.analyzers.temporal_analyzer import TemporalAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class BaseFactChecker(ABC):
         self._search_tool = search_tool
 
     @abstractmethod
-    async def analyze_search_results(self, claim: str, search_results: List[Dict[str, Any]], temporal_context: Dict[str, Any]) -> str:
+    async def analyze_search_results(self, claim: str, search_results: List[Dict[str, Any]], temporal_context: Optional[TemporalAnalysisResult]) -> str:
         """
         Analyze search results from a domain-specific perspective.
         
@@ -73,7 +74,7 @@ class BaseFactChecker(ABC):
 
         return list(dict.fromkeys(filtered_entities))[:5]
 
-    async def check(self, claim: str, search_queries: List[str], temporal_context: Dict[str, Any]) -> str:
+    async def check(self, claim: str, search_queries: List[str], temporal_context: Optional[TemporalAnalysisResult]) -> str:
         """Execute the full fact-checking process for the given domain."""
         try:
             logger.info(f"Executing fact-check with {self.__class__.__name__}: '{self.role_description}'")
@@ -105,4 +106,4 @@ class BaseFactChecker(ABC):
         except Exception as e:
             error_msg = f"Fact-checking failed in {self.__class__.__name__}: {e}"
             logger.error(error_msg, exc_info=True)
-            return json.dumps({"error": error_msg}) 
+            return json.dumps({"error": error_msg})

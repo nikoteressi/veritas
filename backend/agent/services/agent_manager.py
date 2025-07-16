@@ -28,7 +28,7 @@ class AgentManager:
         try:
             # Initialize LLM if not already done
             if self.llm is None:
-                self.llm = llm_manager.llm
+                self.llm = llm_manager.reasoning_llm
             
             prompt = ChatPromptTemplate.from_messages([
                 ("system", "You are a helpful AI assistant with access to tools for fact-checking."),
@@ -102,4 +102,4 @@ def get_agent_manager_from_app(app) -> AgentManager:
     if not agent_manager.is_agent_ready():
         raise RuntimeError("AgentManager is not ready. Initialization may have failed.")
     
-    return agent_manager 
+    return agent_manager

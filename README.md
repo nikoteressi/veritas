@@ -5,7 +5,7 @@ Veritas is a sophisticated AI-driven system for automated verification of social
 ## 🚀 Key Features
 
 ### Core Capabilities
-- **Multimodal AI Analysis**: Advanced image processing with Llama 4 for text extraction and visual content analysis
+- **Multimodal AI Analysis**: Advanced image processing with a dedicated vision model for text extraction and visual content analysis, and a separate reasoning model for analysis and verdict generation.
 - **Modular Verification Pipeline**: Configurable pipeline with 9 specialized verification steps
 - **Real-time WebSocket Updates**: Live progress tracking during verification process
 - **Advanced Temporal Analysis**: Time-based verification to detect outdated information
@@ -28,7 +28,7 @@ Veritas is a sophisticated AI-driven system for automated verification of social
 - **FastAPI**: High-performance async web framework with automatic OpenAPI documentation
 - **SQLAlchemy**: Async ORM with PostgreSQL for data persistence
 - **LangChain**: Advanced LLM orchestration and multi-agent coordination
-- **Ollama**: Local hosting of multimodal Llama 4 models
+- **Ollama**: Local hosting of vision and reasoning models.
 - **ChromaDB**: Vector database for embeddings and intelligent caching
 - **SearxNG**: Self-hosted search engine for privacy-focused fact verification
 - **Crawl4AI**: AI-native web crawler for deep scraping and content extraction
@@ -93,7 +93,7 @@ users (
 verification_results (
     id, user_nickname, image_hash, extracted_text, user_prompt,
     primary_topic, identified_claims, verdict, justification,
-    confidence_score, processing_time_seconds, model_used, tools_used, created_at
+    confidence_score, processing_time_seconds, vision_model_used, reasoning_model_used, tools_used, created_at
 )
 ```
 
@@ -117,7 +117,8 @@ DB_PASSWORD=your_password
 
 # AI Model Configuration
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama4
+VISION_MODEL_NAME=llava:latest
+REASONING_MODEL_NAME=qwen:7b
 
 # External Services
 SEARXNG_URL=http://localhost:8888

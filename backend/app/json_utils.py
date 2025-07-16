@@ -82,13 +82,19 @@ def prepare_for_json_serialization(obj: Any) -> Any:
     """
     Recursively prepare an object for JSON serialization by converting
     non-serializable types to serializable ones.
-    
+
     Args:
         obj: Object to prepare
-        
+
     Returns:
         Object with all non-serializable types converted
     """
+    if hasattr(obj, '__dict__'):
+        # Handle SQLAlchemy models and other custom objects
+        d = {key: prepare_for_json_serialization(value)
+             for key, value in obj.__dict__.items()
+             if not key.startswith('_')}
+        return d
     if isinstance(obj, dict):
         return {key: prepare_for_json_serialization(value) for key, value in obj.items()}
     elif isinstance(obj, list):

@@ -5,7 +5,7 @@ import logging
 import json
 from typing import Dict, Any, List, Type, Optional
 
-from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.prompt_manager import prompt_manager
@@ -13,7 +13,9 @@ from agent.fact_checkers.base import BaseFactChecker
 from agent.fact_checkers.general_checker import GeneralFactChecker
 from agent.fact_checkers.financial_checker import FinancialFactChecker
 from agent.models import FactCheckResult, FactCheckSummary
-from agent.models.fact_checking_models import QueryGenerationOutput, SearchQuery
+from agent.models.fact_checking_models import QueryGenerationOutput
+from agent.models.verification_context import VerificationContext
+from agent.analyzers.temporal_analyzer import TemporalAnalysisResult
 from agent.tools import SearxNGSearchTool
 
 logger = logging.getLogger(__name__)
@@ -31,12 +33,7 @@ class FactCheckingService:
         self.llm_manager = llm_manager
         self.search_tool = search_tool
 
-    async def check(
-        self,
-        extracted_info: Dict[str, Any],
-        user_prompt: str,
-        event_callback: Optional[callable] = None
-    ) -> FactCheckResult:
+    async def check(self, context: VerificationContext) -> FactCheckResult:
         """
         Fact-check all identified claims from the extracted information.
 
@@ -48,27 +45,26 @@ class FactCheckingService:
         Returns:
             A FactCheckResult object containing the results.
         """
-        # Get hierarchical facts
-        fact_hierarchy = extracted_info.get("fact_hierarchy")
+        fact_hierarchy = context.fact_hierarchy
         claims_to_check = []
         primary_thesis = None
         
         if not fact_hierarchy:
-            logger.warning("No fact hierarchy found in extracted info.")
+            logger.warning("No fact hierarchy found in context.")
             return FactCheckResult(
                 claim_results=[],
                 examined_sources=[],
                 search_queries_used=[],
                 summary=FactCheckSummary(
                     total_sources_found=0,
-                    credible_sources=0,
+                    credible_sources=[],
                     supporting_evidence=0,
                     contradicting_evidence=0,
                 )
             )
         
-        primary_thesis = fact_hierarchy.get("primary_thesis")
-        supporting_facts = fact_hierarchy.get("supporting_facts", [])
+        primary_thesis = fact_hierarchy.primary_thesis
+        supporting_facts = fact_hierarchy.supporting_facts
         
         # Convert supporting facts to claims with enhanced context
         for fact in supporting_facts:
@@ -93,7 +89,7 @@ class FactCheckingService:
                 search_queries_used=[],
                 summary=FactCheckSummary(
                     total_sources_found=0,
-                    credible_sources=0,
+                    credible_sources=[],
                     supporting_evidence=0,
                     contradicting_evidence=0,
                 )
@@ -101,7 +97,7 @@ class FactCheckingService:
 
         logger.info(f"Claims to check: {claims_to_check}")
 
-        primary_topic = extracted_info.get("primary_topic", "general").lower()
+        primary_topic = context.primary_topic.lower() if context.primary_topic else "general"
         checker_class = self.FACT_CHECKER_REGISTRY.get(primary_topic, GeneralFactChecker)
         fact_checker = checker_class(self.search_tool)
 
@@ -112,9 +108,7 @@ class FactCheckingService:
         all_search_queries = set()
         
         num_claims = len(claims_to_check)
-        for i, claim_info in enumerate(claims_to_check):
-            if event_callback:
-                await event_callback(i, num_claims)
+        for claim_info in claims_to_check:
 
             claim_text = claim_info["claim"]
             claim_context = claim_info["context"]
@@ -124,11 +118,12 @@ class FactCheckingService:
             search_queries = await self._generate_contextual_search_queries(
                 claim_text,
                 claim_context,
-                claim_primary_thesis
+                claim_primary_thesis,
+                context.temporal_analysis
             )
             all_search_queries.update(search_queries)
 
-            claim_result_str = await fact_checker.check(claim_text, search_queries, extracted_info.get("temporal_analysis", {}))
+            claim_result_str = await fact_checker.check(claim_text, search_queries, context.temporal_analysis)
             try:
                 claim_result = json.loads(claim_result_str)
                 # Add context information to the result
@@ -155,10 +150,11 @@ class FactCheckingService:
         )
     
     async def _generate_contextual_search_queries(
-        self, 
-        claim: str, 
-        claim_context: Dict[str, Any], 
+        self,
+        claim: str,
+        claim_context: Dict[str, Any],
         primary_thesis: Optional[str],
+        temporal_analysis: Optional[TemporalAnalysisResult] = None
     ) -> List[str]:
         """Generate enhanced search queries using hierarchical context."""
         try:
@@ -174,9 +170,18 @@ class FactCheckingService:
             if primary_thesis:
                 enhanced_claim = f"{enhanced_claim} (Supporting: {primary_thesis})"
             
+            temporal_context = "No specific temporal context provided."
+            if temporal_analysis:
+                temporal_context = (
+                f"Estimated Publication Date: {temporal_analysis.post_creation_date}. "
+                f"Key Dates Mentioned: {temporal_analysis.mentioned_dates}. "
+                f"Relationship: {temporal_analysis.relationship_description}."
+            )
+
             prompt_template = prompt_manager.get_prompt_template("query_generation")
             prompt = prompt_template.partial(
-                claim=enhanced_claim
+                claim=enhanced_claim,
+                temporal_context=temporal_context
             )
             
             formatted_prompt = prompt.format(format_instructions=parser.get_format_instructions())
@@ -195,22 +200,22 @@ class FactCheckingService:
             logger.error(f"Failed to generate contextual search queries: {e}", exc_info=True)
             return []
 
-    def _compile_summary(self, claim_results: List[Dict[str, Any]]) -> FactCheckSummary:
+    def _compile_summary(self, all_claim_results: List[Dict[str, Any]]) -> FactCheckSummary:
         """Compile a summary from individual claim check results."""
-        total_sources = 0
+        total_sources_found = 0
         credible_sources = 0
         supporting_evidence = 0
         contradicting_evidence = 0
 
-        for result in claim_results:
-            total_sources += result.get("total_sources_found", 0)
-            credible_sources += result.get("credible_sources", 0)
+        for result in all_claim_results:
+            total_sources_found += result.get("total_sources_found", 0)
+            credible_sources += len(result.get("credible_sources", []))
             supporting_evidence += result.get("supporting_evidence", 0)
             contradicting_evidence += result.get("contradicting_evidence", 0)
 
         return FactCheckSummary(
-            total_sources_found=total_sources,
+            total_sources_found=total_sources_found,
             credible_sources=credible_sources,
             supporting_evidence=supporting_evidence,
             contradicting_evidence=contradicting_evidence,
-        ) 
+        )

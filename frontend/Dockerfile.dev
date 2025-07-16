@@ -10,8 +10,8 @@ RUN apk add --no-cache dumb-init
 COPY package*.json ./
 
 # Install dependencies with clean npm cache
-RUN npm ci --only=production=false && \
-    npm cache clean --force
+RUN npm install && npm cache clean --force
+
 
 # Copy source code
 COPY . .

@@ -120,33 +120,8 @@ class VerificationPipeline:
     
     async def _compile_final_result(self, context: VerificationContext) -> Dict[str, Any]:
         """Compile the final verification result."""
-        reputation_data = {
-            "nickname": context.updated_reputation.nickname,
-            "true_count": context.updated_reputation.true_count,
-            "partially_true_count": context.updated_reputation.partially_true_count,
-            "false_count": context.updated_reputation.false_count,
-            "ironic_count": context.updated_reputation.ironic_count,
-            "total_posts_checked": context.updated_reputation.total_posts_checked,
-            "warning_issued": context.updated_reputation.warning_issued,
-            "notification_issued": context.updated_reputation.notification_issued,
-            "created_at": context.updated_reputation.created_at,
-            "last_checked_date": context.updated_reputation.last_checked_date
-        }
         
-        warnings = reputation_service.generate_warnings(context.updated_reputation)
-        
-        final_result = context.result_compiler.compile_result(
-            verification_id=str(context.verification_record.id),
-            analysis_result=context.analysis_result,
-            fact_check_result=context.fact_check_result,
-            verdict_result=context.verdict_result,
-            extracted_info=context.get_extracted_info(),
-            reputation_data=reputation_data,
-            warnings=warnings,
-            user_prompt=context.user_prompt,
-            image_bytes=context.image_bytes,
-            filename=context.filename
-        )
+        final_result = await context.result_compiler.compile_result(context=context)
         
         return final_result
     
@@ -241,4 +216,4 @@ def create_custom_pipeline(step_names: List[str]) -> VerificationPipeline:
 
 
 # Global default pipeline instance
-verification_pipeline = create_default_pipeline() 
+verification_pipeline = create_default_pipeline()

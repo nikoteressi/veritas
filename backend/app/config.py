@@ -10,10 +10,12 @@ from enum import Enum
 class VerificationSteps(Enum):
     """Enumeration of verification pipeline steps."""
     VALIDATION = "validation"
-    IMAGE_ANALYSIS = "image_analysis"
-    REPUTATION_RETRIEVAL = "reputation_retrieval"
+    SCREENSHOT_PARSING = "screenshot_parsing"
     TEMPORAL_ANALYSIS = "temporal_analysis"
+    POST_ANALYSIS = "post_analysis"
+    REPUTATION_RETRIEVAL = "reputation_retrieval"
     FACT_CHECKING = "fact_checking"
+    SUMMARIZATION = "summarization"
     VERDICT_GENERATION = "verdict_generation"
     MOTIVES_ANALYSIS = "motives_analysis"
     REPUTATION_UPDATE = "reputation_update"
@@ -41,7 +43,8 @@ class Settings(BaseSettings):
     
     # Ollama settings
     ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
-    ollama_model: str = Field(default="llava:latest", env="OLLAMA_MODEL")
+    vision_model_name: str = Field(default="llava:latest", env="VISION_MODEL_NAME")
+    reasoning_model_name: str = Field(default="qwen:7b", env="REASONING_MODEL_NAME")
     
     # SearxNG settings
     searxng_url: str = Field(default="http://localhost:8888", env="SEARXNG_URL")
