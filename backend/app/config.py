@@ -16,8 +16,8 @@ class VerificationSteps(Enum):
     REPUTATION_RETRIEVAL = "reputation_retrieval"
     FACT_CHECKING = "fact_checking"
     SUMMARIZATION = "summarization"
-    VERDICT_GENERATION = "verdict_generation"
     MOTIVES_ANALYSIS = "motives_analysis"
+    VERDICT_GENERATION = "verdict_generation"
     REPUTATION_UPDATE = "reputation_update"
     RESULT_STORAGE = "result_storage"
 

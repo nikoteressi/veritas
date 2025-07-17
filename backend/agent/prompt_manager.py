@@ -42,6 +42,48 @@ class PromptManager:
         if not prompt_structure:
             raise ValueError(f"Prompt template '{name}' not found or is invalid.")
         return prompt_structure.to_chat_prompt_template()
+    
+    def get_domain_role_description(self, domain: str) -> str:
+        """
+        Get domain-specific role description for fact-checking.
+        
+        Args:
+            domain: The domain name (e.g., 'financial', 'medical', 'political', 'scientific')
+            
+        Returns:
+            Domain-specific role description or general description if domain not found
+        """
+        # Normalize domain name to match keys in domain_specific_descriptions
+        normalized_domain = domain.lower()
+        
+        # Map common domain variations to standard keys
+        domain_mapping = {
+            'finance': 'financial',
+            'bitcoin': 'financial',
+            'cryptocurrency': 'financial', 
+            'crypto': 'financial',
+            'investment': 'financial',
+            'market': 'financial',
+            'trading': 'financial',
+            'health': 'medical',
+            'medicine': 'medical',
+            'politics': 'political',
+            'government': 'political',
+            'science': 'scientific',
+            'research': 'scientific'
+        }
+        
+        # Get the standard domain key
+        standard_domain = domain_mapping.get(normalized_domain, normalized_domain)
+        
+        # Get domain-specific description or fallback to general
+        role_description = self.domain_specific_descriptions.get(
+            standard_domain, 
+            "You are a versatile fact-checker that verifies claims by cross-referencing "
+            "reputable sources and established fact-checking organizations."
+        )
+        
+        return role_description
 
 # Singleton instance to ensure prompts are loaded and validated only once.
-prompt_manager = PromptManager() 
+prompt_manager = PromptManager()

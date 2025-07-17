@@ -189,17 +189,11 @@ class VerificationService:
             "justification": result.justification,
             "confidence_score": result.confidence_score,
             "processing_time_seconds": result.processing_time_seconds,
-            "temporal_analysis": result.temporal_analysis,
-            "examined_sources": result.examined_sources,
-            "search_queries_used": result.search_queries_used,
-            "sources": result.sources,
-            "user_reputation": result.user_reputation,
-            "warnings": result.warnings,
-            "prompt": result.prompt,
-            "filename": result.filename,
-            "file_size": result.file_size
+            "prompt": result.user_prompt,
+            "filename": getattr(result, 'filename', None),
+            "file_size": getattr(result, 'file_size', None)
         }
 
 
 # Singleton service instance
-verification_service = VerificationService() 
+verification_service = VerificationService()

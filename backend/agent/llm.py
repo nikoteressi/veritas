@@ -138,8 +138,8 @@ class OllamaLLMManager:
             # Invoke LLM
             response = await self.vision_llm.ainvoke([message], **kwargs)
             
+            logger.debug(f"Vision LLM response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---")
             logger.info("Successfully invoked multimodal LLM")
-            logger.info(f"Image parsing response: {response.content}")
             return response.content
             
         except Exception as e:

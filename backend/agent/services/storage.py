@@ -38,11 +38,17 @@ class StorageService:
     ) -> "VerificationResult":
         """Saves the complete verification result to the database."""
         
+        # Extract claims from the new structure
+        claims = extracted_info.get("claims", [])
+        if not claims:
+            # Fallback: try to get claims from other possible locations
+            claims = extracted_info.get("identified_claims", [])
+        
         result_data = {
             "user_nickname": user_nickname,
             "verdict": verdict_result.get("verdict"),
             "justification": verdict_result.get("reasoning"),
-            "identified_claims": json.dumps([fact['description'] for fact in extracted_info.get("fact_hierarchy", {}).get("supporting_facts", [])]),
+            "identified_claims": json.dumps(claims),
             "primary_topic": extracted_info.get("primary_topic"),
             "extracted_text": extracted_info.get("extracted_text"),
             "image_hash": self._hash_image(image_bytes),

@@ -89,15 +89,16 @@ class VectorStore:
             document_text = self._prepare_verification_document(verification_data)
 
             # Store in verification collection
+            temporal_analysis = verification_data.get("temporal_analysis", {})
             metadata = {
                 "verification_id": verification_id,
                 "timestamp": datetime.now().isoformat(),
                 "username": verification_data.get("nickname", "unknown"),
                 "verdict": verification_data.get("verdict", "unknown"),
                 "confidence": verification_data.get("confidence_score", 0),
-                "temporal_mismatch": verification_data.get("temporal_analysis", {}).get("temporal_mismatch", False),
-                "mismatch_severity": verification_data.get("temporal_analysis", {}).get("mismatch_severity", "none"),
-                "intent_analysis": verification_data.get("temporal_analysis", {}).get("intent_analysis", "unknown")
+                "temporal_mismatch": temporal_analysis.get("temporal_mismatch", False),
+                "mismatch_severity": temporal_analysis.get("mismatch_severity", "none"),
+                "intent_analysis": temporal_analysis.get("intent_analysis", "unknown")
             }
 
             self.verification_collection.add(
@@ -106,10 +107,8 @@ class VectorStore:
                 ids=[verification_id]
             )
 
-            # Store individual claims from hierarchical structure
-            fact_hierarchy = verification_data.get("fact_hierarchy", {})
-            supporting_facts = fact_hierarchy.get("supporting_facts", [])
-            claims = [fact.get("description", "") for fact in supporting_facts]
+            # Store individual claims from identified_claims list
+            claims = verification_data.get("identified_claims", [])
             self._store_claims(claims, verification_id)
 
             # Store source information
@@ -167,10 +166,8 @@ class VectorStore:
         if verification_data.get("nickname"):
             parts.append(f"User: {verification_data['nickname']}")
         
-        # Add claims from hierarchical structure
-        fact_hierarchy = verification_data.get("fact_hierarchy", {})
-        supporting_facts = fact_hierarchy.get("supporting_facts", [])
-        claims = [fact.get("description", "") for fact in supporting_facts]
+        # Add claims from identified_claims list
+        claims = verification_data.get("identified_claims", [])
         if claims:
             parts.append(f"Claims: {' | '.join(claims)}")
         

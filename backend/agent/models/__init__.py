@@ -8,8 +8,14 @@ from .internal import (
     FactCheckResult,
     VerdictResult,
     FactCheckerResponse,
+    ClaimResult,
 )
 from .verification_context import VerificationContext
+from .temporal_analysis import TemporalAnalysisResult
+from .motives_analysis import MotivesAnalysisResult
+from .extracted_info import ExtractedInfo
+from .verification_result import VerificationResult, FactCheckResults, UserReputation
+from .websocket_models import ProgressEventPayload, WebSocketMessage
 
 __all__ = [
     "Fact",
@@ -19,5 +25,14 @@ __all__ = [
     "FactCheckResult",
     "VerdictResult",
     "FactCheckerResponse",
+    "ClaimResult",
     "VerificationContext",
-] 
+    "TemporalAnalysisResult",
+    "MotivesAnalysisResult",
+    "ExtractedInfo",
+    "VerificationResult",
+    "FactCheckResults",
+    "UserReputation",
+    "ProgressEventPayload",
+    "WebSocketMessage",
+]

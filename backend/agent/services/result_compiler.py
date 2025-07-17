@@ -44,10 +44,17 @@ class ResultCompiler:
         """
         processing_time = self.get_processing_time()
 
-        serializable_temporal = self._prepare_temporal_analysis(context.temporal_analysis)
-        serializable_motives = self._prepare_motives_analysis(context.motives_analysis)
+        # Use new typed methods
+        temporal_analysis = context.get_temporal_analysis()
+        motives_analysis = context.get_motives_analysis()
+        summarization_result = context.get_summarization_result()
+        
+        serializable_temporal = self._prepare_temporal_analysis(temporal_analysis)
+        serializable_motives = self._prepare_motives_analysis(motives_analysis)
+        serializable_summarization = self._prepare_summarization_result(summarization_result)
 
-        summary_result = await context.summary if context.summary and asyncio.iscoroutine(context.summary) else context.summary
+        # Use typed summarization result or fallback to string summary
+        summary_text = summarization_result.summary if summarization_result else context.summary
 
         final_result = {
             "status": "success",
@@ -56,7 +63,7 @@ class ResultCompiler:
             "nickname": context.screenshot_data.post_content.author,
             "extracted_text": context.screenshot_data.post_content.text_body,
             "primary_topic": context.primary_topic,
-            "identified_claims": [fact.description for fact in context.fact_hierarchy.supporting_facts],
+            "identified_claims": context.claims,
             "verdict": context.verdict_result.verdict,
             "justification": context.verdict_result.reasoning,
             "confidence_score": context.verdict_result.confidence_score,
@@ -66,7 +73,7 @@ class ResultCompiler:
             "fact_check_results": {
                 "examined_sources": context.fact_check_result.examined_sources,
                 "search_queries_used": context.fact_check_result.search_queries_used,
-                "summary": context.fact_check_result.summary.dict(),
+                "summary": context.fact_check_result.summary.model_dump(),
             },
             "sources": context.verdict_result.sources or [],
             "user_reputation": prepare_for_json_serialization(context.user_reputation),
@@ -74,7 +81,8 @@ class ResultCompiler:
             "prompt": context.user_prompt,
             "filename": context.filename or "uploaded_image",
             "file_size": len(context.image_bytes) if context.image_bytes else 0,
-            "summary": summary_result,
+            "summary": summary_text,
+            "summarization_details": serializable_summarization,
         }
 
         return self._ensure_json_serializable(final_result, context)
@@ -82,6 +90,14 @@ class ResultCompiler:
     def _prepare_temporal_analysis(self, temporal_analysis: Any) -> Dict[str, Any]:
         """Prepare temporal analysis data for JSON serialization."""
         try:
+            if temporal_analysis is None:
+                return {}
+            
+            # If it's a typed object with model_dump() method, use it
+            if hasattr(temporal_analysis, 'model_dump'):
+                return temporal_analysis.model_dump()
+            
+            # Otherwise, use the general serialization function
             return prepare_for_json_serialization(temporal_analysis)
         except Exception as e:
             logger.warning(f"Failed to prepare temporal analysis for serialization: {e}")
@@ -90,9 +106,33 @@ class ResultCompiler:
     def _prepare_motives_analysis(self, motives_analysis: Any) -> Dict[str, Any]:
         """Prepare motives analysis data for JSON serialization."""
         try:
+            if motives_analysis is None:
+                return {}
+            
+            # If it's a typed object with model_dump() method, use it
+            if hasattr(motives_analysis, 'model_dump'):
+                return motives_analysis.model_dump()
+            
+            # Otherwise, use the general serialization function
             return prepare_for_json_serialization(motives_analysis)
         except Exception as e:
             logger.warning(f"Failed to prepare motives analysis for serialization: {e}")
+            return {}
+
+    def _prepare_summarization_result(self, summarization_result: Any) -> Dict[str, Any]:
+        """Prepare summarization result data for JSON serialization."""
+        try:
+            if summarization_result is None:
+                return {}
+            
+            # If it's a typed object with model_dump() method, use it
+            if hasattr(summarization_result, 'model_dump'):
+                return summarization_result.model_dump()
+            
+            # Otherwise, use the general serialization function
+            return prepare_for_json_serialization(summarization_result)
+        except Exception as e:
+            logger.warning(f"Failed to prepare summarization result for serialization: {e}")
             return {}
 
     def _ensure_json_serializable(
@@ -134,7 +174,7 @@ class ResultCompiler:
             "nickname": context.screenshot_data.post_content.author if context.screenshot_data else "unknown",
             "extracted_text": context.screenshot_data.post_content.text_body if context.screenshot_data else "",
             "primary_topic": context.primary_topic,
-            "identified_claims": [fact.description for fact in context.fact_hierarchy.supporting_facts] if context.fact_hierarchy else [],
+            "identified_claims": context.claims,
             "verdict": context.verdict_result.verdict if context.verdict_result else "unknown",
             "justification": context.verdict_result.reasoning if context.verdict_result else "",
             "confidence_score": context.verdict_result.confidence_score if context.verdict_result else 0.0,

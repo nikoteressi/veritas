@@ -2,7 +2,6 @@
 Service for parsing screenshots using a vision model.
 """
 import logging
-import re
 
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -29,12 +28,11 @@ class ScreenshotParserService:
                 text=prompt_value.to_string(),
                 image_bytes=image_bytes
             )
-            clean_response = re.sub(r"```json\n|```", "", response).strip()
 
             try:
                 # Parse the cleaned JSON string into a ScreenshotData object
-                parsed_data = output_parser.parse(clean_response)
-                logger.info(f"Parsed data: {parsed_data}")
+                parsed_data = output_parser.parse(response)
+                logger.info(f"PARSED IMAGE DATA: {parsed_data}")
 
                 logger.info("Successfully parsed screenshot data.")
                 return parsed_data
