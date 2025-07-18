@@ -1,48 +1,155 @@
-# This file is intentionally minimal to override the default engine settings.
-# All other settings will use the SearXNG defaults.
+# SearXNG settings for Veritas fact-checking system
+# Updated to match SearXNG 2025.7.18+ configuration standards
+# This file uses default settings with selective overrides for fact-checking optimization
 
 use_default_settings: true
 
+general:
+  # Debug mode disabled for production
+  debug: false
+  # Instance name for identification
+  instance_name: "Veritas SearXNG"
+  # Privacy and contact settings
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  # Enable metrics for monitoring
+  enable_metrics: true
+  open_metrics: ''
+
+search:
+  # Safe search: 0=None, 1=Moderate, 2=Strict
+  safe_search: 0
+  # Autocomplete disabled for privacy
+  autocomplete: ""
+  autocomplete_min: 4
+  # Favicon resolver disabled for privacy
+  favicon_resolver: ""
+  # Auto-detect language from browser
+  default_lang: "auto"
+  # Engine error handling (updated timeouts)
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+  suspended_times:
+    SearxEngineAccessDenied: 86400
+    SearxEngineCaptcha: 86400
+    SearxEngineTooManyRequests: 3600
+    cf_SearxEngineCaptcha: 1296000
+    cf_SearxEngineAccessDenied: 86400
+    recaptcha_SearxEngineCaptcha: 604800
+  # Supported output formats
+  formats:
+    - html
+    - json
+
 server:
-  # We bind to all interfaces so the service is accessible from other containers.
+  # Container-friendly binding
   bind_address: "0.0.0.0"
-  # The default port for SearXNG is 8080.
   port: 8080
+  # Security settings
   secret_key: "a_very_secret_and_secure_key_that_should_be_changed"
   limiter: false
+  public_instance: false
+  # Image proxy disabled for performance
+  image_proxy: false
+  # HTTP protocol version
+  http_protocol_version: "1.0"
+  # Use POST for better security
+  method: "POST"
+  # Security headers
+  default_http_headers:
+    X-Content-Type-Options: nosniff
+    X-Download-Options: noopen
+    X-Robots-Tag: noindex, nofollow
+    Referrer-Policy: no-referrer
 
-# By default, many useful engines are disabled. This configuration enables
-# a curated list of reliable search engines for fact-checking.
+# Valkey/Redis configuration (disabled for simplicity)
+valkey:
+  url: false
+
+ui:
+  # UI customization for fact-checking workflow
+  query_in_title: false
+  infinite_scroll: false
+  default_theme: simple
+  center_alignment: false
+  default_locale: ""
+  theme_args:
+    simple_style: auto
+  search_on_category_select: true
+  hotkeys: default
+  url_formatting: pretty
+
+# Outgoing request configuration
+outgoing:
+  # Timeout settings optimized for fact-checking
+  request_timeout: 3.0
+  useragent_suffix: ""
+  pool_connections: 100
+  pool_maxsize: 20
+  # Enable HTTP/2 for better performance
+  enable_http2: true
+
+# Plugin configuration
+plugins:
+  searx.plugins.calculator.SXNGPlugin:
+    active: true
+  searx.plugins.hash_plugin.SXNGPlugin:
+    active: true
+  searx.plugins.self_info.SXNGPlugin:
+    active: true
+  searx.plugins.unit_converter.SXNGPlugin:
+    active: true
+  searx.plugins.ahmia_filter.SXNGPlugin:
+    active: true
+  searx.plugins.hostnames.SXNGPlugin:
+    active: true
+  searx.plugins.oa_doi_rewrite.SXNGPlugin:
+    active: false
+  searx.plugins.tor_check.SXNGPlugin:
+    active: false
+  searx.plugins.tracker_url_remover.SXNGPlugin:
+    active: true
+
+# Curated search engines for fact-checking and verification
 engines:
   - name: google
     engine: google
     shortcut: go
-    categories: [general, web]
+    categories: [general]
     disabled: false
+    # Use mobile UI for better reliability
+    use_mobile_ui: false
 
   - name: bing
     engine: bing
     shortcut: bi
-    categories: [general, web]
-    disabled: false
+    categories: [general]
+    disabled: true
 
   - name: duckduckgo
     engine: duckduckgo
     shortcut: ddg
-    categories: [general, web]
-    disabled: false
+    categories: [general]
+    disabled: true
     
   - name: brave
     engine: brave
     shortcut: br
-    categories: [general, web]
-    disabled: false
+    categories: [general]
+    disabled: true
+
+  - name: startpage
+    engine: startpage
+    shortcut: sp
+    categories: [general]
+    disabled: true
 
   - name: bing news
     engine: bing_news
     shortcut: bin
     categories: [news]
-    disabled: false
+    disabled: true
     
   - name: google news
     engine: google_news
@@ -53,18 +160,37 @@ engines:
   - name: wikipedia
     engine: wikipedia
     shortcut: wp
-    display_type: ["infobox"]
     categories: [general]
     disabled: false
 
   - name: yandex
     engine: yandex
     shortcut: ya
-    categories: [general, web]
-    disabled: false
+    categories: [general]
+    disabled: true
 
-search:
-  default_doi_resolver: "https://doi.org"
-  formats:
-    - html
-    - json
+  # Academic and scholarly sources for fact-checking
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    categories: [science]
+    disabled: true
+
+  - name: pubmed
+    engine: pubmed
+    shortcut: pub
+    categories: [science]
+    disabled: true
+
+  # News verification sources
+  - name: reuters
+    engine: reuters
+    shortcut: reu
+    categories: [news]
+    disabled: true
+
+  - name: ap news
+    engine: ap_news
+    shortcut: ap
+    categories: [news]
+    disabled: true
