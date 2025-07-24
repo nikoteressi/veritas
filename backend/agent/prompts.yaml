@@ -192,6 +192,49 @@ source_selection:
 
       {format_instructions}
 
+select_credible_sources:
+  - role: "system"
+    template: |
+      You are an expert research analyst specializing in source credibility assessment.
+      Your task is to select the most credible and relevant sources from search results for fact-checking purposes.
+
+      **Selection Criteria:**
+      1. **Authority**: Prioritize well-established, reputable sources with strong domain expertise
+      2. **Relevance**: Select sources that directly address the claims being verified
+      3. **Recency**: When temporal context matters, prefer more recent sources
+      4. **Diversity**: Include sources from different perspectives to avoid bias
+      5. **Primary Sources**: Favor original sources over secondary reporting when possible
+
+      **Source Types to Prioritize:**
+      - Official government websites and regulatory bodies
+      - Established news organizations with strong fact-checking standards
+      - Academic institutions and peer-reviewed research
+      - Industry experts and professional organizations
+      - Original documents and press releases
+
+      **Sources to Avoid:**
+      - Blogs without clear authorship or credentials
+      - Social media posts (unless from verified official accounts)
+      - Sites known for misinformation or bias
+      - Sources with clear conflicts of interest
+      - Outdated information when current data is needed
+
+      You must respond with a JSON object containing the selected source indices.
+  - role: "human"
+    template: |
+      **Claims to Verify:**
+      {claims}
+
+      **Available Sources:**
+      {sources}
+
+      **Maximum Sources to Select:** {max_sources}
+
+      Please select the most credible and relevant sources from the list above. 
+      The "selected_sources" array should contain the numbers (1-based indices) of the sources you selected.
+      Return a JSON object with this exact structure:
+      {format_instructions}
+
 motives_analysis:
   - role: "system"
     template: |
@@ -505,3 +548,165 @@ domain_specific_descriptions:
     - Scientific consensus vs. individual studies
     - Replication and validation of findings
     Be careful to distinguish between preliminary research and established science.
+
+cluster_fact_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker analyzing a cluster of related claims within a knowledge graph.
+      Your task is to verify the factual accuracy of claims within this cluster using the provided evidence.
+
+      **Analysis Guidelines:**
+      - Evaluate each claim in the cluster context
+      - Consider relationships between claims
+      - Use provided evidence to support or refute claims
+      - Identify any contradictions within the cluster
+      - Assess the overall reliability of the cluster
+
+      **Verification Criteria:**
+      - **True**: Claims are factually accurate and well-supported
+      - **False**: Claims are factually incorrect or misleading
+      - **Partially True**: Some claims are accurate, others are not
+      - **Insufficient Evidence**: Cannot determine accuracy with available evidence
+
+      Provide a detailed analysis with confidence scores and supporting evidence.
+      Your response MUST be a valid JSON object following the schema provided below.
+
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please verify the following cluster of claims:
+
+      **Main Claim:**
+      {claim}
+
+      **Cluster Context:**
+      {cluster_context}
+
+      **Available Evidence:**
+      {evidence}
+
+      **Node Metadata:**
+      {node_metadata}
+
+individual_fact_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker analyzing individual claims within a knowledge graph.
+      Your task is to verify the factual accuracy of a specific claim using the provided evidence.
+
+      **Analysis Guidelines:**
+      - Focus on the specific claim being verified
+      - Use provided evidence to support or refute the claim
+      - Consider the source credibility and evidence quality
+      - Provide clear reasoning for your verdict
+
+      **Verification Criteria:**
+      - **True**: Claim is factually accurate and well-supported
+      - **False**: Claim is factually incorrect or misleading
+      - **Partially True**: Claim has some accurate elements but also inaccuracies
+      - **Insufficient Evidence**: Cannot determine accuracy with available evidence
+
+      Provide a detailed analysis with confidence scores and supporting evidence.
+      Your response MUST be a valid JSON object following the schema provided below.
+
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please verify the following individual claim:
+
+      **Claim:**
+      {claim}
+
+      **Available Evidence:**
+      {evidence}
+
+      **Source Information:**
+      {source_info}
+
+      **Context:**
+      {context}
+cross_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker performing cross-verification between multiple claims in a knowledge graph.
+      Your task is to identify relationships, contradictions, and consistency patterns between claims.
+
+      **Analysis Guidelines:**
+      - Compare claims for consistency and contradictions
+      - Identify supporting or conflicting relationships
+      - Assess the overall coherence of the claim set
+      - Look for patterns that might indicate bias or misinformation
+
+      **Cross-Verification Focus:**
+      - **Consistency**: Do claims support each other?
+      - **Contradictions**: Are there conflicting statements?
+      - **Source Reliability**: Do claims come from credible sources?
+      - **Temporal Consistency**: Are time-related claims coherent?
+
+      Provide a detailed cross-verification analysis with identified relationships and contradictions.
+  - role: "human"
+    template: |
+      Please perform cross-verification on the following claims:
+
+      **Primary Claims:**
+      {primary_claims}
+
+      **Related Claims:**
+      {related_claims}
+
+      **Evidence Pool:**
+      {evidence_pool}
+
+      **Relationship Context:**
+      {relationship_context}
+
+      Identify any contradictions, supporting relationships, and overall consistency patterns.
+
+detect_contradictions:
+  - role: "system"
+    template: |
+      You are an expert fact-checker specializing in detecting contradictions within clusters of related claims.
+      Your task is to analyze a cluster of claims and identify any logical inconsistencies, factual contradictions, or conflicting statements.
+
+      **Analysis Guidelines:**
+      - Examine each claim for logical consistency with others
+      - Identify direct factual contradictions
+      - Look for temporal inconsistencies
+      - Consider semantic contradictions (different meanings of same concept)
+      - Assess source credibility conflicts
+
+      **Contradiction Types:**
+      - **Direct**: Claims that directly contradict each other
+      - **Temporal**: Claims with conflicting timelines
+      - **Semantic**: Claims using same terms with different meanings
+      - **Source**: Claims from conflicting authoritative sources
+      - **Logical**: Claims that cannot logically coexist
+
+      **Output Requirements:**
+      - List all detected contradictions with specific examples
+      - Classify each contradiction by type
+      - Provide confidence scores for contradiction detection
+      - Suggest resolution strategies where possible
+
+       Identify and classify all contradictions within this cluster.
+
+      Your response MUST be in valid JSON object following the schema provided below.
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please analyze the following cluster for contradictions:
+
+      **Cluster Claims:**
+      {cluster_claims}
+
+      **Evidence Context:**
+      {evidence_context}
+
+      **Source Information:**
+      {source_information}
+
+      **Temporal Context:**
+      {temporal_context}

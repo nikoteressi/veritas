@@ -1,15 +1,24 @@
 """
 Verification endpoints for post fact-checking.
 """
-import logging
-from typing import Dict, Any
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
+import logging
+from typing import Any
+
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.exceptions import ImageProcessingError, ValidationError
 from app.schemas import VerificationResponse
-from app.exceptions import ValidationError, ImageProcessingError
 from app.services.verification_service import verification_service
 
 logger = logging.getLogger(__name__)
@@ -23,8 +32,8 @@ async def verify_post(
     file: UploadFile = File(...),
     prompt: str = Form(...),
     session_id: str = Form(None),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
     """
     Verify a social media post for factual accuracy.
 
@@ -49,7 +58,7 @@ async def verify_post(
             filename=file.filename,
             prompt=prompt,
             session_id=session_id,
-            db=db
+            db=db,
         )
 
         return result
@@ -61,26 +70,29 @@ async def verify_post(
         raise
     except Exception as e:
         logger.error(f"Unexpected error in verify_post: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An unexpected error occurred during verification")
+        raise HTTPException(
+            status_code=500, detail="An unexpected error occurred during verification"
+        )
 
 
-@router.get("/verification-status/{verification_id}", response_model=VerificationResponse)
+@router.get(
+    "/verification-status/{verification_id}", response_model=VerificationResponse
+)
 async def get_verification_status(
-    verification_id: str,
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
+    verification_id: str, db: AsyncSession = Depends(get_db)
+) -> dict[str, Any]:
     """
     Get the status and result of a verification request.
-    
+
     Args:
         verification_id: ID of the verification request
         db: Database session
-    
+
     Returns:
         Status information and verification result if completed
     """
     result = await verification_service.get_verification_status(verification_id, db)
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Verification result not found")
 

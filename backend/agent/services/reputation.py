@@ -1,10 +1,12 @@
 """
 Service for managing user reputation.
 """
+
 import logging
-from typing import Any, List
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud import UserCRUD
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ class ReputationService:
         """Update a user's reputation based on a new verdict."""
         return await UserCRUD.update_user_reputation(db, nickname, verdict)
 
-    def generate_warnings(self, user_reputation: Any) -> List[str]:
+    def generate_warnings(self, user_reputation: Any) -> list[str]:
         """Generate warnings based on the user's reputation."""
         warnings = []
         if user_reputation.warning_issued:
@@ -34,5 +36,6 @@ class ReputationService:
             )
         return warnings
 
+
 # Singleton instance
-reputation_service = ReputationService() 
+reputation_service = ReputationService()

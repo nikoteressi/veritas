@@ -1,6 +1,7 @@
 """
 Service for parsing screenshots using a vision model.
 """
+
 import logging
 
 from langchain_core.output_parsers import PydanticOutputParser
@@ -22,11 +23,12 @@ class ScreenshotParserService:
 
         try:
             prompt_template = prompt_manager.get_prompt_template("screenshot_parsing")
-            prompt = prompt_template.partial(format_instructions=output_parser.get_format_instructions())
+            prompt = prompt_template.partial(
+                format_instructions=output_parser.get_format_instructions()
+            )
             prompt_value = prompt.format_prompt()
             response = await llm_manager.invoke_multimodal(
-                text=prompt_value.to_string(),
-                image_bytes=image_bytes
+                text=prompt_value.to_string(), image_bytes=image_bytes
             )
 
             try:
@@ -37,13 +39,19 @@ class ScreenshotParserService:
                 logger.info("Successfully parsed screenshot data.")
                 return parsed_data
             except Exception as parse_error:
-                logger.error(f"Failed to parse JSON response: {parse_error}", exc_info=True)
+                logger.error(
+                    f"Failed to parse JSON response: {parse_error}", exc_info=True
+                )
                 logger.error(f"Invalid JSON string: {clean_response}")
-                raise ScreenshotParsingError(f"Failed to parse screenshot due to: {parse_error}") from parse_error
+                raise ScreenshotParsingError(
+                    f"Failed to parse screenshot due to: {parse_error}"
+                ) from parse_error
 
         except Exception as e:
             logger.error(f"Error parsing screenshot: {e}", exc_info=True)
-            raise ScreenshotParsingError(f"An unexpected error occurred during screenshot parsing: {e}") from e
+            raise ScreenshotParsingError(
+                f"An unexpected error occurred during screenshot parsing: {e}"
+            ) from e
 
 
 # Singleton instance

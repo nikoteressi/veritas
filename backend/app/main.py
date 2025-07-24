@@ -1,32 +1,35 @@
 """
-Main FastAPI application for Veritas.
+Main FastAPI application for Veritas with unified basic/enhanced support.
 """
-# --- Telemetry Patch ---
-# This is a workaround for a bug in chromadb 0.5.3. It prevents telemetry errors
-# by replacing the problematic module with a mock before it's ever imported.
-from unittest.mock import patch, MagicMock
-patch.dict('sys.modules', {'chromadb.telemetry.product.posthog': MagicMock()}).start()
-# --- End Telemetry Patch ---
 
 import logging.config
-import os
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 from unittest.mock import MagicMock, patch
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from app.config import settings
-from app.database import Base, async_engine, create_db_and_tables
-from app.error_handlers import EXCEPTION_HANDLERS, setup_error_handlers
-from agent.vector_store import vector_store
-from app.redis_client import redis_manager
-from app.routers import verification, reputation
-from app.handlers.websocket_handler import websocket_handler
 from agent.services.agent_manager import create_agent_manager
+from app.config import settings
+from app.database import create_db_and_tables
+from app.error_handlers import EXCEPTION_HANDLERS
+from app.handlers.websocket_handler import websocket_handler
+from app.matplotlib_config import configure_matplotlib
+from app.redis_client import redis_manager
+from app.routers import reputation, verification
+from app.services.verification_service import verification_service
+
+# --- Telemetry Patch ---
+# This is a workaround for a bug in chromadb 0.5.3. It prevents telemetry errors
+# by replacing the problematic module with a mock before it's ever imported.
+patch.dict("sys.modules", {"chromadb.telemetry.product.posthog": MagicMock()}).start()
+# --- End Telemetry Patch ---
+
+# --- Matplotlib Configuration ---
+# Configure matplotlib early to avoid font warnings and improve startup performance
+configure_matplotlib()
+# --- End Matplotlib Configuration ---
 
 
 # Configure logging
@@ -38,18 +41,18 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Veritas application...")
-    
+
     # Initialize Redis
     await redis_manager.init_redis()
     logger.info("Redis connection pool initialized.")
-    
+
     # Initialize database
     create_db_and_tables()
-    
+
     # Initialize vector store (with lazy loading)
     # The actual initialization will happen on the first request
     logger.info("Vector store scheduled for lazy initialization.")
-    
+
     # Initialize AgentManager
     try:
         agent_manager = await create_agent_manager()
@@ -58,16 +61,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to initialize AgentManager: {e}")
         raise
-    
+
     yield
-    
+
     logger.info("Shutting down Veritas application...")
+    
+    # Close verification service and all its resources
+    try:
+        await verification_service.close()
+        logger.info("Verification service closed successfully.")
+    except Exception as e:
+        logger.error(f"Error closing verification service: {e}")
+    
     # Disconnect from Redis
     await redis_manager.close()
     logger.info("Redis connection pool closed.")
-    
+
     # Clean up the telemetry patch
-    if 'posthog_patcher' in globals():
+    if "posthog_patcher" in globals():
         posthog_patcher.stop()
         logger.info("Removed ChromaDB telemetry monkey-patch.")
 
@@ -77,7 +88,7 @@ app = FastAPI(
     title="Veritas API",
     description="API for Veritas fact-checking agent",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -122,5 +133,5 @@ if __name__ == "__main__":
         host=settings.app_host,
         port=settings.app_port,
         reload=settings.debug,
-        log_level=settings.log_level.lower()
+        log_level=settings.log_level.lower(),
     )

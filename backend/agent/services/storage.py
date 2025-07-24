@@ -1,20 +1,17 @@
 """
 Service for handling data persistence.
 """
-import logging
-import json
+
 import hashlib
-from typing import Dict, Any
+import json
+import logging
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from agent.models import ImageAnalysisResult, FactCheckResult, VerdictResult
-from app.crud import VerificationResultCRUD
-from app.config import settings
 from agent.vector_store import vector_store
-from app.exceptions import StorageError
-from app.schemas import UserReputation
+from app.config import settings
+from app.crud import VerificationResultCRUD
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +29,17 @@ class StorageService:
         user_nickname: str,
         image_bytes: bytes,
         user_prompt: str,
-        extracted_info: Dict[str, Any],
-        verdict_result: Dict[str, Any],
-        reputation_data: Dict[str, Any]
+        extracted_info: dict[str, Any],
+        verdict_result: dict[str, Any],
+        reputation_data: dict[str, Any],
     ) -> "VerificationResult":
         """Saves the complete verification result to the database."""
-        
+
         # Extract claims from the new structure
         claims = extracted_info.get("claims", [])
         if not claims:
-            # Fallback: try to get claims from other possible locations
-            claims = extracted_info.get("identified_claims", [])
-        
+            raise ValueError("No claims found in extracted information")
+
         result_data = {
             "user_nickname": user_nickname,
             "verdict": verdict_result.get("verdict"),
@@ -57,18 +53,14 @@ class StorageService:
             "processing_time_seconds": extracted_info.get("processing_time_seconds", 0),
             "vision_model_used": settings.vision_model_name,
             "reasoning_model_used": settings.reasoning_model_name,
-            "tools_used": json.dumps(["SearxNGSearchTool"])
+            "tools_used": json.dumps(["SearxNGSearchTool"]),
         }
-        
+
         return await VerificationResultCRUD.create_verification_result(
-            db=db,
-            result_data=result_data
+            db=db, result_data=result_data
         )
 
-    async def store_in_vector_db(
-        self,
-        verification_data: Dict[str, Any]
-    ) -> None:
+    async def store_in_vector_db(self, verification_data: dict[str, Any]) -> None:
         """
         Store the verification result in the vector database by calling
         the dedicated method in the vector_store object.
@@ -76,10 +68,11 @@ class StorageService:
         try:
             await vector_store.store_verification_result(verification_data)
             logger.info("Stored verification result in vector database.")
-            
+
         except Exception as e:
             logger.error(f"Failed to store in vector DB: {e}", exc_info=True)
             # This operation should not fail the entire request, so we just log the error.
+
 
 # Singleton instance
 storage_service = StorageService()

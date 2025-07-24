@@ -1,8 +1,11 @@
 """
 Configuration settings for the Veritas application.
 """
+
+from __future__ import annotations
+
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -10,6 +13,7 @@ from pydantic_settings import BaseSettings
 
 class VerificationSteps(Enum):
     """Enumeration of verification pipeline steps."""
+
     VALIDATION = "validation"
     SCREENSHOT_PARSING = "screenshot_parsing"
     TEMPORAL_ANALYSIS = "temporal_analysis"
@@ -25,6 +29,7 @@ class VerificationSteps(Enum):
 
 class VerdictTypes(Enum):
     """Enumeration of possible verdict types."""
+
     TRUE = "true"
     PARTIALLY_TRUE = "partially_true"
     FALSE = "false"
@@ -44,15 +49,27 @@ class Settings(BaseSettings):
 
     # Ollama settings
     ollama_base_url: str = Field(
-        default="http://localhost:11434", env="OLLAMA_BASE_URL")
+        default="http://localhost:11434", env="OLLAMA_BASE_URL"
+    )
     vision_model_name: str = Field(
         default="llava:latest", env="VISION_MODEL_NAME")
     reasoning_model_name: str = Field(
         default="qwen:7b", env="REASONING_MODEL_NAME")
     embedding_model_name: str = Field(
-        default="nomic-embed-text",
-        env="EMBEDDING_MODEL_NAME"
+        default="nomic-embed-text", env="EMBEDDING_MODEL_NAME"
     )
+
+    # Web scraping settings
+    use_remote_llm_for_extraction: bool = Field(
+        default=True, env="USE_REMOTE_LLM_FOR_EXTRACTION"
+    )
+    scraping_extraction_model: str = Field(
+        default="cyberuser42/DeepSeek-R1-Distill-Llama-8B:latest", 
+        env="SCRAPING_EXTRACTION_MODEL"
+    )
+    page_timeout: int = Field(default=60000, env="PAGE_TIMEOUT")  # 60 seconds in ms
+    delay_before_return_html: int = Field(default=5000, env="DELAY_BEFORE_RETURN_HTML")  # 5 seconds in ms
+    
     # SearxNG settings
     searxng_url: str = Field(
         default="http://localhost:8888", env="SEARXNG_URL")
@@ -68,28 +85,39 @@ class Settings(BaseSettings):
     # Security settings
     secret_key: str = Field(default="dev-secret-key", env="SECRET_KEY")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:5173",
-        env="CORS_ORIGINS"
+        default="http://localhost:3000,http://localhost:5173", env="CORS_ORIGINS"
     )
 
     # ChromaDB settings
     chroma_persist_directory: str = Field(
-        default="./data/chroma_db",
-        env="CHROMA_PERSIST_DIRECTORY"
+        default="./data/chroma_db", env="CHROMA_PERSIST_DIRECTORY"
     )
+    chroma_host: str = Field(default="localhost", env="CHROMA_HOST")
+    chroma_port: int = Field(default=8002, env="CHROMA_PORT")
 
     # Redis configuration
     redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    redis_host: str = Field(default="localhost", env="REDIS_HOST")
+    redis_port: int = Field(default=6379, env="REDIS_PORT")
+    redis_db: int = Field(default=0, env="REDIS_DB")
+
+    # Neo4j configuration
+    neo4j_uri: str = Field(default="bolt://localhost:7687", env="NEO4J_URI")
+    neo4j_user: str = Field(default="neo4j", env="NEO4J_USER")
+    neo4j_password: str = Field(
+        default="veritas_password", env="NEO4J_PASSWORD")
+    neo4j_database: str = Field(default="neo4j", env="NEO4J_DATABASE")
 
     # Validation settings
     max_file_size: int = Field(
-        default=10 * 1024 * 1024, env="VERITAS_MAX_FILE_SIZE")  # 10MB
+        default=10 * 1024 * 1024, env="VERITAS_MAX_FILE_SIZE"
+    )  # 10MB
     min_file_size: int = Field(
         default=100, env="VERITAS_MIN_FILE_SIZE")  # 100 bytes
-    allowed_image_types: List[str] = Field(
+    allowed_image_types: list[str] = Field(
         default=["image/jpeg", "image/jpg",
                  "image/png", "image/gif", "image/webp"],
-        env="VERITAS_ALLOWED_IMAGE_TYPES"
+        env="VERITAS_ALLOWED_IMAGE_TYPES",
     )
     min_prompt_length: int = Field(default=10, env="VERITAS_MIN_PROMPT_LENGTH")
     max_prompt_length: int = Field(
@@ -97,21 +125,27 @@ class Settings(BaseSettings):
 
     # Processing settings
     max_concurrent_requests: int = Field(
-        default=10, env="VERITAS_MAX_CONCURRENT_REQUESTS")
+        default=10, env="VERITAS_MAX_CONCURRENT_REQUESTS"
+    )
     request_timeout_seconds: int = Field(
-        default=300, env="VERITAS_REQUEST_TIMEOUT")  # 5 minutes
+        default=300, env="VERITAS_REQUEST_TIMEOUT"
+    )  # 5 minutes
     fact_checking_timeout_seconds: int = Field(
-        default=120, env="VERITAS_FACT_CHECK_TIMEOUT")  # 2 minutes
+        default=120, env="VERITAS_FACT_CHECK_TIMEOUT"
+    )  # 2 minutes
     max_search_queries: int = Field(
         default=5, env="VERITAS_MAX_SEARCH_QUERIES")
     max_claims_per_request: int = Field(
-        default=10, env="VERITAS_MAX_CLAIMS_PER_REQUEST")
+        default=10, env="VERITAS_MAX_CLAIMS_PER_REQUEST"
+    )
 
     # Vector store settings
     vector_store_collection_name: str = Field(
-        default="veritas_verification_results", env="VERITAS_VECTOR_COLLECTION")
+        default="veritas_verification_results", env="VERITAS_VECTOR_COLLECTION"
+    )
     vector_store_embedding_dimension: int = Field(
-        default=1536, env="VERITAS_EMBEDDING_DIMENSION")
+        default=1536, env="VERITAS_EMBEDDING_DIMENSION"
+    )
 
     # LLM settings
     llm_temperature: float = Field(default=0.1, env="VERITAS_LLM_TEMPERATURE")
@@ -119,40 +153,53 @@ class Settings(BaseSettings):
 
     # Reputation system settings
     initial_reputation_score: float = Field(
-        default=0.0, env="VERITAS_INITIAL_REPUTATION")
+        default=0.0, env="VERITAS_INITIAL_REPUTATION"
+    )
     warning_threshold: float = Field(
         default=-20.0, env="VERITAS_WARNING_THRESHOLD")
     notification_threshold: float = Field(
-        default=-10.0, env="VERITAS_NOTIFICATION_THRESHOLD")
+        default=-10.0, env="VERITAS_NOTIFICATION_THRESHOLD"
+    )
 
     # Reputation score adjustments
     true_verdict_score: float = Field(
         default=1.0, env="VERITAS_TRUE_VERDICT_SCORE")
     partially_true_verdict_score: float = Field(
-        default=0.5, env="VERITAS_PARTIALLY_TRUE_VERDICT_SCORE")
+        default=0.5, env="VERITAS_PARTIALLY_TRUE_VERDICT_SCORE"
+    )
     false_verdict_score: float = Field(
         default=-2.0, env="VERITAS_FALSE_VERDICT_SCORE")
     ironic_verdict_score: float = Field(
-        default=-1.0, env="VERITAS_IRONIC_VERDICT_SCORE")
+        default=-1.0, env="VERITAS_IRONIC_VERDICT_SCORE"
+    )
 
     # Security settings
-    suspicious_patterns: List[str] = Field(
-        default=["javascript:", "<script",
-                 "eval(", "exec(", "import os", "subprocess", "__import__"],
-        env="VERITAS_SUSPICIOUS_PATTERNS"
+    suspicious_patterns: list[str] = Field(
+        default=[
+            "javascript:",
+            "<script",
+            "eval(",
+            "exec(",
+            "import os",
+            "subprocess",
+            "__import__",
+        ],
+        env="VERITAS_SUSPICIOUS_PATTERNS",
     )
     max_session_duration_minutes: int = Field(
-        default=60, env="VERITAS_MAX_SESSION_DURATION")
+        default=60, env="VERITAS_MAX_SESSION_DURATION"
+    )
     rate_limit_requests_per_minute: int = Field(
-        default=30, env="VERITAS_RATE_LIMIT_RPM")
+        default=30, env="VERITAS_RATE_LIMIT_RPM"
+    )
 
     @property
-    def cors_origins_list(self) -> List[str]:
+    def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""
         if isinstance(self.cors_origins, str):
             return [
                 origin.strip()
-                for origin in str(self.cors_origins).split(',')
+                for origin in str(self.cors_origins).split(",")
                 if origin.strip()
             ]
         return []
@@ -166,11 +213,11 @@ class Settings(BaseSettings):
         )
 
     # Configuration helper methods
-    def get_pipeline_steps(self) -> List[str]:
+    def get_pipeline_steps(self) -> list[str]:
         """Get the ordered list of pipeline steps."""
         return [step.value for step in VerificationSteps]
 
-    def get_verdict_types(self) -> List[str]:
+    def get_verdict_types(self) -> list[str]:
         """Get the list of possible verdict types."""
         return [verdict.value for verdict in VerdictTypes]
 
@@ -189,9 +236,9 @@ class Settings(BaseSettings):
             VerificationSteps.VERDICT_GENERATION.value: "Verdict Generation",
             VerificationSteps.MOTIVES_ANALYSIS.value: "Motives Analysis",
             VerificationSteps.REPUTATION_UPDATE.value: "Reputation Update",
-            VerificationSteps.RESULT_STORAGE.value: "Result Storage"
+            VerificationSteps.RESULT_STORAGE.value: "Result Storage",
         }
-        return display_names.get(step, step.replace('_', ' ').title())
+        return display_names.get(step, step.replace("_", " ").title())
 
     def get_progress_message(self, step: str) -> str:
         """Get progress message for a pipeline step."""
@@ -204,7 +251,7 @@ class Settings(BaseSettings):
             VerificationSteps.VERDICT_GENERATION.value: "Generating verdict...",
             VerificationSteps.MOTIVES_ANALYSIS.value: "Analyzing user motives...",
             VerificationSteps.REPUTATION_UPDATE.value: "Updating reputation...",
-            VerificationSteps.RESULT_STORAGE.value: "Saving results..."
+            VerificationSteps.RESULT_STORAGE.value: "Saving results...",
         }
         return progress_messages.get(step, f"Processing {step}...")
 
@@ -234,6 +281,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Configuration class for Pydantic settings behavior."""
+
         env_file = ".env"
         case_sensitive = False
 

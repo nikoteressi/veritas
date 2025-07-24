@@ -17,30 +17,35 @@ langchain-ollama
 langchain-core
 
 # Vector database
-chromadb==0.5.3
-onnxruntime>=1.14.1
+chromadb-client
 
 # HTTP requests and utilities
 requests
-python-dotenv
 pydantic
-pydantic-settings
-PyYAML
 
-# Development and testing
-pytest
-pytest-asyncio
+# Development
 httpx
-
-# Logging and monitoring
-structlog
-
-# New dependencies
-watchfiles
 
 # Redis dependency
 redis
 
-pillow
 
 crawl4ai
+nest_asyncio
+
+# Graph-based verification dependencies
+numpy<2.0.0
+neo4j
+
+# ML dependencies
+torch-geometric
+spacy
+
+# Bayesian and statistical analysis
+scipy
+pymc
+arviz[all]
+scikit-learn
+
+# Time series and temporal analysis
+python-dateutil

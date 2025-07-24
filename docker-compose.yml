@@ -61,6 +61,28 @@ services:
       timeout: 10s
       retries: 3
 
+  # Neo4j Graph Database
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: veritas-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/veritas_password
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=2G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "veritas_password", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   # Backend API (Development)
   backend:
     build:
@@ -82,6 +104,8 @@ services:
       searxng:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -110,3 +134,5 @@ volumes:
   postgres_data:
   chroma_data:
   redis_data:
+  neo4j_data:
+  neo4j_logs:

@@ -1,15 +1,15 @@
 """
 Refactored temporal analysis module for detecting temporal mismatches in social media posts.
 """
+
 import logging
 from datetime import datetime
 
 from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
-from agent.models.verification_context import VerificationContext
 from agent.models.temporal_analysis import TemporalAnalysisResult
-
+from agent.models.verification_context import VerificationContext
 from app.exceptions import TemporalAnalysisError
 
 logger = logging.getLogger(__name__)
@@ -27,18 +27,20 @@ class TemporalAnalyzer(BaseAnalyzer):
         """Analyzes temporal context using the reasoning LLM."""
         if not context.screenshot_data:
             raise TemporalAnalysisError(
-                "Screenshot data not found in context for temporal analysis.")
+                "Screenshot data not found in context for temporal analysis."
+            )
 
-        output_parser = PydanticOutputParser(
-            pydantic_object=TemporalAnalysisResult)
+        output_parser = PydanticOutputParser(pydantic_object=TemporalAnalysisResult)
 
         try:
             prompt_template = self.prompt_manager.get_prompt_template(
-                "temporal_analysis")
+                "temporal_analysis"
+            )
             prompt = await prompt_template.aformat(
                 current_date=datetime.now(),
                 post_content=context.screenshot_data,
-                format_instructions=output_parser.get_format_instructions())
+                format_instructions=output_parser.get_format_instructions(),
+            )
 
             logger.info("TEMPORAL ANALYSIS PROMPT: %s", prompt)
 
@@ -48,13 +50,16 @@ class TemporalAnalyzer(BaseAnalyzer):
 
             if not isinstance(parsed_response, TemporalAnalysisResult):
                 raise TemporalAnalysisError(
-                    "Failed to parse temporal analysis from LLM response.")
+                    "Failed to parse temporal analysis from LLM response."
+                )
 
             logger.info("Successfully performed LLM-based temporal analysis.")
             return parsed_response
 
         except Exception as e:
             logger.error(
-                "Error during LLM-based temporal analysis: %s", e, exc_info=True)
+                "Error during LLM-based temporal analysis: %s", e, exc_info=True
+            )
             raise TemporalAnalysisError(
-                f"An unexpected error occurred during temporal analysis: {e}") from e
+                f"An unexpected error occurred during temporal analysis: {e}"
+            ) from e

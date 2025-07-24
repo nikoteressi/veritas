@@ -1,12 +1,12 @@
 """
 JSON utilities for handling datetime serialization and other custom types.
 """
+
 import json
 import logging
-import re
-from datetime import datetime, date, time
+from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Any, Optional, Dict
+from typing import Any
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
@@ -17,14 +17,14 @@ class DateTimeJSONEncoder(json.JSONEncoder):
     Custom JSON encoder that handles datetime objects and other common types
     that are not natively JSON serializable.
     """
-    
+
     def default(self, obj: Any) -> Any:
         """
         Convert non-serializable objects to JSON-serializable format.
-        
+
         Args:
             obj: Object to serialize
-            
+
         Returns:
             JSON-serializable representation of the object
         """
@@ -38,7 +38,7 @@ class DateTimeJSONEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, UUID):
             return str(obj)
-        elif hasattr(obj, '__dict__'):
+        elif hasattr(obj, "__dict__"):
             # Handle custom objects by converting to dict
             return obj.__dict__
         else:
@@ -49,29 +49,29 @@ class DateTimeJSONEncoder(json.JSONEncoder):
 def json_dumps(obj: Any, **kwargs) -> str:
     """
     Serialize an object to JSON string with support for custom types.
-    
+
     Args:
         obj: Object to serialize
         **kwargs: Additional arguments to pass to json.dumps
-        
+
     Returns:
         JSON string representation
     """
     # Use our custom encoder by default
-    if 'cls' not in kwargs:
-        kwargs['cls'] = DateTimeJSONEncoder
-    
+    if "cls" not in kwargs:
+        kwargs["cls"] = DateTimeJSONEncoder
+
     return json.dumps(obj, **kwargs)
 
 
 def json_loads(json_str: str, **kwargs) -> Any:
     """
     Deserialize a JSON string to Python object.
-    
+
     Args:
         json_str: JSON string to deserialize
         **kwargs: Additional arguments to pass to json.loads
-        
+
     Returns:
         Deserialized Python object
     """
@@ -89,14 +89,18 @@ def prepare_for_json_serialization(obj: Any) -> Any:
     Returns:
         Object with all non-serializable types converted
     """
-    if hasattr(obj, '__dict__'):
+    if hasattr(obj, "__dict__"):
         # Handle SQLAlchemy models and other custom objects
-        d = {key: prepare_for_json_serialization(value)
-             for key, value in obj.__dict__.items()
-             if not key.startswith('_')}
+        d = {
+            key: prepare_for_json_serialization(value)
+            for key, value in obj.__dict__.items()
+            if not key.startswith("_")
+        }
         return d
     if isinstance(obj, dict):
-        return {key: prepare_for_json_serialization(value) for key, value in obj.items()}
+        return {
+            key: prepare_for_json_serialization(value) for key, value in obj.items()
+        }
     elif isinstance(obj, list):
         return [prepare_for_json_serialization(item) for item in obj]
     elif isinstance(obj, tuple):
@@ -118,10 +122,10 @@ def prepare_for_json_serialization(obj: Any) -> Any:
 def create_serializable_dict(data: dict) -> dict:
     """
     Create a dictionary that is guaranteed to be JSON serializable.
-    
+
     Args:
         data: Dictionary to make serializable
-        
+
     Returns:
         JSON-serializable dictionary
     """

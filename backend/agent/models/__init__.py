@@ -1,21 +1,23 @@
 """
 This package defines the internal data schemas for the agent.
 """
+
+from __future__ import annotations
+
+from .extracted_info import ExtractedInfo
 from .fact import Fact, FactHierarchy
 from .image_analysis import ImageAnalysisResult
 from .internal import (
-    FactCheckSummary,
-    FactCheckResult,
-    VerdictResult,
-    FactCheckerResponse,
     ClaimResult,
+    FactCheckResult,
+    FactCheckSummary,
+    VerdictResult,
 )
-from .verification_context import VerificationContext
-from .temporal_analysis import TemporalAnalysisResult
 from .motives_analysis import MotivesAnalysisResult
-from .extracted_info import ExtractedInfo
-from .verification_result import VerificationResult, FactCheckResults, UserReputation
-from .websocket_models import ProgressEventPayload, WebSocketMessage
+from .temporal_analysis import TemporalAnalysisResult
+from .verification_context import VerificationContext
+from .verification_result import FactCheckResults, VerificationResult
+from .websocket_models import WebSocketMessage
 
 __all__ = [
     "Fact",
@@ -24,7 +26,6 @@ __all__ = [
     "FactCheckSummary",
     "FactCheckResult",
     "VerdictResult",
-    "FactCheckerResponse",
     "ClaimResult",
     "VerificationContext",
     "TemporalAnalysisResult",
@@ -32,7 +33,5 @@ __all__ = [
     "ExtractedInfo",
     "VerificationResult",
     "FactCheckResults",
-    "UserReputation",
-    "ProgressEventPayload",
     "WebSocketMessage",
 ]
