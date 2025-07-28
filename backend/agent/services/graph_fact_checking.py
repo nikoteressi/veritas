@@ -393,35 +393,22 @@ class GraphFactCheckingService:
             if not cluster:
                 continue
 
-            # Get detailed results for this cluster
-            detailed_cluster_result = None
-            for detailed_result in verification_results.get(
-                "detailed_cluster_results", []
-            ):
-                if (
-                    hasattr(detailed_result, "cluster_id")
-                    and detailed_result.cluster_id == cluster_id
-                ):
-                    detailed_cluster_result = detailed_result
-                    break
+            # Convert each fact in the cluster using the cluster_result directly
+            for (
+                node_id,
+                fact_result,
+            ) in cluster_result.get("individual_results", {}).items():
+                node = graph.nodes.get(node_id)
+                if node:
+                    claim_result = self._convert_fact_result_to_claim_result(
+                        fact_result, node, cluster_result
+                    )
+                    claim_results.append(claim_result)
 
-            if detailed_cluster_result:
-                # Convert each fact in the cluster
-                for (
-                    node_id,
-                    fact_result,
-                ) in detailed_cluster_result.individual_results.items():
-                    node = graph.nodes.get(node_id)
-                    if node:
-                        claim_result = self._convert_fact_result_to_claim_result(
-                            fact_result, node, detailed_cluster_result
-                        )
-                        claim_results.append(claim_result)
-
-                        # Collect sources and queries
-                        all_sources.update(claim_result.sources)
-                        # Add cluster-based search queries
-                        all_queries.add(f"cluster_query_{cluster_id}")
+                    # Collect sources and queries
+                    all_sources.update(claim_result.sources)
+                    # Add cluster-based search queries
+                    all_queries.add(f"cluster_query_{cluster_id}")
 
         # Process individual results
         for individual_result in verification_results.get("individual_results", []):
@@ -489,9 +476,10 @@ class GraphFactCheckingService:
 
         # Add cluster context to reasoning if available
         if cluster_result:
-            cluster_type = cluster_result.metadata.get(
-                "cluster_type", "unknown")
-            num_related = len(cluster_result.individual_results)
+            metadata = cluster_result.get("metadata", {})
+            cluster_type = metadata.get("cluster_type", "unknown")
+            individual_results = cluster_result.get("individual_results", {})
+            num_related = len(individual_results)
             cluster_msg = f" [Verified as part of {cluster_type} cluster"
             cluster_context = f"{cluster_msg} with {num_related} related facts]"
             reasoning += cluster_context

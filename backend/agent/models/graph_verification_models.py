@@ -6,7 +6,7 @@ These models ensure structured parsing of LLM outputs in graph-based fact checki
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Union
 
 from pydantic import BaseModel, Field
 
@@ -21,8 +21,8 @@ class VerificationResponse(BaseModel):
         description="Confidence score from 0.0 to 1.0", ge=0.0, le=1.0
     )
     reasoning: str = Field(description="Detailed reasoning for the verdict")
-    evidence_used: list[str] = Field(
-        default_factory=list, description="List of evidence pieces used in verification"
+    evidence_used: list[Union[str, dict]] = Field(
+        default_factory=list, description="List of evidence pieces used in verification (can be strings or objects with source/reasoning)"
     )
     supporting_evidence: int = Field(
         default=0, description="Number of supporting evidence pieces"
@@ -50,7 +50,8 @@ class Contradiction(BaseModel):
     verdict: str = Field(
         description="Verdict for the claim: TRUE, FALSE, PARTIALLY_TRUE, etc."
     )
-    reasoning: str = Field(description="Reasoning for the contradiction detection")
+    reasoning: str = Field(
+        description="Reasoning for the contradiction detection")
     type: str = Field(
         description="Type of contradiction: direct, indirect, temporal, etc."
     )
@@ -94,7 +95,8 @@ class ClusterVerificationResponse(BaseModel):
     overall_verdict: str = Field(
         description="Overall cluster verdict: TRUE, FALSE, MIXED, or INSUFFICIENT_EVIDENCE"
     )
-    confidence: float = Field(description="Overall confidence score", ge=0.0, le=1.0)
+    confidence: float = Field(
+        description="Overall confidence score", ge=0.0, le=1.0)
     individual_verdicts: dict[str, str] = Field(
         default_factory=dict, description="Individual verdicts for each fact in cluster"
     )
@@ -104,7 +106,8 @@ class ClusterVerificationResponse(BaseModel):
     supporting_relationships: list[dict[str, Any]] = Field(
         default_factory=list, description="List of supporting relationships found"
     )
-    reasoning: str = Field(description="Overall reasoning for cluster verification")
+    reasoning: str = Field(
+        description="Overall reasoning for cluster verification")
 
 
 class EvidenceAnalysisResponse(BaseModel):
@@ -119,7 +122,8 @@ class EvidenceAnalysisResponse(BaseModel):
     key_points: list[str] = Field(
         default_factory=list, description="Key points extracted from evidence"
     )
-    supports_claim: bool = Field(description="Whether evidence supports the claim")
+    supports_claim: bool = Field(
+        description="Whether evidence supports the claim")
     contradicts_claim: bool = Field(
         description="Whether evidence contradicts the claim"
     )

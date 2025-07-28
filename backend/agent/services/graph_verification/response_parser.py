@@ -87,12 +87,9 @@ class ResponseParser:
                 "reasoning": parsed_response.reasoning,
                 "evidence_used": parsed_response.evidence_used,
             }
-        except ValidationError as e:
-            logger.error("Pydantic validation error in verification response: %s", e)
-            # Fallback to manual parsing
-            return self._fallback_parse_verification(response)
-        except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
-            logger.error("Failed to parse verification response: %s", e)
+        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
+            logger.error(
+                "Pydantic validation error in verification response: %s", e)
             return {
                 "verdict": "ERROR",
                 "confidence": 0.0,
@@ -110,14 +107,9 @@ class ResponseParser:
                 idx - 1 if idx > 0 else idx for idx in parsed_response.selected_sources
             ]
         except ValidationError as e:
-            logger.error(
-                "Pydantic validation error in source selection response: %s", e
-            )
-            # Fallback to manual parsing
-            return self._fallback_parse_source_selection(response)
-        except Exception as e:
             logger.error("Failed to parse source selection response: %s", e)
-            raise RuntimeError(f"Failed to parse source selection response: {e}") from e
+            raise RuntimeError(
+                f"Failed to parse source selection response: {e}") from e
 
     def parse_contradiction_response(self, response: str) -> list[dict[str, Any]]:
         """Parse LLM response for contradiction detection using Pydantic."""
@@ -163,11 +155,7 @@ class ResponseParser:
 
             return contradictions
 
-        except ValidationError as e:
-            logger.error("Pydantic validation error in contradiction response: %s", e)
-            # Fallback to manual parsing
-            return self._fallback_parse_contradiction(response)
-        except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
+        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
             logger.error("Failed to parse contradiction response: %s", e)
             return []
 
@@ -190,13 +178,9 @@ class ResponseParser:
                 "cluster_analysis": parsed_response.cluster_analysis,
                 "contradictions_found": parsed_response.contradictions_found,
             }
-        except ValidationError as e:
+        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
             logger.error(
-                "Pydantic validation error in cluster verification response: %s", e
-            )
-            return self._fallback_parse_cluster_verification(response)
-        except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
-            logger.error("Failed to parse cluster verification response: %s", e)
+                "Failed to parse cluster verification response: %s", e)
             return {
                 "overall_verdict": "ERROR",
                 "confidence_score": 0.0,
@@ -204,84 +188,6 @@ class ResponseParser:
                 "cluster_analysis": f"Failed to parse response: {str(e)}",
                 "contradictions_found": [],
             }
-
-    def _fallback_parse_verification(self, response: str) -> dict[str, Any]:
-        """Fallback manual parsing for verification response."""
-        try:
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                parsed = json.loads(json_match.group())
-                return {
-                    "verdict": parsed.get("verdict", "UNKNOWN"),
-                    "confidence": float(parsed.get("confidence", 0.0)),
-                    "reasoning": parsed.get("reasoning", "No reasoning provided"),
-                    "evidence_used": parsed.get("evidence_used", []),
-                }
-        except (ValueError, TypeError, json.JSONDecodeError) as e:
-            logger.error("Fallback parsing failed: %s", e)
-
-        return {
-            "verdict": "ERROR",
-            "confidence": 0.0,
-            "reasoning": "Failed to parse response",
-            "evidence_used": [],
-        }
-
-    def _fallback_parse_source_selection(self, response: str) -> list[int]:
-        """Fallback manual parsing for source selection response."""
-        try:
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                if "selected_sources" in data:
-                    return [
-                        idx - 1
-                        for idx in data["selected_sources"]
-                        if isinstance(idx, int) and idx > 0
-                    ]
-        except (ValueError, TypeError, json.JSONDecodeError) as e:
-            logger.error("Fallback source selection parsing failed: %s", e)
-
-        raise ValueError("No valid source selection found in response")
-
-    def _fallback_parse_contradiction(self, response: str) -> list[dict[str, Any]]:
-        """Fallback manual parsing for contradiction response."""
-        try:
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                if "contradictions" in data:
-                    return data["contradictions"]
-        except (ValueError, TypeError, json.JSONDecodeError) as e:
-            logger.error("Fallback contradiction parsing failed: %s", e)
-
-        return []
-
-    def _fallback_parse_cluster_verification(self, response: str) -> dict[str, Any]:
-        """Fallback manual parsing for cluster verification response."""
-        try:
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                return {
-                    "overall_verdict": data.get("overall_verdict", "UNKNOWN"),
-                    "confidence_score": float(data.get("confidence_score", 0.0)),
-                    "individual_verdicts": data.get("individual_verdicts", []),
-                    "cluster_analysis": data.get(
-                        "cluster_analysis", "No analysis provided"
-                    ),
-                    "contradictions_found": data.get("contradictions_found", []),
-                }
-        except (ValueError, TypeError, json.JSONDecodeError) as e:
-            logger.error("Fallback cluster verification parsing failed: %s", e)
-
-        return {
-            "overall_verdict": "ERROR",
-            "confidence_score": 0.0,
-            "individual_verdicts": [],
-            "cluster_analysis": "Failed to parse response",
-            "contradictions_found": [],
-        }
 
     def extract_sources_from_result(self, result: str) -> list[str]:
         """
@@ -318,8 +224,10 @@ class ResponseParser:
                 if search_result.url:
                     urls.append(search_result.url)
 
-            logger.debug("Extracted %d source URLs from search results", len(urls))
+            logger.debug(
+                "Extracted %d source URLs from search results", len(urls))
             return urls
 
         except Exception as e:
-            raise ValueError(f"Failed to extract sources from result: {e}") from e
+            raise ValueError(
+                f"Failed to extract sources from result: {e}") from e

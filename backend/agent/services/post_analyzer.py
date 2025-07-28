@@ -7,6 +7,9 @@ import logging
 
 from langchain_core.output_parsers import PydanticOutputParser
 
+from agent.llm import OllamaLLMManager
+from agent.prompt_manager import PromptManager
+
 from ..models.post_analysis_result import PostAnalysisResult
 from ..models.verification_context import VerificationContext
 
@@ -26,7 +29,7 @@ class PostAnalyzerService:
         prompt_manager: Manager for handling analysis prompts
     """
 
-    def __init__(self, llm_manager, prompt_manager):
+    def __init__(self, llm_manager: OllamaLLMManager, prompt_manager: PromptManager):
         self.llm_manager = llm_manager
         self.prompt_manager = prompt_manager
 
@@ -49,7 +52,8 @@ class PostAnalyzerService:
         if not context.screenshot_data:
             raise ValueError("Screenshot data is required for post analysis.")
 
-        output_parser = PydanticOutputParser(pydantic_object=PostAnalysisResult)
+        output_parser = PydanticOutputParser(
+            pydantic_object=PostAnalysisResult)
 
         # Get temporal analysis using the new typed method
         temporal_analysis = context.get_temporal_analysis()
@@ -61,17 +65,17 @@ class PostAnalyzerService:
             else "No temporal analysis available"
         )
 
-        prompt_template = self.prompt_manager.get_prompt_template("post_analysis")
-        prompt = prompt_template.partial(
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "post_analysis")
+        prompt = await prompt_template.aformat(
             screenshot_data=context.screenshot_data,
             temporal_analysis=safe_temporal_analysis,
             format_instructions=output_parser.get_format_instructions(),
         )
 
-        formatted_prompt = prompt.format()
-        logger.info("POST ANALYSIS PROMPT: %s", formatted_prompt)
+        logger.info("POST ANALYSIS PROMPT: %s", prompt)
 
-        response = await self.llm_manager.invoke_text_only(formatted_prompt)
+        response = await self.llm_manager.invoke_text_only(prompt)
         parsed_response = output_parser.parse(response)
         logger.info("POST ANALYSIS PARSED RESULT: %s", parsed_response)
 

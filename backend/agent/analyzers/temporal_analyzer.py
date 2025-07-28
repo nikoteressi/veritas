@@ -10,6 +10,8 @@ from langchain_core.output_parsers import PydanticOutputParser
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
+from agent.llm import OllamaLLMManager
+from agent.prompt_manager import PromptManager
 from app.exceptions import TemporalAnalysisError
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 class TemporalAnalyzer(BaseAnalyzer):
     """Analyzes temporal context of social media posts using an LLM."""
 
-    def __init__(self, llm_manager, prompt_manager):
+    def __init__(self, llm_manager: OllamaLLMManager, prompt_manager: PromptManager):
         super().__init__("temporal")
         self.llm_manager = llm_manager
         self.prompt_manager = prompt_manager
@@ -30,7 +32,8 @@ class TemporalAnalyzer(BaseAnalyzer):
                 "Screenshot data not found in context for temporal analysis."
             )
 
-        output_parser = PydanticOutputParser(pydantic_object=TemporalAnalysisResult)
+        output_parser = PydanticOutputParser(
+            pydantic_object=TemporalAnalysisResult)
 
         try:
             prompt_template = self.prompt_manager.get_prompt_template(

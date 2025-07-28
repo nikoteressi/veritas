@@ -25,8 +25,9 @@ class PromptManager:
         try:
             with open(self.prompts_path, encoding="utf-8") as f:
                 return yaml.safe_load(f)
-        except FileNotFoundError:
-            raise RuntimeError(f"Prompts file not found at: {self.prompts_path}")
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"Prompts file not found at: {self.prompts_path}") from e
 
     def _validate_prompts(self) -> dict[str, PromptStructure]:
         """Validates the raw prompt data against Pydantic models."""
@@ -38,14 +39,16 @@ class PromptManager:
             try:
                 validated[name] = PromptStructure.model_validate(data)
             except Exception as e:
-                raise ValueError(f"Invalid prompt structure for '{name}': {e}")
+                raise ValueError(
+                    f"Invalid prompt structure for '{name}': {e}") from e
         return validated
 
     def get_prompt_template(self, name: str) -> ChatPromptTemplate:
         """Gets a validated prompt and returns it as a ChatPromptTemplate instance."""
         prompt_structure = self._validated_prompts.get(name)
         if not prompt_structure:
-            raise ValueError(f"Prompt template '{name}' not found or is invalid.")
+            raise ValueError(
+                f"Prompt template '{name}' not found or is invalid.")
         return prompt_structure.to_chat_prompt_template()
 
     def get_prompt(self, name: str, **kwargs) -> str:
@@ -57,9 +60,10 @@ class PromptManager:
             # Combine all messages into a single string
             return "\n\n".join([msg.content for msg in formatted_messages])
         except KeyError as e:
-            raise ValueError(f"Missing required parameter for prompt '{name}': {e}")
+            raise ValueError(
+                f"Missing required parameter for prompt '{name}': {e}") from e
         except Exception as e:
-            raise ValueError(f"Failed to format prompt '{name}': {e}")
+            raise ValueError(f"Failed to format prompt '{name}': {e}") from e
 
     def get_domain_role_description(self, domain: str) -> str:
         """
@@ -92,7 +96,8 @@ class PromptManager:
         }
 
         # Get the standard domain key
-        standard_domain = domain_mapping.get(normalized_domain, normalized_domain)
+        standard_domain = domain_mapping.get(
+            normalized_domain, normalized_domain)
 
         # Get domain-specific description or fallback to general
         role_description = self.domain_specific_descriptions.get(
