@@ -5,7 +5,7 @@ Application service for handling verification requests.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from fastapi import BackgroundTasks
@@ -32,7 +32,7 @@ class VerificationService:
         file_data: bytes,
         filename: str,
         prompt: str,
-        session_id: Optional[str],
+        session_id: str | None,
         db: AsyncSession,
     ) -> dict[str, Any]:
         """
@@ -118,7 +118,7 @@ class VerificationService:
             prompt: User prompt
             filename: Original filename
         """
-        db: Optional[AsyncSession] = None
+        db: AsyncSession | None = None
         event_tracker = EventProgressTracker(connection_manager, session_id)
 
         try:
@@ -215,14 +215,14 @@ class VerificationService:
     async def close(self) -> None:
         """Close the verification service and release resources."""
         logger.info("Closing verification service...")
-        
+
         try:
-            if hasattr(self.coordinator, 'close') and callable(getattr(self.coordinator, 'close')):
+            if hasattr(self.coordinator, "close") and callable(self.coordinator.close):
                 await self.coordinator.close()
                 logger.debug("Closed workflow coordinator")
         except Exception as e:
             logger.error(f"Error closing workflow coordinator: {e}")
-        
+
         logger.info("Verification service closed successfully")
 
     async def __aenter__(self):

@@ -4,10 +4,6 @@ Pydantic models for verification results.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 from pydantic import BaseModel, Field
 
 from .internal import FactCheckSummary
@@ -28,4 +24,4 @@ class VerificationResult(BaseModel):
 
     status: str = Field(..., description="Verification status")
     message: str = Field(..., description="Result message")
-    verification_id: Optional[str] = Field(None, description="Verification ID")
+    verification_id: str | None = Field(None, description="Verification ID")

@@ -4,10 +4,6 @@ Custom tools for the LangChain agent.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 import json
 import logging
 
@@ -30,13 +26,16 @@ class SearxNGSearchInput(BaseModel):
     """Input schema for SearxNG search tool."""
 
     query: str = Field(description="Search query to execute")
-    category: Optional[str] = Field(
+    category: str | None = Field(
         default="general", description="Search category (general, news, science, etc.)"
     )
-    engines: Optional[str] = Field(
+    engines: str | None = Field(
         default=None, description="Specific search engines to use"
     )
-    language: Optional[str] = Field(default="en", description="Search language")
+    language: str | None = Field(default="en", description="Search language")
+    max_results: int | None = Field(
+        default=10, description="Maximum number of results to return (default: 10)"
+    )
 
 
 class SearxNGSearchTool(BaseTool):
@@ -56,6 +55,7 @@ class SearxNGSearchTool(BaseTool):
         category: str = "general",
         engines: str = None,
         language: str = "en",
+        max_results: int = 10,
     ) -> str:
         """Execute the search synchronously."""
         try:
@@ -98,7 +98,7 @@ class SearxNGSearchTool(BaseTool):
 
                 # Convert to Pydantic models
                 search_results = []
-                for result in results[:5]:  # Limit to top 5 results
+                for result in results[:max_results]:  # Use configurable limit
                     try:
                         search_result = SearchResult(
                             title=result.get("title", ""),
@@ -149,6 +149,7 @@ class SearxNGSearchTool(BaseTool):
         category: str = "general",
         engines: str = None,
         language: str = "en",
+        max_results: int = 10,
     ) -> str:
         """Execute the search asynchronously."""
         try:
@@ -191,7 +192,7 @@ class SearxNGSearchTool(BaseTool):
 
                 # Convert to Pydantic models
                 search_results = []
-                for result in results[:5]:  # Limit to top 5 results
+                for result in results[:max_results]:  # Use configurable limit
                     try:
                         search_result = SearchResult(
                             title=result.get("title", ""),

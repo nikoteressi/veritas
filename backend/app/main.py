@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_instance: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Veritas application...")
 
@@ -56,31 +56,26 @@ async def lifespan(app: FastAPI):
     # Initialize AgentManager
     try:
         agent_manager = await create_agent_manager()
-        app.state.agent_manager = agent_manager
+        app_instance.state.agent_manager = agent_manager
         logger.info("AgentManager initialized and attached to app state.")
     except Exception as e:
-        logger.error(f"Failed to initialize AgentManager: {e}")
+        logger.error("Failed to initialize AgentManager: %s", e)
         raise
 
     yield
 
     logger.info("Shutting down Veritas application...")
-    
+
     # Close verification service and all its resources
     try:
         await verification_service.close()
         logger.info("Verification service closed successfully.")
-    except Exception as e:
-        logger.error(f"Error closing verification service: {e}")
-    
+    except (ConnectionError, TimeoutError, RuntimeError) as e:
+        logger.error("Error closing verification service: %s", e)
+
     # Disconnect from Redis
     await redis_manager.close()
     logger.info("Redis connection pool closed.")
-
-    # Clean up the telemetry patch
-    if "posthog_patcher" in globals():
-        posthog_patcher.stop()
-        logger.info("Removed ChromaDB telemetry monkey-patch.")
 
 
 # Create FastAPI application
@@ -133,5 +128,5 @@ if __name__ == "__main__":
         host=settings.app_host,
         port=settings.app_port,
         reload=settings.debug,
-        log_level=settings.log_level.lower(),
+        log_level=str(settings.log_level).lower(),
     )

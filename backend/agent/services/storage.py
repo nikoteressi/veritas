@@ -9,6 +9,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent.models import VerificationResult
 from agent.vector_store import vector_store
 from app.config import settings
 from app.crud import VerificationResultCRUD
@@ -32,7 +33,7 @@ class StorageService:
         extracted_info: dict[str, Any],
         verdict_result: dict[str, Any],
         reputation_data: dict[str, Any],
-    ) -> "VerificationResult":
+    ) -> VerificationResult:
         """Saves the complete verification result to the database."""
 
         # Extract claims from the new structure

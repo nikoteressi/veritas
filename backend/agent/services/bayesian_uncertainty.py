@@ -9,7 +9,7 @@ providing confidence intervals, uncertainty propagation, and probabilistic reaso
 import logging
 import warnings
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -61,7 +61,7 @@ class UncertaintyConfig:
 class BayesianVerificationModel:
     """Bayesian model for fact verification with uncertainty quantification."""
 
-    def __init__(self, config: Optional[UncertaintyConfig] = None):
+    def __init__(self, config: UncertaintyConfig | None = None):
         self.config = config or UncertaintyConfig()
         self.model = None
         self.trace = None
@@ -73,9 +73,11 @@ class BayesianVerificationModel:
         with pm.Model() as model:
             # Prior for source reliability
             if self.config.source_reliability_prior == "beta":
-                source_reliability = pm.Beta("source_reliability", alpha=2, beta=2)
+                source_reliability = pm.Beta(
+                    "source_reliability", alpha=2, beta=2)
             else:
-                source_reliability = pm.Uniform("source_reliability", lower=0, upper=1)
+                source_reliability = pm.Uniform(
+                    "source_reliability", lower=0, upper=1)
 
             # Prior for evidence weights
             n_evidence = len(evidence_data.get("evidence_scores", []))
@@ -95,7 +97,8 @@ class BayesianVerificationModel:
                 temporal_factors = pm.Deterministic(
                     "temporal_factors",
                     pm.math.exp(
-                        -self.config.temporal_decay_rate * np.array(evidence_ages)
+                        -self.config.temporal_decay_rate *
+                        np.array(evidence_ages)
                     ),
                 )
 
@@ -115,7 +118,8 @@ class BayesianVerificationModel:
                 else:
                     weighted_evidence = pm.Deterministic(
                         "weighted_evidence",
-                        pm.math.sum(evidence_weights * np.array(evidence_scores)),
+                        pm.math.sum(evidence_weights *
+                                    np.array(evidence_scores)),
                     )
 
                 # Verification probability
@@ -223,9 +227,15 @@ class BayesianVerificationModel:
             mcse = az.mcse(self.trace)
 
             diagnostics = {
-                "rhat": {var: float(val) for var, val in rhat.data_vars.items()},
-                "ess": {var: float(val) for var, val in ess.data_vars.items()},
-                "mcse": {var: float(val) for var, val in mcse.data_vars.items()},
+                "rhat": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
+                         else float(val.values.mean()) if hasattr(val, 'values')
+                         else float(val) for var, val in rhat.data_vars.items()},
+                "ess": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
+                        else float(val.values.mean()) if hasattr(val, 'values')
+                        else float(val) for var, val in ess.data_vars.items()},
+                "mcse": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
+                         else float(val.values.mean()) if hasattr(val, 'values')
+                         else float(val) for var, val in mcse.data_vars.items()},
             }
 
             return diagnostics
@@ -238,7 +248,7 @@ class BayesianVerificationModel:
 class UncertaintyPropagationEngine:
     """Engine for propagating uncertainty through verification pipeline."""
 
-    def __init__(self, config: Optional[UncertaintyConfig] = None):
+    def __init__(self, config: UncertaintyConfig | None = None):
         self.config = config or UncertaintyConfig()
         self.logger = logging.getLogger(__name__)
 
@@ -265,10 +275,15 @@ class UncertaintyPropagationEngine:
 
         # Weighted uncertainty propagation
         weights = np.array(weights)
-        weights = weights / np.sum(weights)  # Normalize
+        weights_sum = np.sum(weights)
+        if weights_sum > 0:
+            weights = weights / weights_sum  # Normalize
+        else:
+            weights = np.ones_like(weights) / len(weights)  # Equal weights if sum is zero
 
         # Combine uncertainties using weighted variance
-        weighted_uncertainty = np.sqrt(np.sum(weights * np.array(uncertainties) ** 2))
+        weighted_uncertainty = np.sqrt(
+            np.sum(weights * np.array(uncertainties) ** 2))
 
         # Combine confidences
         weighted_confidence = np.sum(weights * np.array(confidences))
@@ -296,7 +311,8 @@ class UncertaintyPropagationEngine:
         # This is a simplified approach; in practice, you'd use more sophisticated methods
 
         # Check for consistency in verdicts
-        verdicts = [result.get("verdict", "UNKNOWN") for result in cluster_results]
+        verdicts = [result.get("verdict", "UNKNOWN")
+                    for result in cluster_results]
         unique_verdicts = set(verdicts)
 
         if len(unique_verdicts) == 1:
@@ -324,7 +340,8 @@ class UncertaintyPropagationEngine:
         for evidence in evidence_list:
             scores.append(evidence.get("score", 0.5))
             ages.append(evidence.get("age_days", 0))
-            source_reliabilities.append(evidence.get("source_reliability", 0.7))
+            source_reliabilities.append(
+                evidence.get("source_reliability", 0.7))
 
         # Compute score uncertainty
         score_mean = np.mean(scores)
@@ -332,12 +349,14 @@ class UncertaintyPropagationEngine:
 
         # Temporal uncertainty (older evidence is less reliable)
         max_age = max(ages) if ages else 0
-        temporal_uncertainty = 1 - np.exp(-self.config.temporal_decay_rate * max_age)
+        temporal_uncertainty = 1 - \
+            np.exp(-self.config.temporal_decay_rate * max_age)
 
         # Source reliability uncertainty
         reliability_mean = np.mean(source_reliabilities)
         reliability_std = (
-            np.std(source_reliabilities) if len(source_reliabilities) > 1 else 0.1
+            np.std(source_reliabilities) if len(
+                source_reliabilities) > 1 else 0.1
         )
 
         # Combined uncertainty
@@ -358,7 +377,7 @@ class UncertaintyPropagationEngine:
 class BayesianUncertaintyHandler:
     """Main handler for Bayesian uncertainty in fact verification."""
 
-    def __init__(self, config: Optional[UncertaintyConfig] = None):
+    def __init__(self, config: UncertaintyConfig | None = None):
         self.config = config or UncertaintyConfig()
         self.verification_model = BayesianVerificationModel(config)
         self.propagation_engine = UncertaintyPropagationEngine(config)

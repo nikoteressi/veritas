@@ -5,7 +5,8 @@ Configurable verification pipeline service for orchestrating verification steps.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Union, Callable
+from collections.abc import Callable
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +30,7 @@ class VerificationPipeline:
     and configurability.
     """
 
-    def __init__(self, step_names: Optional[list[str]] = None):
+    def __init__(self, step_names: list[str] | None = None):
         """
         Initialize the verification pipeline.
 
@@ -53,9 +54,9 @@ class VerificationPipeline:
         user_prompt: str,
         db: AsyncSession,
         session_id: str,
-        progress_callback: Optional[Callable] = None,
-        event_callback: Optional[Callable] = None,
-        filename: Optional[str] = None,
+        progress_callback: Callable | None = None,
+        event_callback: Callable | None = None,
+        filename: str | None = None,
     ) -> dict[str, Any]:
         """
         Execute the complete verification pipeline.
@@ -141,7 +142,7 @@ class VerificationPipeline:
         """Get the list of step instances in this pipeline."""
         return self.steps.copy()
 
-    def add_step(self, step_name: str, position: Optional[int] = None) -> None:
+    def add_step(self, step_name: str, position: int | None = None) -> None:
         """
         Add a step to the pipeline.
 
@@ -215,15 +216,15 @@ class VerificationPipeline:
     async def close(self) -> None:
         """Close all pipeline steps and release resources."""
         logger.info("Closing verification pipeline...")
-        
+
         for step in self.steps:
             try:
-                if hasattr(step, 'close') and callable(getattr(step, 'close')):
+                if hasattr(step, "close") and callable(step.close):
                     await step.close()
                     logger.debug(f"Closed step: {step.name}")
             except Exception as e:
                 logger.error(f"Error closing step {step.name}: {e}")
-        
+
         logger.info("Verification pipeline closed successfully")
 
     async def __aenter__(self):

@@ -6,7 +6,7 @@ Event emission service for the verification pipeline.
 
 import logging
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from app.schemas import ProgressEvent
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class EventEmissionService:
     """Manages event emission for verification workflows."""
 
-    def __init__(self, event_callback: Optional[Callable] = None):
+    def __init__(self, event_callback: Callable | None = None):
         self.event_callback = event_callback
 
     async def emit_event(self, event_name: str, payload: dict[str, Any] = None):
@@ -134,7 +134,7 @@ class EventEmissionService:
         """Signal the completion of verification."""
         await self.emit_event("VERIFICATION_COMPLETED")
 
-    def set_callback(self, callback: Optional[Callable]):
+    def set_callback(self, callback: Callable | None):
         """Set or update the event callback."""
         self.event_callback = callback
 

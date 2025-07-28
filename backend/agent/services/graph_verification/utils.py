@@ -11,7 +11,7 @@ import hashlib
 import logging
 import re
 import time
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class VerificationUtils:
         return truncated + "..."
 
     @staticmethod
-    def extract_domain(url: str) -> Optional[str]:
+    def extract_domain(url: str) -> str | None:
         """Extract domain from URL."""
         try:
             parsed = urlparse(url)
@@ -365,7 +365,7 @@ class CacheManager:
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get value from cache."""
         if key not in self.cache:
             return None

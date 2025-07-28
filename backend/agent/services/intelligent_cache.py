@@ -14,7 +14,7 @@ import pickle
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import redis.asyncio as redis
@@ -51,7 +51,7 @@ class CacheEntry:
     created_at: datetime
     last_accessed: datetime
     access_count: int = 0
-    ttl_seconds: Optional[int] = None
+    ttl_seconds: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     dependencies: list[str] = field(default_factory=list)
 
@@ -91,7 +91,8 @@ class IntelligentCache:
         self.redis_client = redis_client
 
         # Cache statistics
-        self.stats = {"hits": 0, "misses": 0, "evictions": 0, "memory_usage": 0}
+        self.stats = {"hits": 0, "misses": 0,
+                      "evictions": 0, "memory_usage": 0}
 
         # Dependency tracking
         self.dependency_map: dict[str, list[str]] = {}
@@ -111,7 +112,7 @@ class IntelligentCache:
             # Cache can still work with memory only
             return True
 
-    async def _get_redis_client(self) -> Optional[redis.Redis]:
+    async def _get_redis_client(self) -> redis.Redis | None:
         """Get Redis client, initializing if needed."""
         if self.redis_client is None:
             try:
@@ -211,7 +212,7 @@ class IntelligentCache:
         self,
         key: str,
         value: Any,
-        ttl_seconds: Optional[int] = None,
+        ttl_seconds: int | None = None,
         level: CacheLevel = CacheLevel.MEMORY,
         dependencies: list[str] = None,
     ) -> bool:
@@ -246,7 +247,7 @@ class IntelligentCache:
         self,
         key: str,
         value: Any,
-        ttl_seconds: Optional[int] = None,
+        ttl_seconds: int | None = None,
         dependencies: list[str] = None,
     ):
         """Store value in memory cache."""
@@ -266,7 +267,7 @@ class IntelligentCache:
         self.memory_cache[key] = entry
         self.stats["memory_usage"] = len(self.memory_cache)
 
-    async def _store_redis(self, key: str, value: Any, ttl_seconds: Optional[int] = None):
+    async def _store_redis(self, key: str, value: Any, ttl_seconds: int | None = None):
         """Store value in Redis cache."""
         try:
             redis_client = await self._get_redis_client()
@@ -309,7 +310,8 @@ class IntelligentCache:
                 continue
 
             # Simple string similarity (can be replaced with embedding similarity)
-            similarity = self._calculate_string_similarity(target_key, cached_key)
+            similarity = self._calculate_string_similarity(
+                target_key, cached_key)
 
             if similarity > self.similarity_threshold and similarity > best_similarity:
                 best_similarity = similarity
@@ -364,7 +366,7 @@ class IntelligentCache:
         for key in to_delete:
             await self.delete(key)
 
-        self.logger.info(
+        self.logger.debug(
             f"Invalidated {len(to_delete)} entries dependent on {dependency_key}"
         )
 
@@ -372,7 +374,8 @@ class IntelligentCache:
         """Clear cache entries matching pattern."""
         if pattern:
             # Clear specific pattern
-            to_delete = [key for key in self.memory_cache.keys() if pattern in key]
+            to_delete = [key for key in self.memory_cache.keys()
+                         if pattern in key]
             for key in to_delete:
                 await self.delete(key)
         else:
@@ -388,7 +391,8 @@ class IntelligentCache:
     async def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.stats["hits"] + self.stats["misses"]
-        hit_rate = self.stats["hits"] / total_requests if total_requests > 0 else 0.0
+        hit_rate = self.stats["hits"] / \
+            total_requests if total_requests > 0 else 0.0
 
         stats = {
             "hit_rate": hit_rate,
@@ -476,6 +480,33 @@ class IntelligentCache:
         except Exception as e:
             self.logger.error(f"Cache optimization error: {e}")
 
+    async def close(self):
+        """Close cache connections and cleanup resources."""
+        try:
+            # Clear memory cache
+            self.memory_cache.clear()
+
+            # Close Redis connection if exists
+            if self.redis_client is not None:
+                try:
+                    await self.redis_client.close()
+                    self.redis_client = None
+                except Exception as e:
+                    self.logger.warning(f"Error closing Redis connection: {e}")
+
+            self.logger.info("Cache closed successfully")
+        except Exception as e:
+            self.logger.error(f"Error closing cache: {e}")
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.close()
+
 
 class EmbeddingCache(IntelligentCache):
     """
@@ -489,7 +520,7 @@ class EmbeddingCache(IntelligentCache):
 
     async def get_embedding(
         self, text: str, model_name: str = "default"
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """Get embedding from cache with semantic similarity search."""
         key = self._generate_key(f"embedding:{model_name}", text)
 
@@ -530,7 +561,7 @@ class EmbeddingCache(IntelligentCache):
             for k in keys_to_remove:
                 del self.embedding_index[k]
 
-    def _find_similar_embedding(self, text: str, model_name: str) -> Optional[np.ndarray]:
+    def _find_similar_embedding(self, text: str, model_name: str) -> np.ndarray | None:
         """Find similar embedding using cosine similarity."""
         if not self.embedding_index:
             return None
@@ -548,7 +579,8 @@ class EmbeddingCache(IntelligentCache):
 
             # For demonstration, we'll use a simple similarity check
             # In practice, you'd compute cosine similarity between embeddings
-            key_similarity = self._calculate_string_similarity(target_key, cached_key)
+            key_similarity = self._calculate_string_similarity(
+                target_key, cached_key)
 
             if (
                 key_similarity > self.similarity_threshold
@@ -573,7 +605,8 @@ class VerificationCache(IntelligentCache):
     ) -> dict[str, Any] | None:
         """Get verification result from cache."""
         # Create key from claim and sources
-        cache_data = {"claim": claim, "sources": sorted(sources) if sources else []}
+        cache_data = {"claim": claim, "sources": sorted(
+            sources) if sources else []}
         key = self._generate_key("verification", cache_data)
 
         return await self.get(key, similarity_search=True)
@@ -586,7 +619,8 @@ class VerificationCache(IntelligentCache):
         ttl_seconds: int = 3600,
     ):
         """Set verification result in cache."""
-        cache_data = {"claim": claim, "sources": sorted(sources) if sources else []}
+        cache_data = {"claim": claim, "sources": sorted(
+            sources) if sources else []}
         key = self._generate_key("verification", cache_data)
 
         # Add dependencies on sources

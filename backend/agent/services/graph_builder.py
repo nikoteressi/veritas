@@ -9,7 +9,7 @@ for efficient batch verification.
 
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from sklearn.cluster import DBSCAN
@@ -38,7 +38,7 @@ class GraphBuilder:
     Analyzes facts, detects relationships, and forms clusters for efficient verification.
     """
 
-    def __init__(self, config: Optional[ClusteringConfig] = None):
+    def __init__(self, config: ClusteringConfig | None = None):
         self.config = config or ClusteringConfig()
         self.embeddings = OllamaEmbeddingFunction(
             ollama_url=settings.ollama_base_url, model_name="nomic-embed-text"
@@ -209,8 +209,9 @@ class GraphBuilder:
         # Save embeddings to nodes
         for i, node in enumerate(nodes):
             if i < len(embeddings):
-                node.embedding = embeddings[i].tolist()  # Convert numpy array to list
-                self.logger.debug(f"Saved embedding for node {node.id}")
+                # Convert numpy array to list
+                node.embedding = embeddings[i].tolist()
+                self.logger.debug("Saved embedding for node %s", node.id)
 
         # Compare each pair of nodes
         for i, node1 in enumerate(nodes):

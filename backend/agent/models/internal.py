@@ -4,8 +4,6 @@ Pydantic models for internal agent data structures.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -54,15 +52,15 @@ class VerdictResult(BaseModel):
     sources: list[str] | None = []
 
     # Typed motives analysis
-    motives_analysis_typed: Optional["MotivesAnalysisResult"] = Field(
+    motives_analysis_typed: MotivesAnalysisResult | None = Field(
         None, description="Typed motives analysis"
     )
 
-    def set_motives_analysis(self, analysis: "MotivesAnalysisResult") -> None:
+    def set_motives_analysis(self, analysis: MotivesAnalysisResult) -> None:
         """Set motives analysis using the typed field."""
         self.motives_analysis_typed = analysis
 
-    def get_motives_analysis(self) -> Optional["MotivesAnalysisResult"]:
+    def get_motives_analysis(self) -> MotivesAnalysisResult | None:
         """Get motives analysis using the typed field."""
         return self.motives_analysis_typed
 

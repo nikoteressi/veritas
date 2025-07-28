@@ -16,6 +16,7 @@ class VerificationConfig:
     max_search_results: int = 10
     confidence_threshold: float = 0.7
     max_concurrent_verifications: int = 3
+    max_concurrent_scrapes: int = 3  # Limit concurrent web scraping operations
     enable_cross_verification: bool = True
     enable_contradiction_detection: bool = True
     batch_size: int = 5

@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -195,15 +195,15 @@ class FactGraph:
 
         return cluster.id
 
-    def get_node(self, node_id: str) -> Optional[FactNode]:
+    def get_node(self, node_id: str) -> FactNode | None:
         """Get a node by ID."""
         return self.nodes.get(node_id)
 
-    def get_edge(self, edge_id: str) -> Optional[FactEdge]:
+    def get_edge(self, edge_id: str) -> FactEdge | None:
         """Get an edge by ID."""
         return self.edges.get(edge_id)
 
-    def get_cluster(self, cluster_id: str) -> Optional[FactCluster]:
+    def get_cluster(self, cluster_id: str) -> FactCluster | None:
         """Get a cluster by ID."""
         return self.clusters.get(cluster_id)
 

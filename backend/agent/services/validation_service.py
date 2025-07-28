@@ -5,7 +5,7 @@ Centralized validation service for all verification requests.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.config import settings
 from app.exceptions import ValidationError
@@ -29,8 +29,8 @@ class ValidationService:
         self,
         file_data: bytes,
         prompt: str,
-        filename: Optional[str] = None,
-        session_id: Optional[str] = None,
+        filename: str | None = None,
+        session_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Validate a complete verification request.
@@ -62,7 +62,7 @@ class ValidationService:
         logger.info(f"Validation successful for request: {filename or 'unknown'}")
         return validated_data
 
-    def _validate_image_data(self, file_data: bytes, filename: Optional[str]) -> bytes:
+    def _validate_image_data(self, file_data: bytes, filename: str | None) -> bytes:
         """
         Validate image file data.
 

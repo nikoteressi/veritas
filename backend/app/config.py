@@ -5,7 +5,6 @@ Configuration settings for the Veritas application.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -56,7 +55,7 @@ class Settings(BaseSettings):
     reasoning_model_name: str = Field(
         default="qwen:7b", env="REASONING_MODEL_NAME")
     embedding_model_name: str = Field(
-        default="nomic-embed-text", env="EMBEDDING_MODEL_NAME"
+        default="nomic-embed-text:latest", env="EMBEDDING_MODEL_NAME"
     )
 
     # Web scraping settings
@@ -64,12 +63,15 @@ class Settings(BaseSettings):
         default=True, env="USE_REMOTE_LLM_FOR_EXTRACTION"
     )
     scraping_extraction_model: str = Field(
-        default="cyberuser42/DeepSeek-R1-Distill-Llama-8B:latest", 
-        env="SCRAPING_EXTRACTION_MODEL"
+        default="cyberuser42/DeepSeek-R1-Distill-Llama-8B:latest",
+        env="SCRAPING_EXTRACTION_MODEL",
     )
-    page_timeout: int = Field(default=60000, env="PAGE_TIMEOUT")  # 60 seconds in ms
-    delay_before_return_html: int = Field(default=5000, env="DELAY_BEFORE_RETURN_HTML")  # 5 seconds in ms
-    
+    page_timeout: int = Field(
+        default=60000, env="PAGE_TIMEOUT")  # 60 seconds in ms
+    delay_before_return_html: int = Field(
+        default=5000, env="DELAY_BEFORE_RETURN_HTML"
+    )  # 5 seconds in ms
+
     # SearxNG settings
     searxng_url: str = Field(
         default="http://localhost:8888", env="SEARXNG_URL")
@@ -255,7 +257,7 @@ class Settings(BaseSettings):
         }
         return progress_messages.get(step, f"Processing {step}...")
 
-    def validate_configuration(self) -> Optional[str]:
+    def validate_configuration(self) -> str | None:
         """Validate configuration for consistency and correctness."""
         # Check file size limits
         if self.max_file_size <= self.min_file_size:

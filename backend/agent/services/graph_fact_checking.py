@@ -10,7 +10,7 @@ source reputation system, and intelligent caching.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from agent.models import ClaimResult, FactCheckResult, FactCheckSummary
 from agent.models.graph import FactGraph, VerificationStatus
@@ -24,7 +24,7 @@ from agent.services.bayesian_uncertainty import (
     UncertaintyConfig,
 )
 from agent.services.graph_builder import GraphBuilder
-from agent.services.graph_config import ClusteringConfig, VerificationConfig
+from agent.services.graph_config import VerificationConfig
 from agent.services.graph_storage import Neo4jGraphStorage
 from agent.services.graph_verification.engine import GraphVerificationEngine
 from agent.services.intelligent_cache import get_general_cache, get_verification_cache
@@ -52,8 +52,8 @@ class GraphFactCheckingService:
     def __init__(
         self,
         search_tool: "SearxNGSearchTool",
-        clustering_config: Optional[ClusteringConfig] = None,
-        verification_config: Optional[VerificationConfig] = None,
+        clustering_config: ClusteringConfig | None = None,
+        verification_config: VerificationConfig | None = None,
     ):
         """Initialize the graph-based fact checking service.
 
@@ -108,13 +108,15 @@ class GraphFactCheckingService:
         # Initialize Bayesian uncertainty handler (lazy initialization)
         self.uncertainty_handler = None
         self._uncertainty_handler_initialized = False
-        logger.info("Bayesian uncertainty handler will be initialized on first use")
+        logger.info(
+            "Bayesian uncertainty handler will be initialized on first use")
 
         # Initialize relationship analysis engine
         self.relationship_analyzer = None
         try:
             relationship_config = RelationshipConfig()
-            self.relationship_analyzer = RelationshipAnalysisEngine(relationship_config)
+            self.relationship_analyzer = RelationshipAnalysisEngine(
+                relationship_config)
             logger.info("Relationship analysis engine initialized")
         except Exception as e:
             logger.warning(f"Relationship analyzer unavailable: {e}")
@@ -136,7 +138,8 @@ class GraphFactCheckingService:
                     uncertainty_config
                 )
                 self._uncertainty_handler_initialized = True
-                logger.info("Bayesian uncertainty handler initialized successfully")
+                logger.info(
+                    "Bayesian uncertainty handler initialized successfully")
             except Exception as e:
                 logger.warning(f"Uncertainty handler unavailable: {e}")
                 self.uncertainty_handler = None
@@ -171,7 +174,8 @@ class GraphFactCheckingService:
             fact_hierarchy = context.post_analysis_result.fact_hierarchy
 
             if not fact_hierarchy.supporting_facts:
-                self.logger.warning("No supporting facts found in fact hierarchy")
+                self.logger.warning(
+                    "No supporting facts found in fact hierarchy")
                 return self._create_empty_result()
 
             self.logger.info(
@@ -196,12 +200,14 @@ class GraphFactCheckingService:
                 try:
                     graph = self.graph_storage.load_graph(graph_id)
                     if graph:
-                        self.logger.info("Loaded existing graph from Neo4j storage")
+                        self.logger.info(
+                            "Loaded existing graph from Neo4j storage")
                 except Exception as e:
                     self.logger.error(
                         f"Critical error: Failed to load graph from storage: {e}"
                     )
-                    raise RuntimeError(f"Graph storage is unavailable: {e}") from e
+                    raise RuntimeError(
+                        f"Graph storage is unavailable: {e}") from e
 
             # Step 2: Build the fact graph if not loaded from storage
             if not graph:
@@ -252,7 +258,8 @@ class GraphFactCheckingService:
                             f"Analyzed {len(relationships)} fact relationships"
                         )
                     except Exception as e:
-                        self.logger.warning(f"Relationship analysis failed: {e}")
+                        self.logger.warning(
+                            f"Relationship analysis failed: {e}")
 
                 # Save to persistent storage
                 if self.graph_storage and graph_id:
@@ -263,7 +270,8 @@ class GraphFactCheckingService:
                         self.logger.error(
                             f"Critical error: Failed to save graph to storage: {e}"
                         )
-                        raise RuntimeError(f"Graph storage save failed: {e}") from e
+                        raise RuntimeError(
+                            f"Graph storage save failed: {e}") from e
 
             # Step 3: Enhance context with source reputation if available
             enhanced_context = context
@@ -304,7 +312,8 @@ class GraphFactCheckingService:
                         f"Applied Bayesian uncertainty analysis: {uncertainty_analysis.get('uncertainty_level', 'unknown')}"
                     )
                 except Exception as e:
-                    self.logger.warning(f"Bayesian uncertainty analysis failed: {e}")
+                    self.logger.warning(
+                        f"Bayesian uncertainty analysis failed: {e}")
 
             # Step 6: Update graph storage with verification results
             if self.graph_storage and graph_id:
@@ -316,7 +325,8 @@ class GraphFactCheckingService:
                     self.logger.error(
                         f"Critical error: Failed to update graph storage: {e}"
                     )
-                    raise RuntimeError(f"Failed to update graph storage: {e}") from e
+                    raise RuntimeError(
+                        f"Failed to update graph storage: {e}") from e
 
             # Step 7: Convert results to standard format
             fact_check_result = await self._convert_to_standard_format(
@@ -450,7 +460,8 @@ class GraphFactCheckingService:
             "MIXED": "mixed",
         }
 
-        assessment = verdict_map.get(fact_result.get("verdict", "ERROR"), "error")
+        assessment = verdict_map.get(
+            fact_result.get("verdict", "ERROR"), "error")
         confidence = fact_result.get("confidence", 0.0)
         reasoning = fact_result.get("reasoning", "No reasoning provided")
 
@@ -478,7 +489,8 @@ class GraphFactCheckingService:
 
         # Add cluster context to reasoning if available
         if cluster_result:
-            cluster_type = cluster_result.metadata.get("cluster_type", "unknown")
+            cluster_type = cluster_result.metadata.get(
+                "cluster_type", "unknown")
             num_related = len(cluster_result.individual_results)
             cluster_msg = f" [Verified as part of {cluster_type} cluster"
             cluster_context = f"{cluster_msg} with {num_related} related facts]"
@@ -498,7 +510,8 @@ class GraphFactCheckingService:
         self, verification_results: dict[str, Any], claim_results: list[ClaimResult]
     ) -> FactCheckSummary:
         """Compile summary from graph verification results."""
-        total_sources_found = sum(len(result.sources) for result in claim_results)
+        total_sources_found = sum(len(result.sources)
+                                  for result in claim_results)
         # In graph approach, all found sources are considered credible
         credible_sources = total_sources_found
         supporting_evidence = sum(
@@ -641,7 +654,8 @@ class GraphFactCheckingService:
             return enhanced_context
 
         except Exception as e:
-            self.logger.warning(f"Failed to enhance context with reputation: {e}")
+            self.logger.warning(
+                f"Failed to enhance context with reputation: {e}")
             return context
 
     async def _update_graph_with_results(
@@ -718,7 +732,8 @@ class GraphFactCheckingService:
 
         try:
             # Use the new method from Neo4jGraphStorage
-            history = self.graph_storage.get_verification_history(fact_claim, limit)
+            history = self.graph_storage.get_verification_history(
+                fact_claim, limit)
 
             # Enhance history with additional metadata if available
             enhanced_history = []
@@ -751,7 +766,7 @@ class GraphFactCheckingService:
             self.logger.error(f"Failed to get verification history: {e}")
             return []
 
-    async def get_source_reputation_score(self, source_url: str) -> Optional[float]:
+    async def get_source_reputation_score(self, source_url: str) -> float | None:
         """Get reputation score for a source."""
         if not self.source_reputation:
             return None
@@ -905,28 +920,29 @@ class GraphFactCheckingService:
         """Close all resources and cleanup."""
         try:
             # Close verification engine (which will close SourceManager and WebScraper)
-            if hasattr(self, 'verification_engine') and self.verification_engine:
+            if hasattr(self, "verification_engine") and self.verification_engine:
                 await self.verification_engine.close()
                 self.logger.info("Verification engine closed")
 
             # Close graph storage connection
-            if hasattr(self, 'graph_storage') and self.graph_storage:
+            if hasattr(self, "graph_storage") and self.graph_storage:
                 await self.graph_storage.close()
                 self.logger.info("Graph storage connection closed")
 
             # Clear all caches
-            if hasattr(self, 'verification_cache') and self.verification_cache:
+            if hasattr(self, "verification_cache") and self.verification_cache:
                 await self.verification_cache.clear()
                 self.logger.info("Verification cache cleared")
 
-            if hasattr(self, 'general_cache') and self.general_cache:
+            if hasattr(self, "general_cache") and self.general_cache:
                 await self.general_cache.clear()
                 self.logger.info("General cache cleared")
 
             self.logger.info("GraphFactCheckingService closed successfully")
 
         except Exception as e:
-            self.logger.error(f"Error during GraphFactCheckingService cleanup: {e}")
+            self.logger.error(
+                f"Error during GraphFactCheckingService cleanup: {e}")
 
     async def __aenter__(self):
         """Async context manager entry."""

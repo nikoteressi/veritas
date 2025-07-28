@@ -4,10 +4,6 @@ Service for generating the final verdict.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 import json
 import logging
 
@@ -32,9 +28,9 @@ class VerdictService:
         self,
         fact_check_result: FactCheckResult,
         user_prompt: str,
-        temporal_analysis: Optional[TemporalAnalysisResult] = None,
-        motives_analysis: Optional[MotivesAnalysisResult] = None,
-        summary: Optional[str] = None,
+        temporal_analysis: TemporalAnalysisResult | None = None,
+        motives_analysis: MotivesAnalysisResult | None = None,
+        summary: str | None = None,
     ) -> VerdictResult:
         """
         Generate the final verdict using enhanced context from summarization and motives analysis.
@@ -63,7 +59,9 @@ class VerdictService:
         if motives_analysis:
             primary_motive = motives_analysis.primary_motive or "Unknown"
             logger.info(f"Using motives analysis for verdict: {primary_motive}")
-        logger.info(f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified")
+        logger.info(
+            f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified"
+        )
 
         parser = PydanticOutputParser(pydantic_object=VerdictResult)
 
@@ -161,8 +159,8 @@ class VerdictService:
         self,
         fact_check_summary: str,
         motives_summary: str,
-        summary: Optional[str],
-        motives_analysis: Optional[MotivesAnalysisResult],
+        summary: str | None,
+        motives_analysis: MotivesAnalysisResult | None,
     ) -> str:
         """Create a comprehensive context combining all analysis results."""
         context_parts = []
@@ -205,7 +203,7 @@ class VerdictService:
         return "\n".join(context_parts)
 
     def _summarize_motives_analysis(
-        self, motives_analysis: Optional[MotivesAnalysisResult]
+        self, motives_analysis: MotivesAnalysisResult | None
     ) -> str:
         """
         Create a summary of the motives analysis for the final prompt.

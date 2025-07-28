@@ -10,7 +10,6 @@ Create Date: 2025-07-15 21:32:55.890279
 """
 
 from collections.abc import Sequence
-from typing import Optional
 
 import sqlalchemy as sa
 
@@ -18,7 +17,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "ee311854afa1"
-down_revision: Optional[str] = "a749f8c0e1c6"
+down_revision: str | None = "a749f8c0e1c6"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -31,8 +30,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "verification_results",
-        sa.Column("reasoning_model_used", sa.String(
-            length=100), nullable=True),
+        sa.Column("reasoning_model_used", sa.String(length=100), nullable=True),
     )
     op.drop_column("verification_results", "model_used")
     # ### end Alembic commands ###

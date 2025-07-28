@@ -4,7 +4,7 @@ from __future__ import annotations
 Custom exceptions for the Veritas application.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class VeritasException(Exception):
@@ -13,7 +13,7 @@ class VeritasException(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
+        error_code: str | None = None,
         details: dict[str, Any] | None = None,
     ):
         self.message = message

@@ -7,7 +7,7 @@ This module provides comprehensive configuration for all new components.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class CacheType(Enum):
@@ -43,7 +43,7 @@ class CacheConfig:
         default_factory=lambda: [CacheType.MEMORY, CacheType.REDIS]
     )
     memory_cache_size: int = 1000
-    redis_url: Optional[str] = "redis://localhost:6379"
+    redis_url: str | None = "redis://localhost:6379"
     disk_cache_dir: str = "./cache"
     default_ttl: int = 3600  # 1 hour
     max_ttl: int = 86400  # 24 hours
@@ -101,7 +101,7 @@ class SourceReputationConfig:
 
     # Bias detection
     enable_bias_detection: bool = True
-    bias_keywords_file: Optional[str] = None
+    bias_keywords_file: str | None = None
     political_bias_threshold: float = 0.7
 
 
@@ -192,7 +192,7 @@ class RelationshipAnalysisConfig:
     enable_temporal_clustering: bool = True
 
     # Causal analysis
-    causal_keywords_file: Optional[str] = None
+    causal_keywords_file: str | None = None
     causal_confidence_threshold: float = 0.6
     enable_statistical_inference: bool = True
 

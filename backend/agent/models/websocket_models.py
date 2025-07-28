@@ -4,7 +4,7 @@ from __future__ import annotations
 Pydantic models for WebSocket communication.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class WebSocketMessage(BaseModel):
 
     type: str = Field(..., description="Message type")
     data: dict[str, Any] = Field(..., description="Message data")
-    timestamp: Optional[str] = Field(None, description="Message timestamp")
+    timestamp: str | None = Field(None, description="Message timestamp")
 
 
 class WebSocketResponse(BaseModel):

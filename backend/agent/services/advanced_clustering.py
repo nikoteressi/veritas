@@ -7,14 +7,16 @@ domain-based clustering, using GNNs to understand complex relationships between 
 """
 
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from dateutil import parser
 from sklearn.cluster import DBSCAN, AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
 from torch_geometric.nn import GATConv, GCNConv, global_mean_pool
@@ -71,7 +73,7 @@ class GraphNeuralNetwork(nn.Module):
     def forward(self, x, edge_index, batch=None):
         """Forward pass through the GNN."""
         # Apply graph convolutions with ReLU activation
-        for i, conv in enumerate(self.convs):
+        for conv in self.convs:
             x = conv(x, edge_index)
             x = F.relu(x)
             x = self.dropout(x)
@@ -89,7 +91,7 @@ class GraphNeuralNetwork(nn.Module):
 class AdvancedClusteringSystem:
     """Advanced clustering system using GNNs and multiple similarity metrics."""
 
-    def __init__(self, config: Optional[ClusteringConfig] = None, graph_builder=None):
+    def __init__(self, config: ClusteringConfig | None = None, graph_builder=None):
         self.config = config or ClusteringConfig()
         self.graph_builder = graph_builder
         self.gnn_model = None
@@ -110,7 +112,7 @@ class AdvancedClusteringSystem:
                 "GNN will be initialized dynamically based on embedding dimensions"
             )
 
-        except Exception as e:
+        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
             self.logger.error("Failed to initialize GNN: %s", e)
             self.config.use_gnn = False
 
@@ -131,10 +133,10 @@ class AdvancedClusteringSystem:
             # Set to evaluation mode (we'll implement training later)
             self.gnn_model.eval()
             self.logger.info(
-                f"GNN model initialized with embedding dimension {embedding_dim}"
+                "GNN model initialized with embedding dimension %d", embedding_dim
             )
 
-        except Exception as e:
+        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
             self.logger.error("Failed to initialize GNN with embedding dim: %s", e)
             self.config.use_gnn = False
 
@@ -151,7 +153,7 @@ class AdvancedClusteringSystem:
         if not graph.nodes:
             return {}
 
-        self.logger.info(f"Starting advanced clustering for {len(graph.nodes)} facts")
+        self.logger.info("Starting advanced clustering for %d facts", len(graph.nodes))
 
         # Step 1: Extract features and build similarity matrix
         similarity_matrix = await self._build_similarity_matrix(graph)
@@ -164,7 +166,7 @@ class AdvancedClusteringSystem:
         # Step 3: Validate and optimize clusters
         optimized_clusters = await self._optimize_clusters(clusters, graph)
 
-        self.logger.info(f"Created {len(optimized_clusters)} clusters")
+        self.logger.info("Created %d clusters", len(optimized_clusters))
         return optimized_clusters
 
     async def _build_similarity_matrix(self, graph) -> np.ndarray:
@@ -182,7 +184,7 @@ class AdvancedClusteringSystem:
         # Generate missing embeddings
         if nodes_without_embeddings:
             self.logger.info(
-                f"Generating embeddings for {len(nodes_without_embeddings)} nodes"
+                "Generating embeddings for %d nodes", len(nodes_without_embeddings)
             )
             try:
                 # Extract claims for embedding generation
@@ -203,11 +205,12 @@ class AdvancedClusteringSystem:
                     node.embedding = embeddings_array[i]
 
                 self.logger.info(
-                    f"Successfully generated embeddings for {len(nodes_without_embeddings)} nodes"
+                    "Successfully generated embeddings for %d nodes",
+                    len(nodes_without_embeddings),
                 )
 
             except Exception as e:
-                self.logger.error(f"Failed to generate embeddings: {e}")
+                self.logger.error("Failed to generate embeddings: %s", e)
                 raise RuntimeError(f"Failed to generate missing embeddings: {e}") from e
 
         # Get embeddings with validation
@@ -218,14 +221,14 @@ class AdvancedClusteringSystem:
                 # Check for NaN or invalid values
                 if np.any(np.isnan(embedding)) or np.any(np.isinf(embedding)):
                     self.logger.error(
-                        f"Node {node.id} has invalid embedding with NaN/Inf values"
+                        "Node %s has invalid embedding with NaN/Inf values", node.id
                     )
                     raise ValueError(
                         f"Invalid embedding for node {node.id}: contains NaN or Inf values"
                     )
                 embeddings.append(embedding)
             else:
-                self.logger.error(f"Node {node.id} has no valid embedding")
+                self.logger.error("Node %s has no valid embedding", node.id)
                 raise ValueError(f"Node {node.id} is missing embedding data")
 
         embeddings = np.array(embeddings)
@@ -233,7 +236,7 @@ class AdvancedClusteringSystem:
         # Validate embeddings shape
         if embeddings.ndim != 2:
             self.logger.error(
-                f"Embeddings have invalid shape: {embeddings.shape}, expected 2D array"
+                "Embeddings have invalid shape: %s, expected 2D array", embeddings.shape
             )
             raise ValueError(
                 f"Embeddings must be 2D array, got shape: {embeddings.shape}"
@@ -241,7 +244,9 @@ class AdvancedClusteringSystem:
 
         if embeddings.shape[0] != n_nodes:
             self.logger.error(
-                f"Embeddings count mismatch: {embeddings.shape[0]} vs {n_nodes} nodes"
+                "Embeddings count mismatch: %d vs %d nodes",
+                embeddings.shape[0],
+                n_nodes,
             )
             raise ValueError(
                 f"Embeddings count ({embeddings.shape[0]}) doesn't match nodes count ({n_nodes})"
@@ -251,7 +256,7 @@ class AdvancedClusteringSystem:
         try:
             semantic_sim = cosine_similarity(embeddings)
         except Exception as e:
-            self.logger.error(f"Failed to compute semantic similarity: {e}")
+            self.logger.error("Failed to compute semantic similarity: %s", e)
             raise RuntimeError(f"Semantic similarity computation failed: {e}") from e
 
         # 2. Temporal similarity
@@ -315,7 +320,7 @@ class AdvancedClusteringSystem:
         structural_sim = np.zeros((n_nodes, n_nodes))
 
         # Create node ID to index mapping
-        node_to_idx = {node.id: i for i, node in enumerate(nodes)}
+        # Node to index mapping is handled in the edge processing section
 
         # Compute common neighbors and path similarities
         for i, node_i in enumerate(nodes):
@@ -396,8 +401,8 @@ class AdvancedClusteringSystem:
 
             return gnn_similarity
 
-        except Exception as e:
-            self.logger.warning(f"GNN similarity computation failed: {e}")
+        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
+            self.logger.warning("GNN similarity computation failed: %s", e)
             return np.zeros((len(nodes), len(nodes)))
 
     async def _apply_clustering(
@@ -618,14 +623,10 @@ class AdvancedClusteringSystem:
 
         return list(sub_clusters.values())
 
-    def _extract_timestamp(self, claim: str) -> Optional[datetime]:
+    def _extract_timestamp(self, claim: str) -> datetime | None:
         """Extract timestamp from claim text."""
         # This is a simplified implementation
         # In practice, you'd use more sophisticated NLP techniques
-        import re
-
-        from dateutil import parser
-
         # Look for date patterns
         date_patterns = [
             r"\b\d{4}-\d{2}-\d{2}\b",  # YYYY-MM-DD
@@ -638,7 +639,7 @@ class AdvancedClusteringSystem:
             if match:
                 try:
                     return parser.parse(match.group())
-                except:
+                except (ValueError, TypeError, parser.ParserError):
                     continue
 
         return None

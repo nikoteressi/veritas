@@ -10,7 +10,7 @@ import logging
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -39,7 +39,8 @@ class RelationshipConfig:
     max_relationship_depth: int = 3
     min_evidence_overlap: int = 2
     use_transformer_embeddings: bool = True
-    transformer_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Using Ollama embeddings instead of external models
+    transformer_model: str = "ollama"
 
 
 class RelationshipType:
@@ -64,9 +65,9 @@ class FactRelationship:
     strength: float
     confidence: float
     evidence: list[str]
-    temporal_order: Optional[str] = None  # "before", "after", "concurrent"
+    temporal_order: str | None = None  # "before", "after", "concurrent"
     # "causes", "caused_by", "bidirectional"
-    causal_direction: Optional[str] = None
+    causal_direction: str | None = None
     metadata: dict[str, Any] = None
 
     def __post_init__(self):
@@ -81,7 +82,8 @@ class SemanticAnalyzer:
         self.config = config
         self.nlp = None
         self.ollama_embedding_function = None
-        self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words="english")
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_features=1000, stop_words="english")
         self.logger = logging.getLogger(__name__)
 
         self._initialize_models()
@@ -92,15 +94,18 @@ class SemanticAnalyzer:
             # Load spaCy model
             self.nlp = spacy.load("en_core_web_sm")
         except OSError:
-            self.logger.warning("spaCy model not found, using basic text processing")
+            self.logger.warning(
+                "spaCy model not found, using basic text processing")
 
         if self.config.use_transformer_embeddings:
             try:
                 # Initialize Ollama embedding function
                 self.ollama_embedding_function = create_ollama_embedding_function()
-                self.logger.info("Initialized Ollama embeddings for semantic analysis")
+                self.logger.info(
+                    "Initialized Ollama embeddings for semantic analysis")
             except Exception as e:
-                self.logger.warning(f"Failed to initialize Ollama embeddings: {e}")
+                self.logger.warning(
+                    f"Failed to initialize Ollama embeddings: {e}")
 
     def analyze_semantic_similarity(
         self, fact1: dict[str, Any], fact2: dict[str, Any]
@@ -189,7 +194,8 @@ class SemanticAnalyzer:
         """Extract entities and concepts from fact text."""
         text = self._extract_fact_text(fact)
 
-        entities = {"PERSON": [], "ORG": [], "GPE": [], "EVENT": [], "PRODUCT": []}
+        entities = {"PERSON": [], "ORG": [],
+                    "GPE": [], "EVENT": [], "PRODUCT": []}
         concepts = []
 
         if self.nlp is not None:
@@ -242,7 +248,8 @@ class TemporalAnalyzer:
 
         # Calculate confidence based on temporal proximity
         if time_diff_days <= self.config.temporal_window_days:
-            confidence = 1.0 - (time_diff_days / self.config.temporal_window_days)
+            confidence = 1.0 - (time_diff_days /
+                                self.config.temporal_window_days)
         else:
             confidence = 0.1  # Low confidence for distant events
 
@@ -254,7 +261,7 @@ class TemporalAnalyzer:
             "timestamp2": timestamp2.isoformat(),
         }
 
-    def _extract_timestamp(self, fact: dict[str, Any]) -> Optional[datetime]:
+    def _extract_timestamp(self, fact: dict[str, Any]) -> datetime | None:
         """Extract timestamp from fact data."""
         # Try different timestamp fields
         timestamp_fields = ["timestamp", "created_at", "published_at", "date"]
@@ -319,7 +326,8 @@ class CausalAnalyzer:
                 fact1, fact2, context_facts
             )
         else:
-            statistical_result = {"method": "insufficient_data", "p_value": 1.0}
+            statistical_result = {
+                "method": "insufficient_data", "p_value": 1.0}
 
         # Combine evidence
         causal_strength = self._compute_causal_strength(
@@ -357,7 +365,8 @@ class CausalAnalyzer:
             "consequence",
         ]
 
-        causal_score = sum(1 for keyword in causal_keywords if keyword in text.lower())
+        causal_score = sum(
+            1 for keyword in causal_keywords if keyword in text.lower())
 
         return {
             "causal_keyword_count": causal_score,
@@ -392,7 +401,8 @@ class CausalAnalyzer:
             "triggers",
             "brings about",
         ]
-        causal_phrases_2_to_1 = ["because of", "due to", "caused by", "triggered by"]
+        causal_phrases_2_to_1 = ["because of",
+                                 "due to", "caused by", "triggered by"]
 
         indicators = {
             "linguistic_1_to_2": any(
@@ -477,11 +487,12 @@ class CausalAnalyzer:
 
         return features if features else None
 
-    def _extract_outcome_variable(self, fact: dict[str, Any]) -> Optional[float]:
+    def _extract_outcome_variable(self, fact: dict[str, Any]) -> float | None:
         """Extract outcome variable for causal analysis."""
         # Use verification result as outcome
         if "verdict" in fact:
-            verdict_map = {"TRUE": 1.0, "FALSE": 0.0, "MIXED": 0.5, "UNKNOWN": 0.5}
+            verdict_map = {"TRUE": 1.0, "FALSE": 0.0,
+                           "MIXED": 0.5, "UNKNOWN": 0.5}
             return verdict_map.get(fact["verdict"], 0.5)
 
         if "verification_score" in fact:
@@ -547,7 +558,7 @@ class CausalAnalyzer:
 class RelationshipAnalysisEngine:
     """Main engine for analyzing relationships between facts."""
 
-    def __init__(self, config: Optional[RelationshipConfig] = None):
+    def __init__(self, config: RelationshipConfig | None = None):
         self.config = config or RelationshipConfig()
         self.semantic_analyzer = SemanticAnalyzer(self.config)
         self.temporal_analyzer = TemporalAnalyzer(self.config)
@@ -562,7 +573,7 @@ class RelationshipAnalysisEngine:
 
         # Analyze pairwise relationships
         for i, fact1 in enumerate(facts):
-            for j, fact2 in enumerate(facts[i + 1 :], i + 1):
+            for j, fact2 in enumerate(facts[i + 1:], i + 1):
                 relationship = await self._analyze_fact_pair(fact1, fact2, facts)
                 if relationship:
                     relationships.append(relationship)
@@ -577,7 +588,7 @@ class RelationshipAnalysisEngine:
         fact1: dict[str, Any],
         fact2: dict[str, Any],
         context_facts: list[dict[str, Any]],
-    ) -> Optional[FactRelationship]:
+    ) -> FactRelationship | None:
         """Analyze relationship between a pair of facts."""
         fact_id_1 = fact1.get("id", f"fact_{hash(str(fact1))}")
         fact_id_2 = fact2.get("id", f"fact_{hash(str(fact2))}")
@@ -698,7 +709,8 @@ class RelationshipAnalysisEngine:
         evidence = []
 
         if semantic_similarity > 0.5:
-            evidence.append(f"High semantic similarity: {semantic_similarity:.2f}")
+            evidence.append(
+                f"High semantic similarity: {semantic_similarity:.2f}")
 
         if temporal_result.get("confidence", 0) > 0.5:
             evidence.append(

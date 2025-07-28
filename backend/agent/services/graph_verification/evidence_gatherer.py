@@ -2,20 +2,23 @@
 Evidence gatherer for fact verification.
 
 Handles search query generation and evidence collection for fact clusters.
+Enhanced with intelligent caching and adaptive relevance scoring.
 """
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.models.fact_checking_models import QueryGenerationOutput
 from agent.models.graph import ClusterType, FactCluster
 from agent.prompt_manager import PromptManager
+from agent.services.adaptive_thresholds import get_adaptive_thresholds
+from agent.services.intelligent_cache import IntelligentCache
 
 from .response_parser import ResponseParser
+from .source_manager import EnhancedSourceManager
 
 if TYPE_CHECKING:
     from agent.tools import SearxNGSearchTool
@@ -23,14 +26,36 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class EvidenceGatherer:
-    """Gathers evidence for fact verification through search and analysis."""
+class EnhancedEvidenceGatherer:
+    """Enhanced evidence gatherer with intelligent caching and adaptive relevance scoring."""
 
-    def __init__(self, search_tool: "SearxNGSearchTool"):
+    def __init__(self, search_tool: "SearxNGSearchTool", config=None):
         self._search_tool = search_tool
+        self.config = config
         self.prompt_manager = PromptManager()
         self.response_parser = ResponseParser()
-        self._search_cache: dict[str, list[dict[str, Any]]] = {}
+
+        # Use intelligent cache instead of simple dict
+        self.cache = IntelligentCache(max_memory_size=1000)
+
+        # Initialize enhanced source manager
+        max_concurrent_scrapes = 3  # Default value
+        if self.config and hasattr(self.config, "max_concurrent_scrapes"):
+            max_concurrent_scrapes = self.config.max_concurrent_scrapes
+        self.source_manager = EnhancedSourceManager(
+            max_concurrent_scrapes=max_concurrent_scrapes
+        )
+
+        # Get adaptive thresholds instance
+        self.adaptive_thresholds = get_adaptive_thresholds()
+
+        # Performance tracking
+        self.performance_metrics = {
+            "queries_executed": 0,
+            "cache_hits": 0,
+            "sources_evaluated": 0,
+            "relevance_scores": [],
+        }
 
     async def create_cluster_search_queries(self, cluster: FactCluster) -> list[str]:
         """Create optimized search queries for a cluster using LLM."""
@@ -46,9 +71,11 @@ class EvidenceGatherer:
         parser = PydanticOutputParser(pydantic_object=QueryGenerationOutput)
 
         # Get domain-specific role description
-        role_description = self.prompt_manager.get_domain_role_description("general")
+        role_description = self.prompt_manager.get_domain_role_description(
+            "general")
 
-        prompt_template = self.prompt_manager.get_prompt_template("query_generation")
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "query_generation")
         prompt = await prompt_template.aformat(
             role_description=role_description,
             claim=primary_claim,
@@ -83,7 +110,8 @@ class EvidenceGatherer:
             # For similarity clusters, use cleaned shared context
             shared_context = cluster.shared_context or ""
             if shared_context.startswith("Combined:"):
-                shared_context = shared_context.replace("Combined:", "").strip()
+                shared_context = shared_context.replace(
+                    "Combined:", "").strip()
             if shared_context.startswith("Common themes:") or shared_context.startswith(
                 "Themes:"
             ):
@@ -94,51 +122,93 @@ class EvidenceGatherer:
                 )
             return f"Context: {shared_context}" if shared_context else "General context"
 
-    async def execute_searches_batch(self, queries: list[str]) -> list[dict[str, Any]]:
-        """Execute multiple search queries in parallel."""
+    async def execute_searches_batch(
+        self, queries: list[str], query_context: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Execute multiple search queries in parallel with intelligent caching."""
         if not queries:
             return []
 
-        # Filter out cached queries
-        queries_to_execute = [q for q in queries if q not in self._search_cache]
+        logger.info(
+            f"Executing {len(queries)} search queries with context: {query_context}"
+        )
 
-        if not queries_to_execute:
-            logger.info("All queries already cached")
-            return [self._search_cache[q] for q in queries if q in self._search_cache]
-
-        logger.info(f"Executing {len(queries_to_execute)} search queries")
-
-        # Execute searches in parallel
-        search_tasks = [
-            self._search_tool._arun(query=query) for query in queries_to_execute
-        ]
-
-        search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
-
-        # Process results and update cache
         all_results = []
+        cache_hits = 0
 
-        for query, result in zip(queries_to_execute, search_results, strict=False):
-            if isinstance(result, Exception):
-                logger.error(f"Search query '{query}' failed: {result}")
-                result_data = {"query": query, "results": f"Search failed: {result}"}
-            else:
-                result_data = {"query": query, "results": result}
-                self._search_cache[query] = result_data
-
-            all_results.append(result_data)
-
-        # Add cached results for all requested queries
         for query in queries:
-            if query in self._search_cache and query not in queries_to_execute:
-                all_results.append(self._search_cache[query])
+            try:
+                # Generate cache key
+                cache_key = f"search_result:{hash(query)}"
+
+                # Check intelligent cache first
+                cached_result = await self.cache.get(cache_key)
+                if cached_result:
+                    logger.debug(f"Cache hit for query: {query}")
+                    all_results.append(cached_result)
+                    cache_hits += 1
+                    self.performance_metrics["cache_hits"] += 1
+                    continue
+
+                # Execute search if not in cache
+                logger.debug(f"Executing search for query: {query}")
+
+                # Get max_results from config, default to 10
+                max_results = 10
+                if self.config and hasattr(self.config, "max_search_results"):
+                    max_results = self.config.max_search_results
+
+                search_result = await self._search_tool._arun(
+                    query=query, max_results=max_results
+                )
+
+                result_data = {
+                    "query": query,
+                    "results": search_result,
+                    "context": query_context,
+                    "timestamp": "now",
+                }
+
+                # Store in intelligent cache
+                cache_metadata = {
+                    "query": query,
+                    "context": query_context,
+                    "result_length": len(str(search_result)),
+                }
+
+                await self.cache.set(
+                    cache_key,
+                    result_data,
+                    ttl_seconds=1800,  # 30 minutes TTL
+                    dependencies=cache_metadata,
+                )
+
+                all_results.append(result_data)
+                self.performance_metrics["queries_executed"] += 1
+
+            except Exception as e:
+                logger.error(f"Search query '{query}' failed: {e}")
+                error_result = {
+                    "query": query,
+                    "results": f"Search failed: {e}",
+                    "error": True,
+                }
+                all_results.append(error_result)
+
+        cache_hit_rate = cache_hits / len(queries) if queries else 0
+        logger.info(
+            f"Search batch completed. Cache hit rate: {cache_hit_rate:.2%}")
 
         return all_results
 
     async def select_credible_sources_batch(
-        self, combined_claim: str, search_results_data: list[dict[str, Any]]
+        self,
+        combined_claim: str,
+        search_results_data: list[dict[str, Any]],
+        source_type: str = "web",
+        query_type: str = "factual",
     ) -> list[str]:
-        """Select credible sources from all search results using LLM."""
+        """Select credible sources with enhanced relevance scoring and adaptive thresholds."""
         if not search_results_data:
             return []
 
@@ -156,63 +226,114 @@ class EvidenceGatherer:
             logger.warning("No sources found in search results")
             return []
 
-        # Limit sources for LLM processing
-        sources_to_evaluate = all_sources_list[:20]  # Limit to top 20 sources
+        # Limit sources for processing
+        sources_to_evaluate = all_sources_list[:20]
+        self.performance_metrics["sources_evaluated"] += len(
+            sources_to_evaluate)
 
-        # Create prompt for source selection
-        sources_text = "\n".join(
-            [f"{i+1}. {url}" for i, url in enumerate(sources_to_evaluate)]
+        # Get adaptive threshold for source selection
+        threshold = await self.adaptive_thresholds.get_adaptive_threshold(
+            query_type=query_type,
+            source_type=source_type,
+            context={"claim_length": len(combined_claim)},
         )
 
-        format_unstructions = (
-            self.response_parser.get_source_selection_format_instructions()
+        # Scrape and evaluate sources with relevance scoring
+        logger.info(
+            f"Scraping and evaluating {len(sources_to_evaluate)} sources")
+
+        source_contents = await self.source_manager.scrape_sources_batch(
+            sources_to_evaluate, query_context=combined_claim
         )
 
-        prompt_template = self.prompt_manager.get_prompt_template(
-            "select_credible_sources"
+        # Calculate relevance scores for each source
+        scored_sources = []
+        for url, content in source_contents.items():
+            if content and not content.startswith("Failed to scrape"):
+                relevance_score = await self.source_manager.calculate_relevance(
+                    content, combined_claim, source_type, query_type
+                )
+
+                scored_sources.append(
+                    {"url": url, "content": content,
+                        "relevance_score": relevance_score}
+                )
+
+                self.performance_metrics["relevance_scores"].append(
+                    relevance_score)
+
+        # Filter sources by adaptive threshold
+        credible_sources = [
+            source
+            for source in scored_sources
+            if source["relevance_score"] >= threshold
+        ]
+
+        # Sort by relevance score and limit to top sources
+        credible_sources.sort(key=lambda x: x["relevance_score"], reverse=True)
+        top_sources = credible_sources[:10]  # Limit to top 10
+
+        credible_urls = [source["url"] for source in top_sources]
+
+        # Record performance metrics
+        avg_relevance = (
+            sum(s["relevance_score"] for s in top_sources) / len(top_sources)
+            if top_sources
+            else 0
         )
-        prompt = await prompt_template.aformat(
-            sources=sources_text,
-            claims=combined_claim,
-            max_sources=min(10, len(sources_to_evaluate)),
-            format_instructions=format_unstructions,
+
+        # Calculate performance metrics for adaptive thresholds
+        precision = len(credible_urls) / \
+            len(scored_sources) if scored_sources else 0.0
+        # Assume ideal is 10 sources
+        recall = min(1.0, len(credible_urls) / 10)
+        f1_score = (
+            2 * (precision * recall) / (precision + recall)
+            if (precision + recall) > 0
+            else 0.0
+        )
+        source_retention_rate = (
+            len(credible_urls) / len(sources_to_evaluate)
+            if sources_to_evaluate
+            else 0.0
         )
 
-        try:
-            llm_response = await llm_manager.invoke_text_only(prompt)
-            selected_indices = self.response_parser.parse_source_selection_response(
-                llm_response
-            )
+        await self.adaptive_thresholds.record_performance_metrics(
+            precision=precision,
+            recall=recall,
+            f1_score=f1_score,
+            source_retention_rate=source_retention_rate,
+            query_type=query_type,
+            source_type=source_type,
+        )
 
-            # Return selected sources
-            credible_urls = []
-            for idx in selected_indices:
-                if 0 <= idx < len(sources_to_evaluate):
-                    credible_urls.append(sources_to_evaluate[idx])
+        logger.info(
+            f"Selected {len(credible_urls)} credible sources from {len(sources_to_evaluate)} "
+            f"(threshold: {threshold:.3f}, avg_relevance: {avg_relevance:.3f})"
+        )
 
-            logger.info(
-                f"Selected {len(credible_urls)} credible sources from {len(sources_to_evaluate)}"
-            )
-            return credible_urls
-
-        except Exception as e:
-            logger.error(f"Failed to select credible sources: {e}")
-            raise RuntimeError(f"Failed to select credible sources: {e}")
+        return credible_urls
 
     async def clear_search_cache(self):
-        """Clear the search cache."""
-        self._search_cache.clear()
-        logger.info("Search cache cleared")
+        """Clear the intelligent cache."""
+        await self.cache.clear()
+        logger.info("Intelligent search cache cleared")
 
     async def gather_cluster_evidence(
-        self, cluster: FactCluster, context
+        self,
+        cluster: FactCluster,
+        context,
+        source_type: str = "web",
+        query_type: str = "factual",
     ) -> list[dict[str, Any]]:
         """
-        Gather evidence for a cluster by executing search queries and collecting sources.
+        Gather evidence for a cluster with enhanced relevance scoring and adaptive thresholds.
 
         Args:
             cluster: The fact cluster to gather evidence for
-            context: Verification context (currently unused but kept for compatibility)
+            context: Verification context
+            source_type: Type of sources to prioritize (web, academic, news, etc.)
+            query_type: Type of query (factual, opinion, analysis, etc.)
 
         Returns:
             List of evidence dictionaries containing search results and sources
@@ -222,48 +343,135 @@ class EvidenceGatherer:
             search_queries = await self.create_cluster_search_queries(cluster)
 
             if not search_queries:
-                logger.warning(f"No search queries generated for cluster {cluster.id}")
+                logger.warning(
+                    f"No search queries generated for cluster {cluster.id}")
                 return []
 
-            # Step 2: Execute searches
-            search_results = await self.execute_searches_batch(search_queries)
-
-            # Step 3: Extract combined claims for source selection
-            combined_claims = "; ".join([node.claim for node in cluster.nodes[:3]])
-
-            # Step 4: Select credible sources
-            credible_sources = await self.select_credible_sources_batch(
-                combined_claims, search_results
+            # Step 2: Execute searches with context
+            combined_claims = "; ".join(
+                [node.claim for node in cluster.nodes[:3]])
+            search_results = await self.execute_searches_batch(
+                search_queries, query_context=combined_claims
             )
 
-            # Step 5: Compile evidence
+            # Step 3: Select credible sources with enhanced scoring
+            credible_sources = await self.select_credible_sources_batch(
+                combined_claims, search_results, source_type, query_type
+            )
+
+            # Step 4: Compile enhanced evidence
             evidence = []
             for result_data in search_results:
+                # Calculate query-specific relevance if not an error
+                query_relevance = 0.0
+                if not result_data.get("error", False):
+                    query_text = result_data.get("query", "")
+                    search_content = str(result_data.get("results", ""))
+                    if query_text and search_content:
+                        query_relevance = await self.source_manager.calculate_relevance(
+                            search_content, query_text, source_type, query_type
+                        )
+
                 evidence_item = {
                     "query": result_data.get("query", ""),
                     "search_results": result_data.get("results", ""),
                     "credible_sources": credible_sources,
                     "cluster_id": cluster.id,
+                    "query_relevance": query_relevance,
+                    "source_type": source_type,
+                    "query_type": query_type,
+                    "context": result_data.get("context", ""),
+                    "timestamp": result_data.get("timestamp", ""),
                 }
                 evidence.append(evidence_item)
 
+            # Log comprehensive metrics
+            avg_query_relevance = (
+                sum(e["query_relevance"] for e in evidence) / len(evidence)
+                if evidence
+                else 0
+            )
             logger.info(
                 f"Gathered evidence for cluster {cluster.id}: "
-                f"{len(search_queries)} queries, {len(credible_sources)} credible sources"
+                f"{len(search_queries)} queries, {len(credible_sources)} credible sources, "
+                f"avg_query_relevance: {avg_query_relevance:.3f}"
             )
 
             return evidence
 
         except Exception as e:
-            logger.error(f"Failed to gather evidence for cluster {cluster.id}: {e}")
+            logger.error(
+                f"Failed to gather evidence for cluster {cluster.id}: {e}")
             return []
 
-    def get_cache_stats(self) -> dict[str, int]:
-        """Get search cache statistics."""
+    async def get_cache_stats(self) -> dict[str, Any]:
+        """Get comprehensive cache and performance statistics."""
+        cache_stats = await self.cache.get_stats()
+
+        # Calculate performance metrics
+        avg_relevance = (
+            (
+                sum(self.performance_metrics["relevance_scores"])
+                / len(self.performance_metrics["relevance_scores"])
+            )
+            if self.performance_metrics["relevance_scores"]
+            else 0.0
+        )
+
         return {
-            "cached_queries": len(self._search_cache),
-            "total_results": sum(
-                len(str(data.get("results", "")))
-                for data in self._search_cache.values()
+            "cache_stats": cache_stats,
+            "performance_metrics": {
+                "queries_executed": self.performance_metrics["queries_executed"],
+                "cache_hits": self.performance_metrics["cache_hits"],
+                "sources_evaluated": self.performance_metrics["sources_evaluated"],
+                "average_relevance_score": avg_relevance,
+                "total_relevance_calculations": len(
+                    self.performance_metrics["relevance_scores"]
+                ),
+            },
+            "cache_hit_rate": (
+                self.performance_metrics["cache_hits"]
+                / max(
+                    1,
+                    self.performance_metrics["queries_executed"]
+                    + self.performance_metrics["cache_hits"],
+                )
             ),
         }
+
+    async def optimize_performance(self):
+        """Optimize cache and performance based on usage patterns."""
+        # Optimize intelligent cache
+        await self.cache.optimize()
+
+        # Optimize source manager cache
+        await self.source_manager.optimize_cache()
+
+        # Get optimization recommendations from adaptive thresholds
+        recommendations = await self.adaptive_thresholds.get_threshold_recommendations()
+
+        logger.info(
+            f"Performance optimization completed. Recommendations: {recommendations}"
+        )
+        return recommendations
+
+    async def close(self):
+        """Close all resources and clean up."""
+        if self.cache:
+            await self.cache.close()
+            logger.info("EvidenceGatherer: IntelligentCache closed")
+
+        if self.source_manager:
+            await self.source_manager.close()
+            logger.info("EvidenceGatherer: SourceManager closed")
+
+        logger.info("EvidenceGatherer: Resources cleaned up")
+
+    async def clear_cache(self):
+        """Clear the intelligent cache."""
+        await self.cache.clear()
+        logger.info("Intelligent cache cleared")
+
+
+# Backward compatibility alias
+EvidenceGatherer = EnhancedEvidenceGatherer

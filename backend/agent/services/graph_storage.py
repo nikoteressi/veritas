@@ -11,7 +11,7 @@ efficient querying of large graphs.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from neo4j import Driver, GraphDatabase, Session
@@ -80,7 +80,7 @@ class Neo4jGraphStorage:
         self.uri = uri or settings.neo4j_uri
         self.auth = auth or (settings.neo4j_user, settings.neo4j_password)
         self.database = database or settings.neo4j_database
-        self.driver: Optional[Driver] = None
+        self.driver: Driver | None = None
         self.logger = logging.getLogger(__name__)
 
         self._connect()
@@ -371,7 +371,7 @@ class Neo4jGraphStorage:
             stats=safe_json_dumps(stats),
         )
 
-    def load_graph(self, graph_id: str) -> Optional[FactGraph]:
+    def load_graph(self, graph_id: str) -> FactGraph | None:
         """
         Load a complete graph from Neo4j.
 

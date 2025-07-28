@@ -6,7 +6,7 @@ Now uses fact-check verdicts and temporal analysis as primary inputs for informe
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -143,7 +143,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         content: str,
         fact_check_verdict: str,
         fact_check_confidence: float,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
         primary_topic: str,
     ) -> dict[str, Any]:
         """Use LLM to analyze motives based on fact-check results."""
@@ -198,7 +198,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         final_verdict: str,
         verdict_confidence: float,
         verdict_reasoning: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
         primary_topic: str,
         post_date: str,
         mentioned_dates: list,
@@ -257,7 +257,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         )
 
     def _format_temporal_analysis(
-        self, temporal_analysis: Optional[TemporalAnalysisResult]
+        self, temporal_analysis: TemporalAnalysisResult | None
     ) -> str:
         """Format temporal analysis for prompt readability."""
         if not temporal_analysis:
@@ -274,7 +274,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         self,
         fact_check_verdict: str,
         primary_topic: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
     ) -> dict[str, Any]:
         """Fallback rule-based analysis using fact-check context."""
 
@@ -331,7 +331,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         self,
         final_verdict: str,
         primary_topic: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
         post_date: str,
         mentioned_dates: list,
     ) -> dict[str, Any]:
@@ -429,7 +429,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         self,
         final_verdict: str,
         primary_topic: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
     ) -> list:
         """Identify manipulation indicators based on final verdict and context."""
         indicators = []
@@ -459,7 +459,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         analysis: dict[str, Any],
         fact_check_verdict: str,
         primary_topic: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
     ) -> dict[str, Any]:
         """Enhance analysis with additional context."""
 
@@ -489,7 +489,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         analysis: dict[str, Any],
         final_verdict: str,
         primary_topic: str,
-        temporal_analysis: Optional[TemporalAnalysisResult],
+        temporal_analysis: TemporalAnalysisResult | None,
         post_date: str,
         mentioned_dates: list,
     ) -> dict[str, Any]:

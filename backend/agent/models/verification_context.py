@@ -5,7 +5,7 @@ Verification context model for the verification pipeline.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,59 +37,59 @@ class VerificationContext(BaseModel):
     image_bytes: bytes = Field(..., description="Image content to analyze")
     user_prompt: str = Field(..., description="User's question/prompt")
     session_id: str = Field(..., description="Session identifier")
-    filename: Optional[str] = Field(None, description="Optional filename for display")
+    filename: str | None = Field(None, description="Optional filename for display")
 
     # Database and services (excluded from serialization)
-    db: Optional[AsyncSession] = Field(None, exclude=True, description="Database session")
-    event_service: Optional[EventEmissionService] = Field(
+    db: AsyncSession | None = Field(None, exclude=True, description="Database session")
+    event_service: EventEmissionService | None = Field(
         None, exclude=True, description="Event emission service"
     )
-    result_compiler: Optional[ResultCompiler] = Field(
+    result_compiler: ResultCompiler | None = Field(
         None, exclude=True, description="Result compiler service"
     )
 
     # Step-specific data
     validated_data: dict[str, Any] | None = None
-    screenshot_data: Optional[ScreenshotData] = None
-    primary_topic: Optional[str] = Field(
+    screenshot_data: ScreenshotData | None = None
+    primary_topic: str | None = Field(
         None,
         description="The primary topic or domain of the post (e.g., financial, political).",
     )
-    fact_hierarchy: Optional[FactHierarchy] = None
-    fact_graph: Optional[FactGraph] = Field(
+    fact_hierarchy: FactHierarchy | None = None
+    fact_graph: FactGraph | None = Field(
         None, description="Graph representation of facts and their relationships"
     )
-    summary: Optional[str] = None
+    summary: str | None = None
     claims: list[str] = Field(
         default_factory=list,
         description="A simple list of claims, for components that need it. "
         "Will be derived from fact_hierarchy.",
     )
-    user_reputation: Optional[Any] = None
-    updated_reputation: Optional[Any] = Field(
+    user_reputation: Any | None = None
+    updated_reputation: Any | None = Field(
         None, description="Reputation object after update"
     )
     warnings: list[str] = Field(
         default_factory=list,
         description="A list of warnings generated during the verification process.",
     )
-    additional_context: Optional[str] = Field(
+    additional_context: str | None = Field(
         None, description="Additional context for verification processes"
     )
 
     # Typed analysis results
-    temporal_analysis_result: Optional[TemporalAnalysisResult] = Field(
+    temporal_analysis_result: TemporalAnalysisResult | None = Field(
         None, description="Temporal analysis"
     )
-    motives_analysis_result: Optional[MotivesAnalysisResult] = Field(
+    motives_analysis_result: MotivesAnalysisResult | None = Field(
         None, description="Motives analysis"
     )
-    extracted_info_typed: Optional[ExtractedInfo] = Field(
+    extracted_info_typed: ExtractedInfo | None = Field(
         None, description="Extracted information"
     )
 
     # Analysis results
-    analysis_result: Optional[ImageAnalysisResult] = Field(
+    analysis_result: ImageAnalysisResult | None = Field(
         None, description="[DEPRECATED] Old image analysis result"
     )
     post_analysis_result: PostAnalysisResult = Field(
@@ -97,25 +97,25 @@ class VerificationContext(BaseModel):
     )
 
     # Fact checking results
-    fact_check_result: Optional[FactCheckResult] = Field(
+    fact_check_result: FactCheckResult | None = Field(
         None, description="Fact checking result"
     )
 
     # Summarization result
-    summarization_result: Optional[SummarizationResult] = Field(
+    summarization_result: SummarizationResult | None = Field(
         None, description="Summarization result"
     )
 
     # Final verdict
-    verdict_result: Optional[VerdictResult] = Field(
+    verdict_result: VerdictResult | None = Field(
         None, description="Final verdict result"
     )
 
     # Storage results
-    verification_record: Optional[Any] = Field(
+    verification_record: Any | None = Field(
         None, description="Verification record from database"
     )
-    verification_id: Optional[str] = Field(
+    verification_id: str | None = Field(
         None, description="ID of the verification record"
     )
 
@@ -133,7 +133,7 @@ class VerificationContext(BaseModel):
         """Set typed temporal analysis result."""
         self.temporal_analysis_result = result
 
-    def get_temporal_analysis(self) -> Optional[TemporalAnalysisResult]:
+    def get_temporal_analysis(self) -> TemporalAnalysisResult | None:
         """Get typed temporal analysis result."""
         return self.temporal_analysis_result
 
@@ -141,7 +141,7 @@ class VerificationContext(BaseModel):
         """Set typed motives analysis result."""
         self.motives_analysis_result = result
 
-    def get_motives_analysis(self) -> Optional[MotivesAnalysisResult]:
+    def get_motives_analysis(self) -> MotivesAnalysisResult | None:
         """Get typed motives analysis result."""
         return self.motives_analysis_result
 
@@ -149,7 +149,7 @@ class VerificationContext(BaseModel):
         """Set typed extracted info."""
         self.extracted_info_typed = info
 
-    def get_extracted_info(self) -> Optional[ExtractedInfo]:
+    def get_extracted_info(self) -> ExtractedInfo | None:
         """Get typed extracted info."""
         return self.extracted_info_typed
 
@@ -157,7 +157,7 @@ class VerificationContext(BaseModel):
         """Set typed summarization result."""
         self.summarization_result = result
 
-    def get_summarization_result(self) -> Optional[SummarizationResult]:
+    def get_summarization_result(self) -> SummarizationResult | None:
         """Get typed summarization result."""
         return self.summarization_result
 
@@ -173,6 +173,6 @@ class VerificationContext(BaseModel):
         """Set the fact graph."""
         self.fact_graph = fact_graph
 
-    def get_fact_graph(self) -> Optional[FactGraph]:
+    def get_fact_graph(self) -> FactGraph | None:
         """Get the fact graph."""
         return self.fact_graph

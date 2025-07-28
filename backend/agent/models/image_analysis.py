@@ -4,8 +4,6 @@ Pydantic model for structured image analysis results.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 from .fact import FactHierarchy
@@ -17,7 +15,7 @@ class ImageAnalysisResult(BaseModel):
     username: str = Field(
         description="The COMPLETE username of the person who posted the content. Extract the full username without truncation. Should be 'unknown' if not identifiable."
     )
-    post_date: Optional[str] = Field(
+    post_date: str | None = Field(
         description="The timestamp of the post, e.g., 'May 21, 2024' or '15 hours ago' or '2 days ago'. Extract exactly as seen in the image. Return null if not available."
     )
     mentioned_dates: list[str] = Field(

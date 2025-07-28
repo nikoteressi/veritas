@@ -4,10 +4,6 @@ Pydantic schemas for API request/response models.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -24,8 +20,8 @@ class UserReputation(BaseModel):
     total_posts_checked: int
     warning_issued: bool
     notification_issued: bool
-    created_at: Optional[datetime]
-    last_checked_date: Optional[datetime]
+    created_at: datetime | None
+    last_checked_date: datetime | None
 
     class Config:
         from_attributes = True
@@ -38,8 +34,8 @@ class VerificationRequest(BaseModel):
         ..., min_length=1, max_length=1000, description="User's question or prompt"
     )
     message: str
-    verification_id: Optional[str] = None
-    session_id: Optional[str] = None
+    verification_id: str | None = None
+    session_id: str | None = None
 
 
 class VerificationResponse(BaseModel):
@@ -47,25 +43,25 @@ class VerificationResponse(BaseModel):
 
     status: str
     message: str
-    verification_id: Optional[str] = None
-    nickname: Optional[str] = None
-    extracted_text: Optional[str] = None
-    primary_topic: Optional[str] = None
+    verification_id: str | None = None
+    nickname: str | None = None
+    extracted_text: str | None = None
+    primary_topic: str | None = None
     identified_claims: list[str] | None = None
-    verdict: Optional[str] = None
-    justification: Optional[str] = None
-    confidence_score: Optional[float] = None
-    processing_time_seconds: Optional[int] = None
-    temporal_analysis: Optional[dict] = None
-    motives_analysis: Optional[dict] = None
-    fact_check_results: Optional[dict] = None
+    verdict: str | None = None
+    justification: str | None = None
+    confidence_score: float | None = None
+    processing_time_seconds: int | None = None
+    temporal_analysis: dict | None = None
+    motives_analysis: dict | None = None
+    fact_check_results: dict | None = None
     sources: list[dict] | None = None
-    user_reputation: Optional[UserReputation] = None
+    user_reputation: UserReputation | None = None
     warnings: list[str] | None = None
-    prompt: Optional[str] = None
-    filename: Optional[str] = None
-    file_size: Optional[int] = None
-    summary: Optional[str] = None
+    prompt: str | None = None
+    filename: str | None = None
+    file_size: int | None = None
+    summary: str | None = None
 
 
 class VerificationStatusResponse(BaseModel):
@@ -73,9 +69,9 @@ class VerificationStatusResponse(BaseModel):
 
     verification_id: str
     status: str  # pending, processing, completed, failed
-    progress: Optional[int] = None  # 0-100
-    current_step: Optional[str] = None
-    estimated_time_remaining: Optional[int] = None
+    progress: int | None = None  # 0-100
+    current_step: str | None = None
+    estimated_time_remaining: int | None = None
 
 
 class ReputationStatsResponse(BaseModel):
@@ -96,5 +92,5 @@ class ErrorResponse(BaseModel):
     """Error response model."""
 
     error: str
-    detail: Optional[str] = None
+    detail: str | None = None
     timestamp: datetime = Field(default_factory=datetime.now())

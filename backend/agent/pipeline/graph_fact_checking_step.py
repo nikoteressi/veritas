@@ -7,6 +7,7 @@ import logging
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.services.graph_fact_checking import GraphFactCheckingService
+from agent.tools import searxng_tool
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,6 @@ class GraphFactCheckingStep(BasePipelineStep):
 
     def __init__(self):
         super().__init__("Graph Fact Checking")
-        from agent.tools import searxng_tool
 
         self.graph_fact_checking_service = GraphFactCheckingService(
             search_tool=searxng_tool
@@ -98,7 +98,10 @@ class GraphFactCheckingStep(BasePipelineStep):
     async def close(self):
         """Close all resources and cleanup."""
         try:
-            if hasattr(self, 'graph_fact_checking_service') and self.graph_fact_checking_service:
+            if (
+                hasattr(self, "graph_fact_checking_service")
+                and self.graph_fact_checking_service
+            ):
                 await self.graph_fact_checking_service.close()
                 logger.info("GraphFactCheckingStep closed successfully")
         except Exception as e:

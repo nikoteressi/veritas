@@ -4,10 +4,6 @@ CRUD operations for database models.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 import logging
 from datetime import datetime
 
@@ -24,7 +20,7 @@ class UserCRUD:
     """CRUD operations for User model."""
 
     @staticmethod
-    async def get_user_by_nickname(db: AsyncSession, nickname: str) -> Optional[User]:
+    async def get_user_by_nickname(db: AsyncSession, nickname: str) -> User | None:
         """Get user by nickname."""
         result = await db.execute(select(User).where(User.nickname == nickname))
         return result.scalar_one_or_none()
@@ -63,7 +59,7 @@ class UserCRUD:
     @staticmethod
     async def update_user_reputation(
         db: AsyncSession, nickname: str, verdict: str
-    ) -> Optional[User]:
+    ) -> User | None:
         """Update a user's reputation based on the verification verdict."""
         user = await UserCRUD.get_or_create_user(db, nickname)
         if not user:
@@ -137,7 +133,7 @@ class VerificationResultCRUD:
     @staticmethod
     async def get_verification_result_by_id(
         db: AsyncSession, result_id: int
-    ) -> Optional[VerificationResult]:
+    ) -> VerificationResult | None:
         """Get a verification result by its ID."""
         result = await db.execute(
             select(VerificationResult).filter(VerificationResult.id == result_id)

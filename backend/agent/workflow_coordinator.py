@@ -5,7 +5,8 @@ Lightweight coordinator for the verification workflow.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Callable
+from collections.abc import Callable
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,9 +32,9 @@ class WorkflowCoordinator:
         user_prompt: str,
         db: AsyncSession,
         session_id: str,
-        progress_callback: Optional[Callable] = None,
-        event_callback: Optional[Callable] = None,
-        filename: Optional[str] = None,
+        progress_callback: Callable | None = None,
+        event_callback: Callable | None = None,
+        filename: str | None = None,
     ) -> dict[str, Any]:
         """
         Execute the complete verification workflow.
@@ -69,14 +70,14 @@ class WorkflowCoordinator:
     async def close(self) -> None:
         """Close the workflow coordinator and release resources."""
         logger.info("Closing workflow coordinator...")
-        
+
         try:
-            if hasattr(self.pipeline, 'close') and callable(getattr(self.pipeline, 'close')):
+            if hasattr(self.pipeline, "close") and callable(self.pipeline.close):
                 await self.pipeline.close()
                 logger.debug("Closed verification pipeline")
         except Exception as e:
             logger.error(f"Error closing verification pipeline: {e}")
-        
+
         logger.info("Workflow coordinator closed successfully")
 
     async def __aenter__(self):

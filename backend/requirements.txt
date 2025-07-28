@@ -49,3 +49,11 @@ scikit-learn
 
 # Time series and temporal analysis
 python-dateutil
+
+# BM25 and text processing for hybrid relevance scoring
+rank-bm25
+nltk
+
+# Additional ML and NLP dependencies for enhanced relevance
+transformers
+sentence-transformers

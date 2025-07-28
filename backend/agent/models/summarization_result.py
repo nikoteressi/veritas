@@ -4,10 +4,6 @@ Pydantic models for summarization results.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 from pydantic import BaseModel, Field
 
 
@@ -31,7 +27,7 @@ class SummarizationResult(BaseModel):
         description="Brief summary of fact-checking results"
     )
     claims_analyzed: int = Field(ge=0, description="Number of analyzed claims")
-    processing_time: Optional[float] = Field(
+    processing_time: float | None = Field(
         None, description="Processing time in seconds"
     )
 

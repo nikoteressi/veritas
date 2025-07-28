@@ -88,8 +88,7 @@ class ResponseParser:
                 "evidence_used": parsed_response.evidence_used,
             }
         except ValidationError as e:
-            logger.error(
-                "Pydantic validation error in verification response: %s", e)
+            logger.error("Pydantic validation error in verification response: %s", e)
             # Fallback to manual parsing
             return self._fallback_parse_verification(response)
         except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
@@ -112,13 +111,13 @@ class ResponseParser:
             ]
         except ValidationError as e:
             logger.error(
-                "Pydantic validation error in source selection response: %s", e)
+                "Pydantic validation error in source selection response: %s", e
+            )
             # Fallback to manual parsing
             return self._fallback_parse_source_selection(response)
         except Exception as e:
             logger.error("Failed to parse source selection response: %s", e)
-            raise RuntimeError(
-                f"Failed to parse source selection response: {e}") from e
+            raise RuntimeError(f"Failed to parse source selection response: {e}") from e
 
     def parse_contradiction_response(self, response: str) -> list[dict[str, Any]]:
         """Parse LLM response for contradiction detection using Pydantic."""
@@ -165,8 +164,7 @@ class ResponseParser:
             return contradictions
 
         except ValidationError as e:
-            logger.error(
-                "Pydantic validation error in contradiction response: %s", e)
+            logger.error("Pydantic validation error in contradiction response: %s", e)
             # Fallback to manual parsing
             return self._fallback_parse_contradiction(response)
         except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
@@ -198,8 +196,7 @@ class ResponseParser:
             )
             return self._fallback_parse_cluster_verification(response)
         except (ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
-            logger.error(
-                "Failed to parse cluster verification response: %s", e)
+            logger.error("Failed to parse cluster verification response: %s", e)
             return {
                 "overall_verdict": "ERROR",
                 "confidence_score": 0.0,
@@ -321,10 +318,8 @@ class ResponseParser:
                 if search_result.url:
                     urls.append(search_result.url)
 
-            logger.debug(
-                "Extracted %d source URLs from search results", len(urls))
+            logger.debug("Extracted %d source URLs from search results", len(urls))
             return urls
 
         except Exception as e:
-            raise ValueError(
-                f"Failed to extract sources from result: {e}") from e
+            raise ValueError(f"Failed to extract sources from result: {e}") from e

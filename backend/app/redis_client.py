@@ -6,7 +6,6 @@ Supports both synchronous and asynchronous Redis clients.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import redis.asyncio as async_redis
 from redis.asyncio.connection import ConnectionPool as AsyncConnectionPool
@@ -23,7 +22,7 @@ class RedisClient:
     Implements singleton pattern for connection pool management.
     """
 
-    _instance: Optional[RedisClient] = None
+    _instance: RedisClient | None = None
 
     def __new__(cls) -> RedisClient:
         if cls._instance is None:
@@ -34,7 +33,7 @@ class RedisClient:
     def __init__(self):
         # Only initialize once
         if not hasattr(self, "_initialized"):
-            self._async_pool: Optional[AsyncConnectionPool] = None
+            self._async_pool: AsyncConnectionPool | None = None
             self._initialized = True
 
     async def init_redis(self):

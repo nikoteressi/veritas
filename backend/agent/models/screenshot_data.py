@@ -4,20 +4,16 @@ Pydantic models for structured data extracted from social media screenshots.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 from pydantic import BaseModel, Field
 
 
 class PostContent(BaseModel):
-    author: Optional[str] = Field(None, description="The username of the post's author.")
-    timestamp: Optional[str] = Field(
+    author: str | None = Field(None, description="The username of the post's author.")
+    timestamp: str | None = Field(
         None,
         description="The relative or absolute timestamp of the post (e.g., '15h ago', 'July 10').",
     )
-    text_body: Optional[str] = Field(
+    text_body: str | None = Field(
         None, description="The full, verbatim text of the main post."
     )
     hashtags: list[str] = Field(
@@ -27,7 +23,7 @@ class PostContent(BaseModel):
 
 
 class PostVisuals(BaseModel):
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         description="A neutral, factual description of any image or video content within the post.",
     )
@@ -38,20 +34,20 @@ class PostVisuals(BaseModel):
 
 
 class EngagementStats(BaseModel):
-    likes: Optional[str] = Field(None, description="The number of likes/hearts/reactions.")
-    comments: Optional[str] = Field(None, description="The number of comments.")
-    shares: Optional[str] = Field(
+    likes: str | None = Field(None, description="The number of likes/hearts/reactions.")
+    comments: str | None = Field(None, description="The number of comments.")
+    shares: str | None = Field(
         None, description="The number of shares/reposts/retweets."
     )
-    other: Optional[str] = Field(None, description="Any other visible numeric metric.")
+    other: str | None = Field(None, description="Any other visible numeric metric.")
 
 
 class VisibleComment(BaseModel):
-    author: Optional[str] = Field(None, description="The username of the commenter.")
-    timestamp: Optional[str] = Field(
+    author: str | None = Field(None, description="The username of the commenter.")
+    timestamp: str | None = Field(
         None, description="The timestamp of the comment, if visible."
     )
-    text: Optional[str] = Field(
+    text: str | None = Field(
         None, description="The verbatim text of the comment, including emojis."
     )
 

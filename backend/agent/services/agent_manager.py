@@ -4,10 +4,6 @@ Service for managing LLM agents and their configuration.
 
 from __future__ import annotations
 
-
-from typing import Optional
-
-
 import logging
 
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -26,7 +22,7 @@ class AgentManager:
         """Initialize AgentManager without performing I/O operations."""
         self.llm = None
         self.tools = AVAILABLE_TOOLS
-        self.agent_executor: Optional[AgentExecutor] = None
+        self.agent_executor: AgentExecutor | None = None
         self._initialized = False
 
     async def _initialize_agent(self):

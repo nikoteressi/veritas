@@ -7,7 +7,7 @@ WebSocket connection manager for real-time updates.
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from fastapi import WebSocket
@@ -30,7 +30,7 @@ class WebSocketMessage(BaseModel):
     type: str
     data: dict[str, Any]
     timestamp: datetime
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 class ConnectionManager:
@@ -187,7 +187,7 @@ class ConnectionManager:
         )
 
     async def send_progress_update(
-        self, session_id: str, step: str, progress: int, details: Optional[str] = None
+        self, session_id: str, step: str, progress: int, details: str | None = None
     ):
         """
         Send a progress update to a specific session.
@@ -249,7 +249,7 @@ class ConnectionManager:
         )
 
     async def send_error(
-        self, session_id: str, error_message: str, error_code: Optional[str] = None
+        self, session_id: str, error_message: str, error_code: str | None = None
     ):
         """
         Send an error message to a specific session.
@@ -371,7 +371,7 @@ class EventProgressTracker:
 
         logger.info(f"Verification completed [{self.session_id}]")
 
-    async def error(self, error_message: str, error_code: Optional[str] = None):
+    async def error(self, error_message: str, error_code: str | None = None):
         """
         Mark progress as failed and send error.
 
@@ -394,7 +394,7 @@ class ProgressTracker:
         self.session_id = session_id
         self.current_progress = 0
 
-    async def update(self, step: str, progress: int, details: Optional[str] = None):
+    async def update(self, step: str, progress: int, details: str | None = None):
         """
         Update progress and send to WebSocket.
 
@@ -421,7 +421,7 @@ class ProgressTracker:
 
         logger.info(f"Verification completed [{self.session_id}]")
 
-    async def error(self, error_message: str, error_code: Optional[str] = None):
+    async def error(self, error_message: str, error_code: str | None = None):
         """
         Mark progress as failed and send error.
 

@@ -7,7 +7,7 @@ This module provides a unified interface for all enhanced components.
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from .advanced_clustering import AdvancedClusteringSystem, ClusteringConfig
 from .bayesian_uncertainty import BayesianVerificationModel, UncertaintyConfig
@@ -33,23 +33,23 @@ class FactChecker:
     advanced clustering, Bayesian uncertainty, and relationship analysis.
     """
 
-    def __init__(self, config: Optional[SystemConfig] = None):
+    def __init__(self, config: SystemConfig | None = None):
         """Initialize the enhanced fact-checking system."""
         self.config = config or get_default_config()
         self.logger = logging.getLogger(__name__)
 
         # Core components
-        self.graph_service: Optional[GraphFactCheckingService] = None
-        self.cache_system: Optional[IntelligentCache] = None
-        self.graph_storage: Optional[Neo4jGraphStorage] = None
-        self.reputation_system: Optional[SourceReputationSystem] = None
-        self.clustering_system: Optional[AdvancedClusteringSystem] = None
-        self.uncertainty_handler: Optional[BayesianVerificationModel] = None
-        self.relationship_analyzer: Optional[RelationshipAnalysisEngine] = None
+        self.graph_service: GraphFactCheckingService | None = None
+        self.cache_system: IntelligentCache | None = None
+        self.graph_storage: Neo4jGraphStorage | None = None
+        self.reputation_system: SourceReputationSystem | None = None
+        self.clustering_system: AdvancedClusteringSystem | None = None
+        self.uncertainty_handler: BayesianVerificationModel | None = None
+        self.relationship_analyzer: RelationshipAnalysisEngine | None = None
 
         # System state
         self.is_initialized = False
-        self.initialization_time: Optional[datetime] = None
+        self.initialization_time: datetime | None = None
         self.verification_count = 0
 
     async def initialize(self) -> bool:

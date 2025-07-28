@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir torch==2.6.0+cpu torchvision==0.21.0+cpu torchaud
 # Install remaining Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download spaCy English model
+RUN python -m spacy download en_core_web_sm
+
 # Set a non-user-specific path for Playwright browsers
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 

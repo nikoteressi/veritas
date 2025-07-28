@@ -10,11 +10,10 @@ Create Date: 2025-07-10 00:28:28.091644
 """
 
 from collections.abc import Sequence
-from typing import Optional
 
 # revision identifiers, used by Alembic.
 revision: str = "a749f8c0e1c6"
-down_revision: Optional[str] = None
+down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

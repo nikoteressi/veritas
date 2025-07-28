@@ -210,8 +210,9 @@ class ResultCompiler:
         quality_score = confidence
 
         # Penalize contradictions
-        contradiction_penalty = min(0.3, contradictions / total_facts)
-        quality_score -= contradiction_penalty
+        if total_facts > 0:
+            contradiction_penalty = min(0.3, contradictions / total_facts)
+            quality_score -= contradiction_penalty
 
         # Penalize failed verifications
         failure_penalty = min(0.2, failed_clusters / max(1, total_facts / 5))

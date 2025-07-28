@@ -4,7 +4,7 @@ from __future__ import annotations
 Pydantic models for search results and related data structures.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +16,7 @@ class SearchResult(BaseModel):
     url: str = Field(description="URL of the search result")
     content: str = Field(description="Content/snippet of the search result")
     engine: str = Field(description="Search engine that provided this result")
-    score: Optional[float] = Field(
+    score: float | None = Field(
         default=None, description="Relevance score if available"
     )
 
@@ -55,7 +55,7 @@ class SearchError(BaseModel):
 
     error_type: str = Field(description="Type of error")
     message: str = Field(description="Error message")
-    query: Optional[str] = Field(
+    query: str | None = Field(
         default=None, description="Original query that caused the error"
     )
 
@@ -64,10 +64,10 @@ class SearchResultWrapper(BaseModel):
     """Wrapper for search results that can handle both success and error cases."""
 
     success: bool = Field(description="Whether the search was successful")
-    data: Optional[SearchResponse] = Field(
+    data: SearchResponse | None = Field(
         default=None, description="Search response data if successful"
     )
-    error: Optional[SearchError] = Field(
+    error: SearchError | None = Field(
         default=None, description="Error information if failed"
     )
 

@@ -6,7 +6,6 @@ and ensures all collections use Ollama embeddings.
 """
 
 import logging
-from typing import Optional
 
 import chromadb
 from chromadb.api.types import CollectionMetadata, EmbeddingFunction
@@ -34,8 +33,8 @@ class OllamaChromaClient:
         self.host = host or settings.chroma_host
         self.port = port or settings.chroma_port
 
-        self.embedding_function: Optional[EmbeddingFunction] = None
-        self.client: Optional[chromadb.HttpClient] = None
+        self.embedding_function: EmbeddingFunction | None = None
+        self.client: chromadb.HttpClient | None = None
         self._initialized = False
 
     def _initialize(self):
@@ -99,9 +98,10 @@ class OllamaChromaClient:
 
         return self.client.get_collection(
             name=name,
+            embedding_function=self.embedding_function,
         )
 
-    def create_collection(self, name: str, metadata: Optional[CollectionMetadata] = None):
+    def create_collection(self, name: str, metadata: CollectionMetadata | None = None):
         """
         Create a collection with Ollama embedding function.
 
@@ -118,10 +118,11 @@ class OllamaChromaClient:
         return self.client.create_collection(
             name=name,
             metadata=metadata,
+            embedding_function=self.embedding_function,
         )
 
     def get_or_create_collection(
-        self, name: str, metadata: Optional[CollectionMetadata] = None
+        self, name: str, metadata: CollectionMetadata | None = None
     ):
         """
         Get or create a collection with Ollama embedding function.
@@ -139,6 +140,7 @@ class OllamaChromaClient:
         return self.client.get_or_create_collection(
             name=name,
             metadata=metadata,
+            embedding_function=self.embedding_function,
         )
 
     def delete_collection(self, name: str):

@@ -7,12 +7,7 @@ from __future__ import annotations
 from .extracted_info import ExtractedInfo
 from .fact import Fact, FactHierarchy
 from .image_analysis import ImageAnalysisResult
-from .internal import (
-    ClaimResult,
-    FactCheckResult,
-    FactCheckSummary,
-    VerdictResult,
-)
+from .internal import ClaimResult, FactCheckResult, FactCheckSummary, VerdictResult
 from .motives_analysis import MotivesAnalysisResult
 from .temporal_analysis import TemporalAnalysisResult
 from .verification_context import VerificationContext
