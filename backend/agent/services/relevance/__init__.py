@@ -10,18 +10,22 @@ from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from .explainable_relevance_scorer import ExplainableRelevanceScorer
 
 # Convenience functions
+
+
 def get_relevance_manager():
     """Get a configured relevance orchestrator instance."""
     return RelevanceOrchestrator()
+
 
 def close_relevance_manager(orchestrator):
     """Close and cleanup a relevance orchestrator instance."""
     if orchestrator:
         orchestrator.close()
 
+
 __all__ = [
     'RelevanceOrchestrator',
-    'RelevanceEmbeddingsCoordinator', 
+    'RelevanceEmbeddingsCoordinator',
     'CachedHybridRelevanceScorer',
     'ExplainableRelevanceScorer',
     'get_relevance_manager',

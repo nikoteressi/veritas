@@ -245,17 +245,17 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
         try:
             # Get base health status using the parent's health_check method
             base_health = await super().health_check()
-            
+
             # Convert base health to report format
             base_report = "=== SYSTEM HEALTH REPORT ===\n"
             base_report += f"Overall Status: {base_health.get('overall_status', 'unknown').upper()}\n"
             base_report += f"Timestamp: {base_health.get('timestamp', 'unknown')}\n\n"
-            
+
             # Add base component details
             for component_name, component_health in base_health.get("components", {}).items():
                 base_report += f"--- {component_name.upper()} ---\n"
                 base_report += f"Status: {component_health.get('status', 'unknown').upper()}\n"
-                
+
                 # Add any additional details from the component health
                 for key, value in component_health.items():
                     if key != 'status':

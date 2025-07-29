@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class RelevanceCacheMonitor(CacheMonitor):
     """
     Extended cache monitor that includes relevance-specific cache monitoring.
-    
+
     This class extends the base CacheMonitor to include monitoring for
     caches used by the relevance system components.
     """
@@ -26,13 +26,13 @@ class RelevanceCacheMonitor(CacheMonitor):
     def __init__(self, embeddings_coordinator: Optional[RelevanceEmbeddingsCoordinator] = None):
         """
         Initialize the relevance cache monitor.
-        
+
         Args:
             embeddings_coordinator: RelevanceEmbeddingsCoordinator instance for monitoring
         """
         super().__init__()
         self.embeddings_coordinator = embeddings_coordinator
-        
+
         # Add relevance-specific monitoring data
         self._monitoring_data.update({
             "temporal_cache": [],
@@ -43,7 +43,7 @@ class RelevanceCacheMonitor(CacheMonitor):
     async def collect_cache_metrics(self) -> Dict[str, Dict[str, Any]]:
         """
         Collect comprehensive metrics from all caches including relevance caches.
-        
+
         Returns:
             dict: Comprehensive cache metrics
         """
@@ -65,7 +65,7 @@ class RelevanceCacheMonitor(CacheMonitor):
     async def _collect_relevance_cache_metrics(self) -> Dict[str, Dict[str, Any]]:
         """
         Collect metrics from relevance-specific caches.
-        
+
         Returns:
             dict: Relevance cache metrics
         """
@@ -103,7 +103,7 @@ class RelevanceCacheMonitor(CacheMonitor):
             for cache_name, cache_metrics in relevance_metrics.items():
                 if cache_name in self._monitoring_data:
                     self._monitoring_data[cache_name].append(cache_metrics)
-                    
+
                     # Keep only last 100 measurements
                     if len(self._monitoring_data[cache_name]) > 100:
                         self._monitoring_data[cache_name] = self._monitoring_data[cache_name][-100:]
@@ -171,7 +171,7 @@ class RelevanceCacheMonitor(CacheMonitor):
     async def generate_performance_report(self) -> str:
         """
         Generate comprehensive performance report including relevance caches.
-        
+
         Returns:
             str: Detailed performance report
         """
@@ -192,7 +192,7 @@ class RelevanceCacheMonitor(CacheMonitor):
         """Generate performance report for relevance-specific caches."""
         try:
             relevance_metrics = await self._collect_relevance_cache_metrics()
-            
+
             if not relevance_metrics:
                 return "\n=== RELEVANCE CACHE PERFORMANCE ===\nNo relevance cache data available\n"
 
@@ -220,11 +220,13 @@ class RelevanceCacheMonitor(CacheMonitor):
                     report += f"  Memory Usage: {cache_stats['memory_usage']:.2f} MB\n"
 
                 # Performance analysis
-                performance_grade = self._calculate_performance_grade(cache_stats)
+                performance_grade = self._calculate_performance_grade(
+                    cache_stats)
                 report += f"  Performance Grade: {performance_grade}\n"
 
                 # Relevance-specific recommendations
-                recommendations = self._generate_relevance_cache_recommendations(cache_name, cache_stats)
+                recommendations = self._generate_relevance_cache_recommendations(
+                    cache_name, cache_stats)
                 if recommendations:
                     report += "  Recommendations:\n"
                     for rec in recommendations:
@@ -286,20 +288,21 @@ class RelevanceCacheMonitor(CacheMonitor):
     async def optimize_relevance_cache_settings(self, cache_name: str) -> Dict[str, Any]:
         """
         Suggest optimal cache settings for relevance-specific caches.
-        
+
         Args:
             cache_name: Name of the relevance cache to optimize
-            
+
         Returns:
             dict: Optimization recommendations
         """
         try:
             # Check if it's a relevance cache
-            relevance_caches = ["temporal_cache", "adaptive_thresholds_cache", "explainable_scorer_cache"]
-            
+            relevance_caches = [
+                "temporal_cache", "adaptive_thresholds_cache", "explainable_scorer_cache"]
+
             if cache_name in relevance_caches:
                 trends = await self.get_cache_trends(cache_name)
-                
+
                 if not trends:
                     return {"error": "Insufficient data for optimization"}
 
@@ -308,7 +311,8 @@ class RelevanceCacheMonitor(CacheMonitor):
                 # Relevance-specific optimization logic
                 if cache_name == "temporal_cache":
                     if trends.get("avg_hit_rate", 0) < 0.6:
-                        recommendations["ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
+                        recommendations[
+                            "ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
                         recommendations["strategy"] = "Consider implementing sliding window caching"
 
                 elif cache_name == "adaptive_thresholds_cache":
@@ -339,16 +343,17 @@ _relevance_cache_monitor: Optional[RelevanceCacheMonitor] = None
 def get_relevance_cache_monitor(embeddings_coordinator: RelevanceEmbeddingsCoordinator = None) -> RelevanceCacheMonitor:
     """
     Get global relevance cache monitor instance.
-    
+
     Args:
         embeddings_coordinator: RelevanceEmbeddingsCoordinator instance
-        
+
     Returns:
         RelevanceCacheMonitor: Global instance
     """
     global _relevance_cache_monitor
     if _relevance_cache_monitor is None:
-        _relevance_cache_monitor = RelevanceCacheMonitor(embeddings_coordinator)
+        _relevance_cache_monitor = RelevanceCacheMonitor(
+            embeddings_coordinator)
     return _relevance_cache_monitor
 
 
