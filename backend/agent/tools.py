@@ -108,7 +108,7 @@ class SearxNGSearchTool(BaseTool):
                         )
                         search_results.append(search_result)
                     except Exception as e:
-                        logger.warning(f"Failed to parse search result: {e}")
+                        logger.warning("Failed to parse search result: %s", e)
                         continue
 
                 # Create structured response
@@ -123,10 +123,13 @@ class SearxNGSearchTool(BaseTool):
                     },
                 )
 
-                result_wrapper = SearchResultWrapper(success=True, data=search_response)
+                result_wrapper = SearchResultWrapper(
+                    success=True, data=search_response)
 
                 logger.info(
-                    f"SearxNG search completed: {len(search_results)} results for '{query}'"
+                    "SearxNG search completed: %d results for '%s'",
+                    len(search_results),
+                    query,
                 )
                 return result_wrapper.model_dump_json(indent=2)
 
@@ -202,7 +205,8 @@ class SearxNGSearchTool(BaseTool):
                         )
                         search_results.append(search_result)
                     except Exception as e:
-                        logger.warning(f"Failed to parse search result: {e}")
+                        logger.warning(
+                            "Failed to parse search result: %s", e)
                         continue
 
                 # Create structured response
@@ -217,10 +221,13 @@ class SearxNGSearchTool(BaseTool):
                     },
                 )
 
-                result_wrapper = SearchResultWrapper(success=True, data=search_response)
+                result_wrapper = SearchResultWrapper(
+                    success=True, data=search_response)
 
                 logger.info(
-                    f"SearxNG search completed: {len(search_results)} results for '{query}'"
+                    "SearxNG search completed: %d results for '%s'",
+                    len(search_results),
+                    query,
                 )
                 return result_wrapper.model_dump_json(indent=2)
 

@@ -13,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agent.models.fact import FactHierarchy
 from agent.models.graph import FactGraph
 from agent.models.post_analysis_result import PostAnalysisResult
-from agent.services.event_emission import EventEmissionService
-from agent.services.result_compiler import ResultCompiler
+from agent.services.infrastructure.event_emission import EventEmissionService
+from agent.services.output.result_compiler import ResultCompiler
 
 from .extracted_info import ExtractedInfo
 from .image_analysis import ImageAnalysisResult
