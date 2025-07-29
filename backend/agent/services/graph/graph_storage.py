@@ -14,10 +14,9 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
+from app.config import settings
 from neo4j import Driver, GraphDatabase, Session
 from neo4j.exceptions import ClientError, DatabaseError, ServiceUnavailable
-
-from app.config import settings
 
 from ...models.graph import (
     ClusterType,

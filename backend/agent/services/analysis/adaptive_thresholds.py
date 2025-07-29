@@ -3,6 +3,7 @@ Adaptive thresholds for dynamic relevance scoring calibration.
 
 Automatically adjusts relevance thresholds based on query patterns, source types, and performance metrics.
 """
+from __future__ import annotations
 
 import logging
 import statistics

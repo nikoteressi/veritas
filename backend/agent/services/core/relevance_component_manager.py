@@ -4,6 +4,7 @@ Extended component manager for relevance-specific components.
 Extends the base ComponentManager to include relevance system components
 while maintaining compatibility with the existing infrastructure.
 """
+from __future__ import annotations
 
 import logging
 from typing import Any

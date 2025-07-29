@@ -4,6 +4,7 @@ Enhanced Ollama embeddings with intelligent caching and optimization.
 Provides advanced embedding functionality with caching, batch processing,
 and semantic similarity search for improved relevance analysis.
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib
@@ -12,10 +13,9 @@ import time
 from typing import Any
 
 import numpy as np
-from langchain_ollama import OllamaEmbeddings
-
 from app.config import settings
 from app.exceptions import EmbeddingError
+from langchain_ollama import OllamaEmbeddings
 
 from ..cache.intelligent_cache import CacheLevel, IntelligentCache
 

@@ -4,6 +4,7 @@ Relevance orchestrator for Veritas system.
 Maintains the existing public interface of RelevanceIntegrationManager while delegating
 responsibilities to specialized components.
 """
+from __future__ import annotations
 
 import asyncio
 import logging

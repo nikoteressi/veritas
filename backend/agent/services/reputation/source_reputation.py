@@ -5,6 +5,7 @@ This module provides comprehensive evaluation of information sources
 including historical accuracy tracking, bias analysis, and cross-referencing
 with known reliable/unreliable source databases.
 """
+from __future__ import annotations
 
 import logging
 import re
@@ -14,9 +15,8 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-
 from app.config import Settings
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 settings = Settings()
 

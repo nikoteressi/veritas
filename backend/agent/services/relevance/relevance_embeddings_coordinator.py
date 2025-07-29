@@ -3,6 +3,7 @@ Relevance-specific embeddings coordination for Veritas system.
 
 Handles embeddings generation, caching, and coordination for relevance scoring.
 """
+from __future__ import annotations
 
 import asyncio
 import logging

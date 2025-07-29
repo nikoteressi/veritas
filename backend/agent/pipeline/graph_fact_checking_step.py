@@ -1,6 +1,7 @@
 """
 Graph-based fact checking pipeline step.
 """
+from __future__ import annotations
 
 import logging
 

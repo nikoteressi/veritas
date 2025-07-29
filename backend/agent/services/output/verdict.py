@@ -7,13 +7,12 @@ from __future__ import annotations
 import json
 import logging
 
-from langchain_core.output_parsers import PydanticOutputParser
-
 from agent.llm import llm_manager
 from agent.models import FactCheckResult, VerdictResult
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.prompts import prompt_manager
+from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
 

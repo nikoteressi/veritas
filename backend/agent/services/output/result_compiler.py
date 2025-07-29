@@ -1,6 +1,7 @@
 """
 Service for compiling and serializing verification results.
 """
+from __future__ import annotations
 
 import logging
 import time

@@ -4,6 +4,7 @@ Extended system health monitor for relevance-specific health checks.
 Extends the base SystemHealthMonitor to include health checks for
 relevance system components while maintaining compatibility.
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime

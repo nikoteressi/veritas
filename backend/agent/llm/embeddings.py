@@ -2,14 +2,14 @@
 Custom Ollama embedding function for ChromaDB integration.
 This eliminates the need for external model downloads by using our existing Ollama server.
 """
+from __future__ import annotations
 
 import logging
 
 import requests
-from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
-
 from app.config import settings
 from app.exceptions import EmbeddingError
+from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 
 logger = logging.getLogger(__name__)
 

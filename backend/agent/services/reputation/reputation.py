@@ -1,13 +1,13 @@
 """
 Service for managing user reputation.
 """
+from __future__ import annotations
 
 import logging
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.crud import UserCRUD
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

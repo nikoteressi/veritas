@@ -15,12 +15,11 @@ from typing import Any
 import networkx as nx
 import numpy as np
 import spacy
+from agent.llm.embeddings import create_ollama_embedding_function
+from app.exceptions import AnalysisError
 from scipy import stats
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
-from agent.llm.embeddings import create_ollama_embedding_function
-from app.exceptions import AnalysisError
 
 warnings.filterwarnings("ignore")
 

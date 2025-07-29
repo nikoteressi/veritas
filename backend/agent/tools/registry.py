@@ -1,6 +1,9 @@
 """Tool registry for managing available agent tools."""
 
+from __future__ import annotations
+
 from typing import Dict, List
+
 from langchain.tools import BaseTool
 
 from .search import searxng_tool

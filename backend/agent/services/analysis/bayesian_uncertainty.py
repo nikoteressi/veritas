@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-
 from app.exceptions import AnalysisError
 
 warnings.filterwarnings("ignore", category=FutureWarning)

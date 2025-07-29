@@ -8,12 +8,11 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
 from app.config import settings
 from app.exceptions import AgentError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.infrastructure.event_emission import EventEmissionService
 from ..services.infrastructure.storage import storage_service

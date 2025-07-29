@@ -1,11 +1,10 @@
 """
 Refactored temporal analysis module for detecting temporal mismatches in social media posts.
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime
-
-from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.llm import OllamaLLMManager
@@ -13,6 +12,7 @@ from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
 from app.exceptions import TemporalAnalysisError
+from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
 

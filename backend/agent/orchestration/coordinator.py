@@ -8,10 +8,9 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from agent.pipeline.verification_pipeline import verification_pipeline
 from app.exceptions import PipelineError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

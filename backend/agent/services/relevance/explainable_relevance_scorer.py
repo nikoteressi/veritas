@@ -4,6 +4,7 @@ Explainable relevance scorer with detailed analysis and interpretability.
 Provides detailed explanations for relevance scores using multiple analysis techniques
 including linguistic analysis, attention mechanisms, and feature importance.
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib
@@ -12,9 +13,9 @@ import re
 import time
 from collections import Counter
 from typing import Any
-from app.exceptions import ValidationError
 
 import numpy as np
+from app.exceptions import ValidationError
 
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
 from ..cache.temporal_analysis_cache import TemporalAnalysisCache

@@ -4,6 +4,7 @@ Evidence gatherer for fact verification.
 Handles search query generation and evidence collection for fact clusters.
 Enhanced with intelligent caching and adaptive relevance scoring.
 """
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any

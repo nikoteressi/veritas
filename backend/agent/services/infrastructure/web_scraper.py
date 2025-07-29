@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 # agent/services/web_scraper.py
 import asyncio
 import logging
 
+from app.exceptions import AgentError
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 from crawl4ai.extraction_strategy import NoExtractionStrategy
-
-from app.exceptions import AgentError
 
 logger = logging.getLogger(__name__)
 

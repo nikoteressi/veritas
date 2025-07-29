@@ -10,13 +10,12 @@ import logging
 import re
 from typing import Any
 
-from langchain_core.output_parsers import PydanticOutputParser
-
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
 from app.exceptions import MotivesAnalysisError
+from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
 

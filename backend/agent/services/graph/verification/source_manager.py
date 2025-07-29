@@ -4,6 +4,7 @@ Source manager for web scraping and source management.
 Handles scraping of web sources and caching for efficient verification.
 Enhanced with intelligent caching and adaptive relevance scoring.
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib

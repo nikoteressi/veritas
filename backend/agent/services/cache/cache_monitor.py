@@ -3,6 +3,7 @@ Cache monitoring and performance analysis for Veritas system.
 
 Provides comprehensive monitoring of cache performance, hit rates, and optimization recommendations.
 """
+from __future__ import annotations
 
 import asyncio
 import logging
@@ -11,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.exceptions import CacheError
+
 from .intelligent_cache import get_embedding_cache, get_verification_cache
 
 logger = logging.getLogger(__name__)

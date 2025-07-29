@@ -4,19 +4,19 @@ Cached hybrid relevance scorer combining BM25 and semantic similarity.
 Provides advanced relevance scoring using both traditional keyword matching (BM25)
 and modern semantic similarity with intelligent caching.
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib
 import logging
-import traceback
 import time
+import traceback
 from typing import Any, Optional
-
-from rank_bm25 import BM25Okapi
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.config import settings
 from app.exceptions import ValidationError
+from rank_bm25 import BM25Okapi
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
 from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings

@@ -2,12 +2,12 @@
 Post analyzer service module for analyzing social media posts.
 Provides functionality to analyze screenshots and temporal data using LLM.
 """
+from __future__ import annotations
 
 import logging
 
-from langchain_core.output_parsers import PydanticOutputParser
-
 from agent.models.verification_context import VerificationContext
+from langchain_core.output_parsers import PydanticOutputParser
 
 from ...llm import OllamaLLMManager
 from ...models.post_analysis_result import PostAnalysisResult

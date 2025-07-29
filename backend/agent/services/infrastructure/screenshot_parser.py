@@ -1,15 +1,15 @@
 """
 Service for parsing screenshots using a vision model.
 """
+from __future__ import annotations
 
 import logging
-
-from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.models.screenshot_data import ScreenshotData
 from agent.prompts import prompt_manager
 from app.exceptions import ScreenshotParsingError
+from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
 

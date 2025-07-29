@@ -1,17 +1,17 @@
 """
 Service for handling data persistence.
 """
+from __future__ import annotations
 
 import hashlib
 import json
 import logging
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.config import settings
 from app.crud import VerificationResultCRUD
 from app.exceptions import AgentError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import VerificationResult
 from ...vector_store import vector_store

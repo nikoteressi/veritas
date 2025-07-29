@@ -3,6 +3,7 @@ Cluster analyzer for cross-verification and contradiction detection.
 
 Handles analysis of fact clusters for contradictions and cross-verification.
 """
+from __future__ import annotations
 
 import logging
 import re

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import yaml
-from langchain_core.prompts import ChatPromptTemplate
-
 from app.exceptions import ValidationError
+from langchain_core.prompts import ChatPromptTemplate
 
 from ..models.prompt_structures import PromptStructure
 

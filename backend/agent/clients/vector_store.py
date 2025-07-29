@@ -2,6 +2,7 @@
 Vector database integration for storing and retrieving verification results.
 Uses Ollama server for embeddings to avoid external model downloads.
 """
+from __future__ import annotations
 
 import hashlib
 import logging

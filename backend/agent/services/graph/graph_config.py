@@ -4,6 +4,7 @@ Configuration classes for graph-based verification system.
 This module contains configuration dataclasses used across the graph verification system
 to avoid circular import issues.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any

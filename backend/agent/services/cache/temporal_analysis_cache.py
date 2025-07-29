@@ -4,6 +4,7 @@ Temporal analysis cache for time-aware relevance scoring.
 Provides temporal relevance analysis considering recency, trends, and time-sensitive content
 with intelligent caching for improved performance.
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib

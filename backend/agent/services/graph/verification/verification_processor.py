@@ -4,6 +4,7 @@ Verification processor for individual fact verification.
 Handles the verification of individual facts within cluster context.
 Enhanced with intelligent caching and adaptive confidence scoring.
 """
+from __future__ import annotations
 
 import logging
 from typing import Any

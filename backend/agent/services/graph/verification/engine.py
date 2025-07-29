@@ -4,6 +4,7 @@ Enhanced modular graph verification engine.
 Main orchestrator that coordinates all verification modules with intelligent caching,
 adaptive thresholds, and performance monitoring.
 """
+from __future__ import annotations
 
 import asyncio
 import gc
@@ -11,9 +12,9 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.models.graph import FactCluster, FactGraph, FactNode
 from agent.models.verification_context import VerificationContext
-from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.prompts import PromptManager
 from app.config import settings
 

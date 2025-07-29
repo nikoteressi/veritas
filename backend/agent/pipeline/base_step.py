@@ -1,6 +1,7 @@
 """
 Base pipeline step for the verification workflow.
 """
+from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod

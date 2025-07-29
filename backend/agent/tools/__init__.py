@@ -1,7 +1,7 @@
 """Agent tools and utilities."""
 
-from .search import SearxNGSearchTool, searxng_tool, AVAILABLE_TOOLS
 from .registry import ToolRegistry, tool_registry
+from .search import AVAILABLE_TOOLS, SearxNGSearchTool, searxng_tool
 
 __all__ = [
     "SearxNGSearchTool",

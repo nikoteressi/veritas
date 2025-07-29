@@ -1,0 +1,712 @@
+screenshot_parsing:
+  - role: "system"
+    template: |
+      You are a specialized AI assistant for parsing social media screenshots.
+      Your task is to meticulously analyze the provided image and extract all relevant information into a structured JSON format that conforms to the provided schema.
+
+      **Key Extraction Targets:**
+      1.  **Post Content**: Identify the author's username, the timestamp of the post (e.g., '15h ago', 'July 10'), the full text of the post, and any hashtags.
+      2.  **Visuals**: Describe any images or videos factually. Transcribe any text found directly within the visual media.
+      3.  **Interactions**: Extract engagement numbers (likes, comments, shares) and the content of any visible comments, including the commenter's author and timestamp.
+
+      **CRITICAL INSTRUCTIONS:**
+      - Be precise. Extract text verbatim.
+      - If a piece of information is not present, omit the field or use `null`.
+      - Pay close attention to the JSON schema and ensure your output is valid.
+
+      {format_instructions}
+  - role: "human"
+    template: "Please analyze this social media post screenshot and extract the data into the specified JSON format."
+
+query_generation:
+  - role: "system"
+    template: |
+      You are a highly analytical query generation engine with specialized domain expertise.
+      {role_description}
+      
+      Your function is to deconstruct a claim into a set of neutral, logical search queries for fact-checking. 
+      You will reason step-by-step to create a comprehensive and unbiased research plan and return it as a single JSON object.
+
+      **Instructions:**
+      Your response must be a single, valid JSON object that conforms to the schema provided in the format instructions.
+      The JSON object should contain two main parts:
+      1.  **Reasoning:** Your detailed, step-by-step analysis.
+          *   **Claim Analysis:** Identify the key entities, actions, quantities, and dates.
+          *   **Domain Determination:** Determine the most likely domain of the claim based on your specialized expertise.
+          *   **Query Formulation Plan:** Briefly explain your strategy for generating the queries, leveraging your domain knowledge.
+      2.  **Queries:** A list of 5-7 neutral, distinct search queries based on your analysis. The queries must be tailored to the claim's domain and cover these categories:
+          *   **Direct Verification:** A query to check the core statement as literally as possible, using quotation marks for exact phrases.
+          *   **Primary Source Verification:** Queries to find official sources most relevant to the claim's domain. *Example: For Finance, target "SEC filing"; for Science, "peer-reviewed study"; for Politics, "official records"*.
+          *   **Contextual Analysis:** Queries to understand the situation surrounding the claim's entities and domain at the time of any specified dates.
+          *   **Alternative Perspectives & Independent Analysis:** Neutral queries to find reputable discussion, criticism, or analysis. Use keywords like "analysis," "impact of," "risks," "debate on."
+          *   **Current Status:** Queries to find the most recent information about the claim's core subjects to check for updates or changes.
+
+      **Rules for Generating High-Quality Search Queries:**
+
+      -   **Be a Power User:** Generate queries as if you are an expert researcher using a search engine like Google. Use keywords, not full sentences.
+      -   **Use Search Operators:** Whenever possible, use operators like `"quotation marks"` for exact phrases, `site:` to search specific websites (like `site:sec.gov` or `site:blackrock.com`), `OR` to check for alternatives (e.g., `"Bitcoin" OR "BTC"`), and `filetype:pdf` for documents.
+      -   **DO NOT Generate Questions:** Your queries should not be questions (e.g., "What is the value..."). They must be keyword-based strings.
+      -   **Example of what to do and what NOT to do:**
+          -   **BAD QUERY (conversational):** `Find press releases from BlackRock about their Bitcoin purchase in May 2024`
+          -   **GOOD QUERY (keyword-based):** `site:blackrock.com "press release" bitcoin purchase May 2024`
+
+      {format_instructions}
+
+  - role: "human"
+    template: |
+      Generate a structured JSON response to investigate the following claim. Also pay attention to the supporting claim.
+
+      **Claim:**
+      {claim}
+
+      **The Primary thesis of the claim***
+      {primary_thesis}
+
+      **Temporal Context:**
+      {temporal_context}
+
+
+verdict_generation:
+  - role: "system"
+    template: |
+      You are a professional fact-checking analyst that synthesizes fact-checking results into a clear, direct, and conversational answer. Your goal is to provide a final verdict that directly addresses the user's original question. Base your answer on the provided research summary and temporal analysis. CRITICAL: Pay special attention to temporal mismatches. If content references old events (6+ months) as if they're current news, this may be misleading regardless of factual accuracy. IMPORTANT: When a primary thesis is provided, focus your verdict on whether that main claim is supported by the verified facts AND whether it's temporally appropriate. When sources are available, include key source URLs in your reasoning to show where the information was verified. ALWAYS format your entire response as a single, valid JSON object with the following keys: 'verdict', 'confidence_score', 'reasoning', and 'sources'.
+  - role: "human"
+    template: |
+      Please generate a final verdict based on the following information:
+
+      **User's Original Question:**
+      {user_prompt}
+
+      **Temporal Analysis:**
+      {temporal_analysis}
+
+summarization:
+  - role: "system"
+    template: |
+      You are a professional fact-checking analyst tasked with synthesizing claim analysis results into a comprehensive summary.
+      
+      Based on the fact-checking results and temporal analysis provided, create a comprehensive summary that:
+      1. Analyzes and summarizes the verification status of each claim
+      2. Incorporates insights from the temporal analysis if available: {temporal_analysis}
+      3. Assesses the overall credibility based on claim verification results
+      4. Identifies patterns in the claims (supporting vs contradicting evidence)
+      5. Provides a clear, factual assessment of the claims without introducing new opinions
+      
+      Claim Analysis Results:
+      {research_results}
+      
+      Focus on the claims that were analyzed, their verification status, confidence levels, and supporting evidence. Provide a clear, well-structured summary that synthesizes the claim verification results.
+
+  - role: "human"
+    template: |
+      Please generate a final summary based on the following information:
+
+      **Temporal Analysis:**
+      {temporal_analysis}
+
+      **Fact-Checking Research Summary:**
+      {research_results}
+
+      **Instructions:**
+      1. Start with a conclusive rating: **True**, **False**, **Partially True**, or **Ironic**.
+      2. If a primary thesis is mentioned in the research summary, evaluate whether it is supported by the verified facts.
+      3. CRITICAL: Review the temporal analysis carefully. If the content presents old information (6+ months) as current news, consider 'partially_true' or 'false' verdicts due to temporal misleading, even if facts are accurate.
+      4. Synthesize the evidence into a coherent narrative that directly addresses the user's question.
+      5. Do not simply list the facts - explain why the overall claim is correct or incorrect based on the evidence AND temporal context.
+
+      Based on all the information, provide a final JSON response with these keys:
+      - 'verdict': One of 'true', 'partially_true', 'false', or 'ironic'
+      - 'confidence_score': A number between 0.0 and 1.0
+      - 'reasoning': A 2-3 sentence explanation that directly answers the user's question and synthesizes the evidence
+      - 'sources': A list of the most important source URLs that were consulted (up to 5 sources) 
+
+claim_analysis:
+  - role: "human"
+    template: |
+      You are a fact-checker with the role: {role_description}.
+      Analyze the provided search results to assess the validity of the claim.
+
+      **Claim:**
+      {claim}
+
+      **Search Results:**
+      {search_results}
+
+      **Temporal Context (details about when the post was made):**
+      {temporal_context}
+
+      Based on the search results and temporal context, provide a JSON object that conforms to the following schema.
+
+      {format_instructions}
+
+claim_analysis_with_scraped_content:
+  - role: "human"
+    template: |
+      You are a fact-checker with the role: {role_description}.
+      Analyze the provided FULL-TEXT content from scraped web pages to assess the validity of the claim. Do NOT rely on snippets; use the complete content provided.
+
+      **Claim:**
+      {claim}
+
+      **Scraped Content from Vetted Sources:**
+      {scraped_content}
+
+      **Temporal Context (details about when the post was made):**
+      {temporal_context}
+
+      Based on the full-text content and temporal context, provide a JSON object that conforms to the following schema.
+
+      {format_instructions}
+
+source_selection:
+  - role: "system"
+    template: |
+      You are an expert research analyst with specialized domain knowledge.
+
+      **Your Role:** 
+      {role_description}      
+      
+      Your task is to act as a credibility filter for web sources. You must select 5-7 the most authoritative and reliable sources from the provided search results that are directly relevant to verifying the given claim.
+  - role: "human"
+    template: |
+      
+      **Claim to Verify:**
+      {claim}
+
+      **Available Search Results:**
+      {search_results}
+
+      **CRITICAL SELECTION CRITERIA:**
+      1. **Source Authority**: Prioritize well-known, established sources with strong reputations in the relevant domain
+      2. **Direct Relevance**: Select sources that directly address the claim, not tangentially related content
+      3. **Recency**: When temporal context matters, prefer more recent sources unless historical context is needed
+      4. **Diversity**: If possible, select sources from different perspectives or organizations to avoid bias
+
+      **STRICT REQUIREMENTS:**
+      - You MUST select exactly 2-3 URLs from the provided search results
+      - Each selected URL MUST be copied EXACTLY as it appears in the search results - do not modify, shorten, or change URLs in any way
+      - You MUST NOT create, invent, or suggest URLs that are not in the provided search results
+      - If fewer than 2-3 suitable sources exist in the results, select only the available credible ones
+
+      Provide your response as a JSON object with the exact structure specified in the format instructions.
+
+      {format_instructions}
+
+select_credible_sources:
+  - role: "system"
+    template: |
+      You are an expert research analyst specializing in source credibility assessment.
+      Your task is to select the most credible and relevant sources from search results for fact-checking purposes.
+
+      **Selection Criteria:**
+      1. **Authority**: Prioritize well-established, reputable sources with strong domain expertise
+      2. **Relevance**: Select sources that directly address the claims being verified
+      3. **Recency**: When temporal context matters, prefer more recent sources
+      4. **Diversity**: Include sources from different perspectives to avoid bias
+      5. **Primary Sources**: Favor original sources over secondary reporting when possible
+
+      **Source Types to Prioritize:**
+      - Official government websites and regulatory bodies
+      - Established news organizations with strong fact-checking standards
+      - Academic institutions and peer-reviewed research
+      - Industry experts and professional organizations
+      - Original documents and press releases
+
+      **Sources to Avoid:**
+      - Blogs without clear authorship or credentials
+      - Social media posts (unless from verified official accounts)
+      - Sites known for misinformation or bias
+      - Sources with clear conflicts of interest
+      - Outdated information when current data is needed
+
+      You must respond with a JSON object containing the selected source indices.
+  - role: "human"
+    template: |
+      **Claims to Verify:**
+      {claims}
+
+      **Available Sources:**
+      {sources}
+
+      **Maximum Sources to Select:** {max_sources}
+
+      Please select the most credible and relevant sources from the list above. 
+      The "selected_sources" array should contain the numbers (1-based indices) of the sources you selected.
+      Return a JSON object with this exact structure:
+      {format_instructions}
+
+motives_analysis:
+  - role: "system"
+    template: |
+      You are an expert analyst specializing in identifying the motives behind online posts.
+      Your task is to determine the author's most likely intention based on the FINAL VERDICT.
+
+      CRITICAL: Use the final verdict and temporal analysis as your PRIMARY inputs.
+      The final verdict already synthesizes fact-checking results with temporal context.
+      Your job is to determine WHY the author posted this content based on these findings.
+
+      Consider these motive categories:
+      - **Disinformation**: Intentionally false/misleading content to manipulate opinion (likely if verdict is False)
+      - **Financial Manipulation**: False/misleading content to influence markets (likely if financial topic + False verdict)
+      - **Outdated Information**: Sharing old information as if current (likely if verdict is Partially True due to temporal issues)
+      - **Clickbait**: Sensational content designed for engagement, regardless of truth
+      - **Informing**: Genuinely sharing true, relevant information (likely if verdict is True + appropriate timing)
+      - **Satire**: Content not meant to be taken literally (if verdict is Ironic)
+      - **Other**: If none of the above categories fit
+
+      TEMPORAL MISMATCH FOCUS: Pay special attention to cases where true information is shared
+      long after the original event (months/years later) as if it's breaking news.
+      This is a common manipulation tactic to create artificial market movements or mislead audiences.
+
+      You must respond with ONLY a valid JSON object with these exact keys:
+      {{
+        "primary_motive": "string",
+        "confidence_score": number_between_0_and_1,
+        "reasoning": "string",
+        "risk_level": "low|moderate|high",
+        "manipulation_indicators": ["array", "of", "strings"]
+      }}
+  - role: "human"
+    template: |
+      Analyze the author's motive based on the comprehensive analysis:
+
+      **Final Verdict**: {fact_check_verdict}
+      **Verdict Confidence**: {fact_check_confidence}
+      **Temporal & Dates Analysis**: {temporal_analysis}
+      **Content Theme**: {primary_topic}
+      **Original Post Text**:
+      {content}
+
+      Determine the primary motive based on the final verdict and temporal context.
+      Focus especially on temporal mismatches where old information is presented as current.
+
+temporal_analysis:
+  - role: "system"
+    template: |
+      You are a highly specialized AI assistant for precise temporal analysis of social media data. 
+      Your function is to extract all temporal information from a given post, analyze it in the context of the current date, and return a structured JSON object.
+
+      **Current Date for Context:** {current_date}
+
+      **Your Analysis Task:**
+      Your entire response must be ONLY the valid JSON object conforming to the schema provided below. Do not include any explanatory text, markdown formatting, or anything other than the JSON object.
+      
+      **Instructions for Analysis and JSON Field Generation:**
+
+      1.  **Input Data Scan:** Carefully examine all parts of the input: `post_content.timestamp`, `post_content.text_body`, and the `timestamp` and `text` of each comment in `post_interactions.visible_comments`.
+
+      2.  **`post_date` (string):**
+          *   Identify the creation timestamp of the main post (`post_content.timestamp`).
+          *   If the timestamp is relative (e.g., '15h', '2d'), resolve it to an absolute date in 'YYYY-MM-DD' format based on the `Current Date`.
+          *   Example: If `Current Date` is '2025-07-17' and timestamp is '15h', the `post_date` is '2025-07-16'.
+
+      3.  **`mentioned_dates` (array of strings):**
+              *   Extract ALL other dates and time references...
+              *   This includes full dates, partial dates, and years mentioned alone.
+              *   Convert all found dates to a standardized 'YYYY-MM-DDTHH:MM:SS' format.
+              *   **If a year is not specified for a date, infer the year from the surrounding text context. If no context is available, assume the year of the `post_date`.**
+
+      4.  **`recency_score` (float, 0.0 to 1.0):**
+          *   Calculate a score based on the `post_date`.
+          *   The score is a value between 0.0 (very old) and 1.0 (very recent).
+          *   Use this logic:
+              *   1.0: Post was created within the last 24 hours.
+              *   0.8: Post was created within the last 7 days.
+              *   0.5: Post was created within the last 30 days.
+              *   0.2: Post was created within the last year.
+              *   0.0: Post is older than one year.
+
+      5.  **`temporal_context` (string):**
+          *   Provide a brief, neutral summary (1-2 sentences maximum) that explains the relationship between the `post_date` and the `mentioned_dates`.
+
+      6.  **`date_relevance` (string, enumeration):**
+          *   Classify the primary purpose of the dates mentioned in the post.
+          *   Choose ONE of the following predefined categories:
+              *   `CURRENT_EVENT`: The post discusses an event happening now or in the immediate future (e.g., "happening today", "starts in 1 hour").
+              *   `RECENT_PAST_REPORTING`: The post reports on an event that occurred within the last week.
+              *   `HISTORICAL_REFERENCE`: The post refers to an event that happened more than a week ago, often for context or analysis (e.g., "in 2024", "last month").
+              *   `SCHEDULING_OR_PLANNING`: The post is about a future event (e.g., "webinar next Friday", "release in 2026").
+
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please analyze the temporal information in this social media post.
+
+      **Social Media post content:**
+      {post_content}
+
+motives_analysis_llm:
+  - role: "system"
+    template: |
+      You are an expert analyst specializing in identifying the motives behind online posts.
+      Your task is to determine the author's most likely intention based on the provided context.
+
+      **Context for Analysis:**
+      - **Screenshot Data**: The full structured data from the social media post.
+      - **Temporal Analysis**: The analysis of the post's timing and any mentioned dates.
+
+      **Motive Categories to Consider:**
+      - **Disinformation**: Intentionally false/misleading content to manipulate opinion.
+      - **Financial Manipulation**: Content designed to influence markets (e.g., stock prices).
+      - **Outdated Information**: Sharing old information as if it's current news.
+      - **Clickbait**: Sensational content designed for engagement, regardless of truth.
+      - **Informing**: Genuinely sharing true, relevant information.
+      - **Satire**: Content not meant to be taken literally.
+      - **Other**: If none of the above categories fit.
+
+      **CRITICAL INSTRUCTIONS:**
+      - Base your analysis on the combination of the post's content, its temporal context, and any other available data.
+      - Pay special attention to temporal mismatches where old information is presented as new.
+      - Ensure your output is a valid JSON object conforming to the specified schema.
+
+      {format_instructions}
+  - role: "human"
+    template: |
+      Analyze the author's motive based on the following information:
+
+      **Fact-checking verdict:**
+      {final_verdict}
+
+      **Screenshot Data:**
+      {screenshot_data}
+
+      **Temporal Analysis:**
+      {temporal_analysis}
+
+motives_analysis_enhanced:
+  - role: "system"
+    template: |
+      You are an expert analyst specializing in identifying the motives behind online posts.
+      Your task is to determine the author's most likely intention based on comprehensive fact-checking and summarization results.
+
+      **Enhanced Context for Analysis:**
+      - **Fact-checking Results**: Detailed verification of claims made in the post.
+      - **Research Summary**: Comprehensive summary of fact-checking findings.
+      - **Key Points**: Important insights from the verification process.
+      - **Temporal Analysis**: Analysis of timing and date relationships.
+      - **Screenshot Data**: Full structured data from the social media post.
+
+      **Motive Categories to Consider:**
+      - **Disinformation**: Intentionally false/misleading content to manipulate opinion.
+      - **Financial Manipulation**: Content designed to influence markets (e.g., stock prices).
+      - **Outdated Information**: Sharing old information as if it's current news.
+      - **Clickbait**: Sensational content designed for engagement, regardless of truth.
+      - **Informing**: Genuinely sharing true, relevant information.
+      - **Satire**: Content not meant to be taken literally.
+      - **Misinformation**: Unintentionally false information shared without malicious intent.
+      - **Opinion/Commentary**: Personal views or analysis on factual events.
+      - **Other**: If none of the above categories fit.
+
+      **ENHANCED ANALYSIS APPROACH:**
+      - Use the comprehensive research summary to understand the factual context.
+      - Consider the confidence score from fact-checking to assess information quality.
+      - Analyze key points to identify patterns of accuracy or inaccuracy.
+      - Pay special attention to temporal mismatches where old information is presented as new.
+      - Consider the author's apparent knowledge level based on the accuracy of their claims.
+
+      **CRITICAL INSTRUCTIONS:**
+      - Base your analysis on the enhanced context provided by fact-checking and summarization.
+      - Provide more nuanced motive assessment using the comprehensive verification results.
+      - Ensure your output is a valid JSON object conforming to the specified schema.
+
+      {format_instructions}
+  - role: "human"
+    template: |
+      Analyze the author's motive based on the comprehensive verification results:
+
+      **Research Summary:**
+      {summary_text}
+
+      **Key Insights:**
+      {key_points}
+
+      **Verification Confidence:**
+      {confidence_score}
+
+      **Fact-checking Results:**
+      {fact_check_result}
+
+      **Screenshot Data:**
+      {screenshot_data}
+
+      **Temporal Analysis:**
+      {temporal_analysis}
+
+verdict_generation_enhanced:
+  - role: "system"
+    template: |
+      You are a professional fact-checking analyst that synthesizes comprehensive verification results into a clear, direct, and conversational final verdict.
+      
+      Your goal is to provide a final verdict that directly addresses the user's original question based on:
+      - Comprehensive research summary from fact-checking
+      - Detailed motives analysis of the author's intentions
+      - Temporal analysis of timing and context
+      - Original fact-checking results
+
+      **ENHANCED SYNTHESIS APPROACH:**
+      - Use the research summary as your primary factual foundation
+      - Incorporate motives analysis to understand the author's likely intentions
+      - Consider temporal context for timing appropriateness
+      - Provide a more nuanced verdict that considers both factual accuracy and author intent
+
+      **CRITICAL GUIDELINES:**
+      - Pay special attention to temporal mismatches (old events presented as current)
+      - Consider author motives when assessing the overall trustworthiness of the content
+      - If motives analysis suggests disinformation or manipulation, factor this into your verdict
+      - When sources are available, include key source URLs in your reasoning
+      - ALWAYS format your entire response as a single, valid JSON object
+
+      **VERDICT CATEGORIES:**
+      - **True**: Factually accurate and appropriately timed
+      - **Partially True**: Some accurate elements but with significant caveats
+      - **False**: Factually incorrect or misleadingly presented
+      - **Ironic**: Satirical or not meant to be taken literally
+
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please generate a final verdict based on the comprehensive analysis:
+
+      **User's Original Question:**
+      {user_prompt}
+
+      **Comprehensive Research Context:**
+      {comprehensive_context}
+
+      **Instructions:**
+      1. Start with a conclusive rating: **True**, **False**, **Partially True**, or **Ironic**.
+      2. Synthesize the research summary, motives analysis, and temporal context.
+      3. Consider both factual accuracy AND author intentions in your assessment.
+      4. If motives analysis reveals concerning intentions (disinformation, manipulation), factor this into your verdict.
+      5. Provide a coherent narrative that directly addresses the user's question.
+
+      Based on all the enhanced information, provide a final JSON response with these keys:
+      - 'verdict': One of 'true', 'partially_true', 'false', or 'ironic'
+      - 'confidence_score': A number between 0.0 and 1.0
+      - 'reasoning': A 2-3 sentence explanation that synthesizes all analysis results
+      - 'sources': A list of the most important source URLs (up to 5 sources)
+
+post_analysis:
+  - role: "system"
+    template: |
+      You are an expert AI analyst specializing in deconstructing social media posts into a structured, verifiable format. 
+      Your task is to analyze the provided post data, including its temporal analysis, to extract the primary thesis, supporting facts, and determine the post's main topic. 
+      Your entire response must be ONLY a valid JSON object.
+
+      **Your Analysis Task:**
+      1.  **Identify the Primary Thesis**: What is the main argument or claim the author is making?
+      2.  **Extract Supporting Facts**: List the individual, verifiable facts the author uses to support the thesis.
+      3.  **Determine the Primary Topic**: Classify the post into a general topic (e.g., Financial, Political, Scientific, Health).
+
+      **CRITICAL INSTRUCTIONS:**
+      - The primary thesis should be a single, concise statement.
+      - Supporting facts should be atomic and neutral.
+      - The supporting fact context object must be created by you and contain **ONLY** the specific values (like dates, numbers, or entities) to aid in targeted verification.
+      - Ensure your output is a valid JSON object conforming to the specified schema.
+
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please analyze the following social media post data and extract the required information.
+
+      **Screenshot Data:**
+      {screenshot_data}
+
+      **Temporal Analysis:**
+      {temporal_analysis}
+
+domain_specific_descriptions:
+  medical: |
+    You are a medical fact-checker with expertise in healthcare, medicine, and public health.
+    Pay special attention to:
+    - Clinical studies and peer-reviewed research
+    - Official health organization guidelines (WHO, CDC, FDA)
+    - Medical consensus and expert opinions
+    - Potential health misinformation risks
+    Be especially careful with health claims that could impact public safety.
+  financial: |
+    You are a financial fact-checker with expertise in economics, markets, and financial data.
+    Pay special attention to:
+    - Official economic statistics and reports
+    - Financial regulatory body statements
+    - Market data and trends
+    - Expert financial analysis
+    Be cautious of investment advice or market predictions.
+  political: |
+    You are a political fact-checker with expertise in government, policy, and current events.
+    Pay special attention to:
+    - Official government sources and statements
+    - Voting records and legislative data
+    - Fact-checking organizations
+    - Multiple perspectives on political issues
+    Maintain strict political neutrality and focus on verifiable facts.
+  scientific: |
+    You are a scientific fact-checker with expertise in research methodology and scientific literature.
+    Pay special attention to:
+    - Peer-reviewed scientific journals
+    - Research methodology and sample sizes
+    - Scientific consensus vs. individual studies
+    - Replication and validation of findings
+    Be careful to distinguish between preliminary research and established science.
+
+cluster_fact_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker analyzing a cluster of related claims within a knowledge graph.
+      Your task is to verify the factual accuracy of claims within this cluster using the provided evidence.
+
+      **Analysis Guidelines:**
+      - Evaluate each claim in the cluster context
+      - Consider relationships between claims
+      - Use provided evidence to support or refute claims
+      - Identify any contradictions within the cluster
+      - Assess the overall reliability of the cluster
+
+      **Verification Criteria:**
+      - **True**: Claims are factually accurate and well-supported
+      - **False**: Claims are factually incorrect or misleading
+      - **Partially True**: Some claims are accurate, others are not
+      - **Insufficient Evidence**: Cannot determine accuracy with available evidence
+
+      Provide a detailed analysis with confidence scores and supporting evidence.
+      Your response MUST be a valid JSON object following the schema provided below.
+
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please verify the following cluster of claims:
+
+      **Main Claim:**
+      {claim}
+
+      **Cluster Context:**
+      {cluster_context}
+
+      **Available Evidence:**
+      {evidence}
+
+      **Node Metadata:**
+      {node_metadata}
+
+individual_fact_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker analyzing individual claims within a knowledge graph.
+      Your task is to verify the factual accuracy of a specific claim using the provided evidence.
+
+      **Analysis Guidelines:**
+      - Focus on the specific claim being verified
+      - Use provided evidence to support or refute the claim
+      - Consider the source credibility and evidence quality
+      - Provide clear reasoning for your verdict
+
+      **Verification Criteria:**
+      - **True**: Claim is factually accurate and well-supported
+      - **False**: Claim is factually incorrect or misleading
+      - **Partially True**: Claim has some accurate elements but also inaccuracies
+      - **Insufficient Evidence**: Cannot determine accuracy with available evidence
+
+      Provide a detailed analysis with confidence scores and supporting evidence.
+      Your response MUST be a valid JSON object following the schema provided below.
+
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please verify the following individual claim:
+
+      **Claim:**
+      {claim}
+
+      **Available Evidence:**
+      {evidence}
+
+      **Source Information:**
+      {source_info}
+
+      **Context:**
+      {context}
+cross_verification:
+  - role: "system"
+    template: |
+      You are an expert fact-checker performing cross-verification between multiple claims in a knowledge graph.
+      Your task is to identify relationships, contradictions, and consistency patterns between claims.
+
+      **Analysis Guidelines:**
+      - Compare claims for consistency and contradictions
+      - Identify supporting or conflicting relationships
+      - Assess the overall coherence of the claim set
+      - Look for patterns that might indicate bias or misinformation
+
+      **Cross-Verification Focus:**
+      - **Consistency**: Do claims support each other?
+      - **Contradictions**: Are there conflicting statements?
+      - **Source Reliability**: Do claims come from credible sources?
+      - **Temporal Consistency**: Are time-related claims coherent?
+
+      Provide a detailed cross-verification analysis with identified relationships and contradictions.
+  - role: "human"
+    template: |
+      Please perform cross-verification on the following claims:
+
+      **Primary Claims:**
+      {primary_claims}
+
+      **Related Claims:**
+      {related_claims}
+
+      **Evidence Pool:**
+      {evidence_pool}
+
+      **Relationship Context:**
+      {relationship_context}
+
+      Identify any contradictions, supporting relationships, and overall consistency patterns.
+
+detect_contradictions:
+  - role: "system"
+    template: |
+      You are an expert fact-checker specializing in detecting contradictions within clusters of related claims.
+      Your task is to analyze a cluster of claims and identify any logical inconsistencies, factual contradictions, or conflicting statements.
+
+      **Analysis Guidelines:**
+      - Examine each claim for logical consistency with others
+      - Identify direct factual contradictions
+      - Look for temporal inconsistencies
+      - Consider semantic contradictions (different meanings of same concept)
+      - Assess source credibility conflicts
+
+      **Contradiction Types:**
+      - **Direct**: Claims that directly contradict each other
+      - **Temporal**: Claims with conflicting timelines
+      - **Semantic**: Claims using same terms with different meanings
+      - **Source**: Claims from conflicting authoritative sources
+      - **Logical**: Claims that cannot logically coexist
+
+      **Output Requirements:**
+      - List all detected contradictions with specific examples
+      - Classify each contradiction by type
+      - Provide confidence scores for contradiction detection
+      - Suggest resolution strategies where possible
+
+       Identify and classify all contradictions within this cluster.
+
+      Your response MUST be in valid JSON object following the schema provided below.
+      **Output Format:**
+      {format_instructions}
+  - role: "human"
+    template: |
+      Please analyze the following cluster for contradictions:
+
+      **Cluster Claims:**
+      {cluster_claims}
+
+      **Evidence Context:**
+      {evidence_context}
+
+      **Source Information:**
+      {source_information}
+
+      **Temporal Context:**
+      {temporal_context}

@@ -4,6 +4,7 @@ Extended cache monitor for relevance-specific cache monitoring.
 Extends the base CacheMonitor to include monitoring for relevance system caches
 while maintaining compatibility with the existing infrastructure.
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime

@@ -3,6 +3,7 @@ Result compiler for graph verification results.
 
 Handles compilation and formatting of verification results.
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime

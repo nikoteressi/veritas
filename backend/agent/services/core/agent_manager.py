@@ -6,10 +6,9 @@ from __future__ import annotations
 
 import logging
 
+from app.exceptions import AgentError
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
-
-from app.exceptions import AgentError
 
 from ...llm import llm_manager
 from ...tools import AVAILABLE_TOOLS
