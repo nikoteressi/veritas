@@ -15,6 +15,7 @@ import numpy as np
 from langchain_ollama import OllamaEmbeddings
 
 from app.config import settings
+from app.exceptions import EmbeddingError
 
 from ..cache.intelligent_cache import CacheLevel, IntelligentCache
 
@@ -95,9 +96,7 @@ class EnhancedOllamaEmbeddings:
 
         # Try cache first
         if use_cache:
-            cached_embedding = await self._get_cached_embedding(
-                cache_key, normalized_text
-            )
+            cached_embedding = await self._get_cached_embedding(cache_key)
             if cached_embedding is not None:
                 self.metrics["cache_hits"] += 1
                 processing_time = time.time() - start_time
@@ -107,26 +106,16 @@ class EnhancedOllamaEmbeddings:
         # Generate new embedding
         self.metrics["cache_misses"] += 1
         try:
-            # Always treat embed_query as potentially async
-            logger.debug(
-                f"About to call self.ollama.embed_query with text: {text[:50]}...")
-            result = self.ollama.embed_query(text)
-            logger.debug(f"embed_query returned type: {type(result)}")
-            logger.debug(f"Is coroutine: {asyncio.iscoroutine(result)}")
+            embedding = await self.ollama.embed_query(text)
 
-            if asyncio.iscoroutine(result):
-                # If it's a coroutine, await it
-                logger.debug("Awaiting coroutine result")
-                embedding = await result
-                logger.debug(f"Awaited result type: {type(embedding)}")
-            else:
-                # If it's synchronous, use it directly
-                logger.debug("Using synchronous result directly")
-                embedding = result
+            # if asyncio.iscoroutine(result):
+            #     embedding = await result
+            # else:
+            #     embedding = result
 
             # Ensure embedding is a list of floats
             if not isinstance(embedding, list):
-                if hasattr(embedding, 'tolist'):
+                if hasattr(embedding, "tolist"):
                     embedding = embedding.tolist()
                 else:
                     embedding = list(embedding)
@@ -134,12 +123,6 @@ class EnhancedOllamaEmbeddings:
             # Validate that all elements are numbers
             embedding = [float(x) for x in embedding]
 
-            logger.debug(f"Final embedding type: {type(embedding)}")
-            logger.debug(f"Final embedding length: {len(embedding)}")
-            logger.debug(
-                f"First few values: {embedding[:3] if len(embedding) > 0 else 'empty'}")
-
-            # Cache the result
             if use_cache:
                 await self._cache_embedding(cache_key, embedding, normalized_text)
 
@@ -156,12 +139,10 @@ class EnhancedOllamaEmbeddings:
             return embedding
 
         except Exception as e:
-            logger.error("Failed to generate embedding for text: %s", e)
-            raise
+            raise EmbeddingError(
+                f"Failed to generate embedding for text: {str(e)}") from e
 
-    async def embed_texts(
-        self, texts: list[str], use_cache: bool = True
-    ) -> list[list[float]]:
+    async def embed_texts(self, texts: list[str], use_cache: bool = True) -> list[list[float]]:
         """
         Generate embeddings for multiple texts with batch processing.
 
@@ -177,17 +158,15 @@ class EnhancedOllamaEmbeddings:
         # Process in batches
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i: i + self.batch_size]
-            batch_embeddings = await asyncio.gather(
-                *[self.embed_text(text, use_cache) for text in batch]
-            )
+            batch_embeddings = await asyncio.gather(*[self.embed_text(text, use_cache) for text in batch])
 
             # Safety check - ensure no coroutines in batch results
             for j, embedding in enumerate(batch_embeddings):
                 if asyncio.iscoroutine(embedding):
                     logger.error(
-                        f"CRITICAL: embed_texts got coroutine at batch {i}, item {j}")
+                        "CRITICAL: embed_texts got coroutine at batch %d, item %d", i, j)
                     raise RuntimeError(
-                        f"embed_texts received coroutine instead of embedding")
+                        "embed_texts received coroutine instead of embedding")
 
             embeddings.extend(batch_embeddings)
 
@@ -195,15 +174,13 @@ class EnhancedOllamaEmbeddings:
         for k, embedding in enumerate(embeddings):
             if asyncio.iscoroutine(embedding):
                 logger.error(
-                    f"CRITICAL: embed_texts final result contains coroutine at index {k}")
+                    "CRITICAL: embed_texts final result contains coroutine at index %d", k)
                 raise RuntimeError(
-                    f"embed_texts final result contains coroutine")
+                    "embed_texts final result contains coroutine")
 
         return embeddings
 
-    async def _get_cached_embedding(
-        self, cache_key: str, text: str
-    ) -> list[float] | None:
+    async def _get_cached_embedding(self, cache_key: str) -> list[float] | None:
         """Get embedding from cache with similarity search."""
         # Direct cache lookup
         cached = await self.cache.get(cache_key)
@@ -237,17 +214,9 @@ class EnhancedOllamaEmbeddings:
             dependencies=[f"model:{self.model}"],
         )
 
-    def calculate_similarity(
-        self, embedding1: list[float], embedding2: list[float]
-    ) -> float:
+    def calculate_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
         """Calculate cosine similarity between two embeddings."""
         try:
-            # Debug: Check if embeddings are coroutines
-            logger.debug(
-                f"calculate_similarity called with embedding1 type: {type(embedding1)}")
-            logger.debug(
-                f"calculate_similarity called with embedding2 type: {type(embedding2)}")
-
             if asyncio.iscoroutine(embedding1):
                 logger.error("embedding1 is a coroutine!")
                 raise RuntimeError(
@@ -271,9 +240,9 @@ class EnhancedOllamaEmbeddings:
             similarity = dot_product / (norm1 * norm2)
             return float(similarity)
 
-        except (ValueError, TypeError, np.linalg.LinAlgError) as e:
-            logger.error("Failed to calculate similarity: %s", e)
-            return 0.0
+        except Exception as e:
+            raise EmbeddingError(
+                f"Failed to calculate similarity: {str(e)}") from e
 
     async def find_similar_texts(
         self,

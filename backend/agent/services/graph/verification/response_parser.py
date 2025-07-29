@@ -29,27 +29,13 @@ class ResponseParser:
 
     def __init__(self):
         """Initialize parsers for different response types."""
-        self.verification_parser = PydanticOutputParser(
-            pydantic_object=VerificationResponse
-        )
-        self.source_selection_parser = PydanticOutputParser(
-            pydantic_object=SourceSelectionResponse
-        )
-        self.contradiction_parser = PydanticOutputParser(
-            pydantic_object=ContradictionDetectionResponse
-        )
-        self.cross_verification_parser = PydanticOutputParser(
-            pydantic_object=CrossVerificationResponse
-        )
-        self.cluster_verification_parser = PydanticOutputParser(
-            pydantic_object=ClusterVerificationResponse
-        )
-        self.evidence_analysis_parser = PydanticOutputParser(
-            pydantic_object=EvidenceAnalysisResponse
-        )
-        self.source_selection_parser = PydanticOutputParser(
-            pydantic_object=SourceSelectionResponse
-        )
+        self.verification_parser = PydanticOutputParser(pydantic_object=VerificationResponse)
+        self.source_selection_parser = PydanticOutputParser(pydantic_object=SourceSelectionResponse)
+        self.contradiction_parser = PydanticOutputParser(pydantic_object=ContradictionDetectionResponse)
+        self.cross_verification_parser = PydanticOutputParser(pydantic_object=CrossVerificationResponse)
+        self.cluster_verification_parser = PydanticOutputParser(pydantic_object=ClusterVerificationResponse)
+        self.evidence_analysis_parser = PydanticOutputParser(pydantic_object=EvidenceAnalysisResponse)
+        self.source_selection_parser = PydanticOutputParser(pydantic_object=SourceSelectionResponse)
 
     def get_verification_format_instructions(self) -> str:
         """Get format instructions for verification response."""
@@ -86,9 +72,14 @@ class ResponseParser:
                 "reasoning": parsed_response.reasoning,
                 "evidence_used": parsed_response.evidence_used,
             }
-        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
-            logger.error(
-                "Pydantic validation error in verification response: %s", e)
+        except (
+            ValidationError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            json.JSONDecodeError,
+        ) as e:
+            logger.error("Pydantic validation error in verification response: %s", e)
             return {
                 "verdict": "ERROR",
                 "confidence": 0.0,
@@ -102,13 +93,10 @@ class ResponseParser:
             # Use Pydantic parser for structured output
             parsed_response = self.source_selection_parser.parse(response)
             # Convert 1-based indices to 0-based if needed
-            return [
-                idx - 1 if idx > 0 else idx for idx in parsed_response.selected_sources
-            ]
+            return [idx - 1 if idx > 0 else idx for idx in parsed_response.selected_sources]
         except ValidationError as e:
             logger.error("Failed to parse source selection response: %s", e)
-            raise RuntimeError(
-                f"Failed to parse source selection response: {e}") from e
+            raise RuntimeError(f"Failed to parse source selection response: {e}") from e
 
     def parse_contradiction_response(self, response: str) -> list[dict[str, Any]]:
         """Parse LLM response for contradiction detection using Pydantic."""
@@ -139,9 +127,7 @@ class ResponseParser:
                 # Normalize the format for backward compatibility
                 normalized_contradiction = {
                     "type": contradiction_dict.get("type", "unknown"),
-                    "description": contradiction_dict.get(
-                        "reasoning", contradiction_dict.get("description", "")
-                    ),
+                    "description": contradiction_dict.get("reasoning", contradiction_dict.get("description", "")),
                     "confidence": contradiction_dict.get("confidence", 0.0),
                     "claims_involved": [contradiction_dict.get("claim", "")],
                     "resolution_strategy": "manual_review",
@@ -154,7 +140,13 @@ class ResponseParser:
 
             return contradictions
 
-        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
+        except (
+            ValidationError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            json.JSONDecodeError,
+        ) as e:
             logger.error("Failed to parse contradiction response: %s", e)
             return []
 
@@ -177,9 +169,14 @@ class ResponseParser:
                 "cluster_analysis": parsed_response.cluster_analysis,
                 "contradictions_found": parsed_response.contradictions_found,
             }
-        except (ValidationError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
-            logger.error(
-                "Failed to parse cluster verification response: %s", e)
+        except (
+            ValidationError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            json.JSONDecodeError,
+        ) as e:
+            logger.error("Failed to parse cluster verification response: %s", e)
             return {
                 "overall_verdict": "ERROR",
                 "confidence_score": 0.0,
@@ -223,10 +220,8 @@ class ResponseParser:
                 if search_result.url:
                     urls.append(search_result.url)
 
-            logger.debug(
-                "Extracted %d source URLs from search results", len(urls))
+            logger.debug("Extracted %d source URLs from search results", len(urls))
             return urls
 
         except Exception as e:
-            raise ValueError(
-                f"Failed to extract sources from result: {e}") from e
+            raise ValueError(f"Failed to extract sources from result: {e}") from e

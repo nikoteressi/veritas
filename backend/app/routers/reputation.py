@@ -17,9 +17,7 @@ router = APIRouter()
 
 
 @router.get("/user-reputation/{nickname}")
-async def get_user_reputation(
-    nickname: str, db: AsyncSession = Depends(get_db)
-) -> dict[str, Any]:
+async def get_user_reputation(nickname: str, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     """
     Get reputation information for a user.
 
@@ -60,9 +58,7 @@ async def get_user_reputation(
             "warning_issued": user.warning_issued,
             "notification_issued": user.notification_issued,
             "created_at": user.created_at.isoformat() if user.created_at else None,
-            "last_checked_date": (
-                user.last_checked_date.isoformat() if user.last_checked_date else None
-            ),
+            "last_checked_date": (user.last_checked_date.isoformat() if user.last_checked_date else None),
         }
 
     except Exception as e:
@@ -93,12 +89,8 @@ async def get_reputation_stats(db: AsyncSession = Depends(get_db)) -> dict[str, 
                 func.sum(User.false_count).label("false_posts"),
                 func.sum(User.partially_true_count).label("partially_true"),
                 func.sum(User.ironic_count).label("ironic_posts"),
-                func.sum(func.case((User.warning_issued == True, 1), else_=0)).label(
-                    "users_with_warnings"
-                ),
-                func.sum(
-                    func.case((User.notification_issued == True, 1), else_=0)
-                ).label("users_with_notifications"),
+                func.sum(func.case((User.warning_issued == True, 1), else_=0)).label("users_with_warnings"),
+                func.sum(func.case((User.notification_issued == True, 1), else_=0)).label("users_with_notifications"),
             )
         )
 
@@ -115,14 +107,10 @@ async def get_reputation_stats(db: AsyncSession = Depends(get_db)) -> dict[str, 
         users_with_notifications = stats.users_with_notifications or 0
 
         # Calculate percentages
-        accuracy_rate = (
-            (true_posts + partially_true) / total_posts * 100 if total_posts > 0 else 0
-        )
+        accuracy_rate = (true_posts + partially_true) / total_posts * 100 if total_posts > 0 else 0
         true_percentage = true_posts / total_posts * 100 if total_posts > 0 else 0
         false_percentage = false_posts / total_posts * 100 if total_posts > 0 else 0
-        partially_true_percentage = (
-            partially_true / total_posts * 100 if total_posts > 0 else 0
-        )
+        partially_true_percentage = partially_true / total_posts * 100 if total_posts > 0 else 0
         ironic_percentage = ironic_posts / total_posts * 100 if total_posts > 0 else 0
 
         return {
@@ -172,11 +160,7 @@ async def get_users_with_warnings(db: AsyncSession = Depends(get_db)) -> dict[st
                     ),
                     "warning_issued": user.warning_issued,
                     "notification_issued": user.notification_issued,
-                    "last_checked_date": (
-                        user.last_checked_date.isoformat()
-                        if user.last_checked_date
-                        else None
-                    ),
+                    "last_checked_date": (user.last_checked_date.isoformat() if user.last_checked_date else None),
                 }
             )
 
@@ -188,9 +172,7 @@ async def get_users_with_warnings(db: AsyncSession = Depends(get_db)) -> dict[st
 
 
 @router.get("/leaderboard")
-async def get_reputation_leaderboard(
-    limit: int = 10, db: AsyncSession = Depends(get_db)
-) -> dict[str, Any]:
+async def get_reputation_leaderboard(limit: int = 10, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     """
     Get reputation leaderboard showing top users by accuracy.
 
@@ -207,10 +189,7 @@ async def get_reputation_leaderboard(
             select(User)
             .where(User.total_posts_checked >= 5)
             .order_by(
-                (
-                    (User.true_count + User.partially_true_count)
-                    / User.total_posts_checked
-                ).desc(),
+                ((User.true_count + User.partially_true_count) / User.total_posts_checked).desc(),
                 User.total_posts_checked.desc(),
             )
             .limit(limit)
@@ -219,11 +198,7 @@ async def get_reputation_leaderboard(
 
         leaderboard = []
         for i, user in enumerate(users, 1):
-            accuracy = (
-                (user.true_count + user.partially_true_count)
-                / user.total_posts_checked
-                * 100
-            )
+            accuracy = (user.true_count + user.partially_true_count) / user.total_posts_checked * 100
             leaderboard.append(
                 {
                     "rank": i,

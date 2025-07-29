@@ -162,9 +162,7 @@ class VerificationUtils:
         return domain_groups
 
     @staticmethod
-    def calculate_confidence_score(
-        evidence_count: int, source_diversity: int, consistency_score: float
-    ) -> float:
+    def calculate_confidence_score(evidence_count: int, source_diversity: int, consistency_score: float) -> float:
         """Calculate confidence score based on multiple factors."""
         # Base score from evidence count (diminishing returns)
         evidence_score = min(1.0, evidence_count / 5.0)
@@ -173,9 +171,7 @@ class VerificationUtils:
         diversity_score = min(1.0, source_diversity / 3.0)
 
         # Weighted combination
-        confidence = (
-            evidence_score * 0.4 + diversity_score * 0.3 + consistency_score * 0.3
-        )
+        confidence = evidence_score * 0.4 + diversity_score * 0.3 + consistency_score * 0.3
 
         return min(1.0, max(0.0, confidence))
 
@@ -197,12 +193,8 @@ class VerificationUtils:
             for j, stmt2 in enumerate(statements[i + 1 :], i + 1):
                 # Check for direct negation patterns
                 for neg_pattern, pos_pattern in negation_patterns:
-                    if (
-                        re.search(neg_pattern, stmt1.lower())
-                        and re.search(pos_pattern, stmt2.lower())
-                    ) or (
-                        re.search(pos_pattern, stmt1.lower())
-                        and re.search(neg_pattern, stmt2.lower())
+                    if (re.search(neg_pattern, stmt1.lower()) and re.search(pos_pattern, stmt2.lower())) or (
+                        re.search(pos_pattern, stmt1.lower()) and re.search(neg_pattern, stmt2.lower())
                     ):
                         contradictions.append((i, j))
                         break
@@ -280,17 +272,13 @@ class VerificationUtils:
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
-                items.extend(
-                    VerificationUtils.flatten_dict(v, new_key, sep=sep).items()
-                )
+                items.extend(VerificationUtils.flatten_dict(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
         return dict(items)
 
     @staticmethod
-    def deduplicate_by_similarity(
-        texts: list[str], similarity_threshold: float = 0.8
-    ) -> list[str]:
+    def deduplicate_by_similarity(texts: list[str], similarity_threshold: float = 0.8) -> list[str]:
         """Remove duplicate texts based on similarity."""
         if not texts:
             return []
@@ -300,9 +288,7 @@ class VerificationUtils:
         for text in texts[1:]:
             is_duplicate = False
             for unique_text in unique_texts:
-                similarity = VerificationUtils.calculate_text_similarity(
-                    text, unique_text
-                )
+                similarity = VerificationUtils.calculate_text_similarity(text, unique_text)
                 if similarity >= similarity_threshold:
                     is_duplicate = True
                     break
@@ -402,9 +388,7 @@ class CacheManager:
 
         # Remove expired entries first
         expired_keys = [
-            key
-            for key, timestamp in self.timestamps.items()
-            if current_time - timestamp > self.ttl_seconds
+            key for key, timestamp in self.timestamps.items() if current_time - timestamp > self.ttl_seconds
         ]
 
         for key in expired_keys:

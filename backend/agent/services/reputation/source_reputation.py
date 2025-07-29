@@ -183,9 +183,7 @@ class SourceReputationSystem:
         }
 
         # Initialize TF-IDF for content analysis
-        self.tfidf_vectorizer = TfidfVectorizer(
-            max_features=1000, stop_words="english", ngram_range=(1, 2)
-        )
+        self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words="english", ngram_range=(1, 2))
 
         self._load_external_ratings()
 
@@ -207,9 +205,7 @@ class SourceReputationSystem:
             },
         }
 
-    def evaluate_source(
-        self, url: str, content: str = None, domain_info: dict[str, Any] = None
-    ) -> SourceProfile:
+    def evaluate_source(self, url: str, content: str = None, domain_info: dict[str, Any] = None) -> SourceProfile:
         """
         Comprehensive evaluation of a source.
 
@@ -250,9 +246,7 @@ class SourceReputationSystem:
         except (ValueError, AttributeError):
             return url.lower()
 
-    def _create_new_profile(
-        self, domain: str, domain_info: dict[str, Any] = None
-    ) -> SourceProfile:
+    def _create_new_profile(self, domain: str, domain_info: dict[str, Any] = None) -> SourceProfile:
         """Create a new source profile."""
         source_type = self._classify_source_type(domain)
         metrics = SourceMetrics()
@@ -412,9 +406,7 @@ class SourceReputationSystem:
             if score > 0:
                 profile.bias_indicators.append(f"{direction.value}: {score}")
 
-    def _update_transparency_score(
-        self, profile: SourceProfile, url: str, domain_info: dict[str, Any] = None
-    ):
+    def _update_transparency_score(self, profile: SourceProfile, url: str, domain_info: dict[str, Any] = None):
         """Update transparency score based on various factors."""
         score = 0.0
 
@@ -436,9 +428,7 @@ class SourceReputationSystem:
 
         profile.metrics.transparency_score = min(1.0, score)
 
-    def _update_expertise_score(
-        self, profile: SourceProfile, domain_info: dict[str, Any] = None
-    ):
+    def _update_expertise_score(self, profile: SourceProfile, domain_info: dict[str, Any] = None):
         """Update expertise score based on source type and domain."""
         score = 0.0
 
@@ -511,9 +501,7 @@ class SourceReputationSystem:
 
         metrics.reliability_score = min(1.0, max(0.0, reliability))
 
-    def update_verification_result(
-        self, domain: str, was_correct: bool, claim: str = None, evidence: str = None
-    ):
+    def update_verification_result(self, domain: str, was_correct: bool, claim: str = None, evidence: str = None):
         """Update source metrics based on verification results."""
         if domain not in self.source_profiles:
             # Create basic profile if doesn't exist
@@ -531,9 +519,7 @@ class SourceReputationSystem:
 
         # Update accuracy score
         if metrics.verification_count > 0:
-            metrics.accuracy_score = (
-                metrics.correct_predictions / metrics.verification_count
-            )
+            metrics.accuracy_score = metrics.correct_predictions / metrics.verification_count
 
         # Store verification history
         verification_record = {
@@ -570,10 +556,7 @@ class SourceReputationSystem:
 
     def get_top_sources(self, limit: int = 10) -> list[tuple[str, float]]:
         """Get top sources by reliability score."""
-        sources = [
-            (domain, profile.metrics.reliability_score)
-            for domain, profile in self.source_profiles.items()
-        ]
+        sources = [(domain, profile.metrics.reliability_score) for domain, profile in self.source_profiles.items()]
         sources.sort(key=lambda x: x[1], reverse=True)
         return sources[:limit]
 
@@ -653,9 +636,7 @@ class SourceReputationSystem:
                 verification_count=profile_data["metrics"]["verification_count"],
                 correct_predictions=profile_data["metrics"]["correct_predictions"],
                 false_predictions=profile_data["metrics"]["false_predictions"],
-                last_updated=datetime.fromisoformat(
-                    profile_data["metrics"]["last_updated"]
-                ),
+                last_updated=datetime.fromisoformat(profile_data["metrics"]["last_updated"]),
             )
 
             profile = SourceProfile(

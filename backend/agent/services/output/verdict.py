@@ -13,7 +13,7 @@ from agent.llm import llm_manager
 from agent.models import FactCheckResult, VerdictResult
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
-from agent.prompt_manager import prompt_manager
+from agent.prompts import prompt_manager
 
 logger = logging.getLogger(__name__)
 
@@ -59,17 +59,13 @@ class VerdictService:
         if motives_analysis:
             primary_motive = motives_analysis.primary_motive or "Unknown"
             logger.info(f"Using motives analysis for verdict: {primary_motive}")
-        logger.info(
-            f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified"
-        )
+        logger.info(f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified")
 
         parser = PydanticOutputParser(pydantic_object=VerdictResult)
 
         try:
             # Use enhanced prompt template that better integrates all components
-            prompt_template = prompt_manager.get_prompt_template(
-                "verdict_generation_enhanced"
-            )
+            prompt_template = prompt_manager.get_prompt_template("verdict_generation_enhanced")
 
             # Convert temporal_analysis to dict for JSON serialization
             temporal_dict = temporal_analysis.model_dump() if temporal_analysis else {}
@@ -136,13 +132,9 @@ class VerdictService:
         sources_summary = ""
         if all_sources:
             sources_list = list(all_sources)[:10]  # Limit to top 10 sources
-            sources_summary = "\nSources Consulted:\n" + "\n".join(
-                [f"- {source}" for source in sources_list]
-            )
+            sources_summary = "\nSources Consulted:\n" + "\n".join([f"- {source}" for source in sources_list])
             if len(all_sources) > 10:
-                sources_summary += (
-                    f"\n... and {len(all_sources) - 10} additional sources"
-                )
+                sources_summary += f"\n... and {len(all_sources) - 10} additional sources"
 
         overall_summary = (
             "\nOverall Fact-Check Summary:\n"
@@ -182,29 +174,17 @@ class VerdictService:
             context_parts.append(motives_summary)
 
             # Add additional context from motives analysis
-            if (
-                hasattr(motives_analysis, "analysis_summary")
-                and motives_analysis.analysis_summary
-            ):
-                context_parts.append(
-                    f"**Analysis Summary:** {motives_analysis.analysis_summary}"
-                )
+            if hasattr(motives_analysis, "analysis_summary") and motives_analysis.analysis_summary:
+                context_parts.append(f"**Analysis Summary:** {motives_analysis.analysis_summary}")
 
-            if (
-                hasattr(motives_analysis, "credibility_assessment")
-                and motives_analysis.credibility_assessment
-            ):
-                context_parts.append(
-                    f"**Credibility Assessment:** {motives_analysis.credibility_assessment}"
-                )
+            if hasattr(motives_analysis, "credibility_assessment") and motives_analysis.credibility_assessment:
+                context_parts.append(f"**Credibility Assessment:** {motives_analysis.credibility_assessment}")
 
             context_parts.append("")
 
         return "\n".join(context_parts)
 
-    def _summarize_motives_analysis(
-        self, motives_analysis: MotivesAnalysisResult | None
-    ) -> str:
+    def _summarize_motives_analysis(self, motives_analysis: MotivesAnalysisResult | None) -> str:
         """
         Create a summary of the motives analysis for the final prompt.
         """
@@ -214,12 +194,8 @@ class VerdictService:
         # Safely handle None values with defaults
         primary_motive = motives_analysis.primary_motive or "Unknown"
         confidence_score = motives_analysis.confidence_score
-        confidence_text = (
-            f"{confidence_score:.2f}" if confidence_score is not None else "N/A"
-        )
-        credibility_assessment = (
-            motives_analysis.credibility_assessment or "Not assessed"
-        )
+        confidence_text = f"{confidence_score:.2f}" if confidence_score is not None else "N/A"
+        credibility_assessment = motives_analysis.credibility_assessment or "Not assessed"
         risk_level = motives_analysis.risk_level or "Unknown"
 
         summary_lines = [
@@ -236,13 +212,8 @@ class VerdictService:
                 summary_lines.append(f"- {indicator}")
 
         # Add analysis summary if available
-        if (
-            hasattr(motives_analysis, "analysis_summary")
-            and motives_analysis.analysis_summary
-        ):
-            summary_lines.append(
-                f"Analysis Summary: {motives_analysis.analysis_summary}"
-            )
+        if hasattr(motives_analysis, "analysis_summary") and motives_analysis.analysis_summary:
+            summary_lines.append(f"Analysis Summary: {motives_analysis.analysis_summary}")
 
         return "\n".join(summary_lines)
 

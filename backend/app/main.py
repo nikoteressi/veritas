@@ -10,7 +10,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from agent.services.agent_manager import create_agent_manager
+from agent.services.core.agent_manager import create_agent_manager
 from app.config import settings
 from app.database import create_db_and_tables
 from app.error_handlers import EXCEPTION_HANDLERS

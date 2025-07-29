@@ -5,7 +5,9 @@ Refactored motives analysis module for analyzing potential motives behind social
 Now uses fact-check verdicts and temporal analysis as primary inputs for informed motive determination.
 """
 
+import json
 import logging
+import re
 from typing import Any
 
 from langchain_core.output_parsers import PydanticOutputParser
@@ -34,34 +36,22 @@ class MotivesAnalyzer(BaseAnalyzer):
 
         # Check for required data - now including summarization
         if not all([context.screenshot_data, temporal_analysis]):
-            raise MotivesAnalysisError(
-                "Missing required data in context for motives analysis."
-            )
+            raise MotivesAnalysisError("Missing required data in context for motives analysis.")
 
         output_parser = PydanticOutputParser(pydantic_object=MotivesAnalysisResult)
 
         try:
             # Prepare enhanced context with summarization
-            summary_text = (
-                summarization_result.summary
-                if summarization_result
-                else "No summary available"
-            )
+            summary_text = summarization_result.summary if summarization_result else "No summary available"
             key_points = summarization_result.key_points if summarization_result else []
-            confidence_score = (
-                summarization_result.confidence_score if summarization_result else 0.5
-            )
+            confidence_score = summarization_result.confidence_score if summarization_result else 0.5
 
             # Format key points for better readability
             key_points_text = (
-                "\n".join([f"• {point}" for point in key_points])
-                if key_points
-                else "No key points identified"
+                "\n".join([f"• {point}" for point in key_points]) if key_points else "No key points identified"
             )
 
-            prompt_template = self.prompt_manager.get_prompt_template(
-                "motives_analysis_enhanced"
-            )
+            prompt_template = self.prompt_manager.get_prompt_template("motives_analysis_enhanced")
             prompt = await prompt_template.aformat(
                 # Core context
                 temporal_analysis=temporal_analysis,
@@ -76,34 +66,32 @@ class MotivesAnalyzer(BaseAnalyzer):
                 format_instructions=output_parser.get_format_instructions(),
             )
 
-            logger.info(
-                "Enhanced motives analysis prompt prepared with summarization context"
-            )
+            logger.info("Enhanced motives analysis prompt prepared with summarization context")
 
             response = await self.llm_manager.invoke_text_only(prompt)
             parsed_response = output_parser.parse(response)
 
             if not isinstance(parsed_response, MotivesAnalysisResult):
-                raise MotivesAnalysisError(
-                    "Failed to parse motive analysis from LLM response."
-                )
+                raise MotivesAnalysisError("Failed to parse motive analysis from LLM response.")
 
-            logger.info(
-                "Successfully performed enhanced LLM-based motives analysis with summarization context."
-            )
+            logger.info("Successfully performed enhanced LLM-based motives analysis with summarization context.")
             return parsed_response
 
-        except Exception as e:
+        except MotivesAnalysisError:
+            raise
+        except (
+            ValueError,
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            json.JSONDecodeError,
+        ) as e:
             logger.error(f"Error during enhanced motives analysis: {e}", exc_info=True)
-            # Fallback to basic analysis without summarization
-            return await self._fallback_analysis(context)
+            raise MotivesAnalysisError(f"Enhanced motives analysis failed: {e}") from e
 
     def _extract_fact_check_verdict(self, fact_check_result) -> str:
         """Extract the fact-check verdict from the result."""
-        if (
-            hasattr(fact_check_result, "claim_results")
-            and fact_check_result.claim_results
-        ):
+        if hasattr(fact_check_result, "claim_results") and fact_check_result.claim_results:
             # Look for overall assessment in claim results
             for claim_result in fact_check_result.claim_results:
                 if "assessment" in claim_result:
@@ -124,17 +112,15 @@ class MotivesAnalyzer(BaseAnalyzer):
 
     def _extract_fact_check_confidence(self, fact_check_result) -> float:
         """Extract confidence score from fact-check results."""
-        if (
-            hasattr(fact_check_result, "claim_results")
-            and fact_check_result.claim_results
-        ):
+        if hasattr(fact_check_result, "claim_results") and fact_check_result.claim_results:
             confidences = []
             for claim_result in fact_check_result.claim_results:
                 if "confidence" in claim_result:
                     confidences.append(claim_result["confidence"])
 
             if confidences:
-                return sum(confidences) / len(confidences) / 100.0  # Normalize to 0-1
+                # Normalize to 0-1
+                return sum(confidences) / len(confidences) / 100.0
 
         return 0.5  # Default moderate confidence
 
@@ -152,7 +138,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         temporal_summary = self._format_temporal_analysis(temporal_analysis)
 
         # Create prompt with fact-check context
-        prompt_template = prompt_manager.get_prompt_template("motives_analysis")
+        prompt_template = self.prompt_manager.get_prompt_template("motives_analysis")
         prompt = await prompt_template.aformat(
             fact_check_verdict=fact_check_verdict,
             fact_check_confidence=fact_check_confidence,
@@ -163,7 +149,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         logger.info(f"Motives analysis prompt: {prompt}")
 
         # Get LLM response
-        response = await llm_manager.invoke_text_only(prompt)
+        response = await self.llm_manager.invoke_text_only(prompt)
 
         # Parse JSON response
         try:
@@ -178,19 +164,16 @@ class MotivesAnalyzer(BaseAnalyzer):
                     "confidence_score": result.get("confidence_score", 0.5),
                     "reasoning": result.get("reasoning", "LLM analysis completed"),
                     "risk_level": result.get("risk_level", "moderate"),
-                    "manipulation_indicators": result.get(
-                        "manipulation_indicators", []
-                    ),
+                    "manipulation_indicators": result.get("manipulation_indicators", []),
                     "fact_check_informed": True,
                     "analysis_method": "fact_check_informed_llm",
                 }
         except Exception as parse_error:
             logger.warning(f"Failed to parse LLM motives analysis: {parse_error}")
+            raise MotivesAnalysisError(f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
 
         # Fallback to rule-based analysis if LLM parsing fails
-        return self._rule_based_analysis(
-            fact_check_verdict, primary_topic, temporal_analysis
-        )
+        return self._rule_based_analysis(fact_check_verdict, primary_topic, temporal_analysis)
 
     async def _analyze_motives_with_verdict(
         self,
@@ -209,10 +192,12 @@ class MotivesAnalyzer(BaseAnalyzer):
         temporal_summary = self._format_temporal_analysis(temporal_analysis)
 
         # Format dates information
-        dates_info = f"Post Date: {post_date}, Mentioned Dates: {', '.join(mentioned_dates) if mentioned_dates else 'None'}"
+        dates_info = (
+            f"Post Date: {post_date}, Mentioned Dates: {', '.join(mentioned_dates) if mentioned_dates else 'None'}"
+        )
 
         # Create prompt with verdict context
-        prompt_template = prompt_manager.get_prompt_template("motives_analysis")
+        prompt_template = self.prompt_manager.get_prompt_template("motives_analysis")
         prompt = await prompt_template.aformat(
             fact_check_verdict=f"{final_verdict} (Confidence: {verdict_confidence:.2f})",
             fact_check_confidence=verdict_confidence,
@@ -227,7 +212,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         logger.info(f"Motives analysis prompt: {full_prompt}")
 
         # Get LLM response
-        response = await llm_manager.invoke_text_only(full_prompt)
+        response = await self.llm_manager.invoke_text_only(full_prompt)
 
         # Parse JSON response
         try:
@@ -242,23 +227,20 @@ class MotivesAnalyzer(BaseAnalyzer):
                     "confidence_score": result.get("confidence_score", 0.5),
                     "reasoning": result.get("reasoning", "LLM analysis completed"),
                     "risk_level": result.get("risk_level", "moderate"),
-                    "manipulation_indicators": result.get(
-                        "manipulation_indicators", []
-                    ),
+                    "manipulation_indicators": result.get("manipulation_indicators", []),
                     "verdict_informed": True,
                     "analysis_method": "verdict_informed_llm",
                 }
         except Exception as parse_error:
             logger.warning(f"Failed to parse LLM motives analysis: {parse_error}")
+            raise MotivesAnalysisError(f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
 
         # Fallback to rule-based analysis if LLM parsing fails
         return self._rule_based_analysis_with_verdict(
             final_verdict, primary_topic, temporal_analysis, post_date, mentioned_dates
         )
 
-    def _format_temporal_analysis(
-        self, temporal_analysis: TemporalAnalysisResult | None
-    ) -> str:
+    def _format_temporal_analysis(self, temporal_analysis: TemporalAnalysisResult | None) -> str:
         """Format temporal analysis for prompt readability."""
         if not temporal_analysis:
             return "No temporal analysis available"
@@ -287,28 +269,19 @@ class MotivesAnalyzer(BaseAnalyzer):
             else:
                 primary_motive = "disinformation"
                 risk_level = "high"
-                reasoning = (
-                    "Content contains false information, likely intended to mislead"
-                )
+                reasoning = "Content contains false information, likely intended to mislead"
 
         elif fact_check_verdict.lower() in ["true", "likely_true"]:
             # Check temporal context
-            date_relevance = (
-                temporal_analysis.date_relevance if temporal_analysis else "appropriate"
-            )
-            if (
-                "misleading" in date_relevance.lower()
-                or "outdated" in date_relevance.lower()
-            ):
+            date_relevance = temporal_analysis.date_relevance if temporal_analysis else "appropriate"
+            if "misleading" in date_relevance.lower() or "outdated" in date_relevance.lower():
                 primary_motive = "outdated_information"
                 risk_level = "moderate"
                 reasoning = "Content is factually true but presented as current when it's outdated"
             else:
                 primary_motive = "informing"
                 risk_level = "low"
-                reasoning = (
-                    "Content appears to be genuinely informative with true information"
-                )
+                reasoning = "Content appears to be genuinely informative with true information"
 
         else:  # unverified, partially true, etc.
             primary_motive = "unknown"
@@ -320,9 +293,7 @@ class MotivesAnalyzer(BaseAnalyzer):
             "confidence_score": 0.7,
             "reasoning": reasoning,
             "risk_level": risk_level,
-            "manipulation_indicators": self._identify_manipulation_indicators(
-                fact_check_verdict, primary_topic
-            ),
+            "manipulation_indicators": self._identify_manipulation_indicators(fact_check_verdict, primary_topic),
             "fact_check_informed": True,
             "analysis_method": "rule_based_with_fact_check",
         }
@@ -346,23 +317,18 @@ class MotivesAnalyzer(BaseAnalyzer):
             else:
                 primary_motive = "disinformation"
                 risk_level = "high"
-                reasoning = (
-                    "Content contains false information, likely intended to mislead"
-                )
+                reasoning = "Content contains false information, likely intended to mislead"
 
         elif final_verdict.lower() == "partially_true":
             # Check for temporal issues
-            temporal_context = (
-                temporal_analysis.temporal_context if temporal_analysis else "unknown"
-            )
+            temporal_context = temporal_analysis.temporal_context if temporal_analysis else "unknown"
 
-            if (
-                "misleading" in temporal_context.lower()
-                or "outdated" in temporal_context.lower()
-            ):
+            if "misleading" in temporal_context.lower() or "outdated" in temporal_context.lower():
                 primary_motive = "outdated_information"
                 risk_level = "moderate"
-                reasoning = "Content is factually accurate but presented as current when it's outdated, potentially misleading"
+                reasoning = (
+                    "Content is factually accurate but presented as current when it's outdated, potentially misleading"
+                )
             else:
                 primary_motive = "partially_informing"
                 risk_level = "moderate"
@@ -370,13 +336,8 @@ class MotivesAnalyzer(BaseAnalyzer):
 
         elif final_verdict.lower() == "true":
             # Check temporal appropriateness
-            date_relevance = (
-                temporal_analysis.date_relevance if temporal_analysis else "appropriate"
-            )
-            if (
-                "misleading" in date_relevance.lower()
-                or "outdated" in date_relevance.lower()
-            ):
+            date_relevance = temporal_analysis.date_relevance if temporal_analysis else "appropriate"
+            if "misleading" in date_relevance.lower() or "outdated" in date_relevance.lower():
                 primary_motive = "outdated_information"
                 risk_level = "low"
                 reasoning = "Content is true but timing may be misleading"
@@ -407,9 +368,7 @@ class MotivesAnalyzer(BaseAnalyzer):
             "analysis_method": "rule_based_with_verdict",
         }
 
-    def _identify_manipulation_indicators(
-        self, fact_check_verdict: str, primary_topic: str
-    ) -> list:
+    def _identify_manipulation_indicators(self, fact_check_verdict: str, primary_topic: str) -> list:
         """Identify manipulation indicators based on fact-check results."""
         indicators = []
 
@@ -444,9 +403,7 @@ class MotivesAnalyzer(BaseAnalyzer):
                 indicators.append("Political misinformation")
 
         elif final_verdict.lower() == "partially_true":
-            temporal_context = (
-                temporal_analysis.temporal_context if temporal_analysis else ""
-            )
+            temporal_context = temporal_analysis.temporal_context if temporal_analysis else ""
             if "misleading" in temporal_context.lower():
                 indicators.append("Temporal misleading detected")
             if "outdated" in temporal_context.lower():
@@ -530,9 +487,7 @@ class MotivesAnalyzer(BaseAnalyzer):
             "analysis_method": "fallback",
         }
 
-    async def _fallback_analysis(
-        self, context: VerificationContext
-    ) -> MotivesAnalysisResult:
+    async def _fallback_analysis(self, context: VerificationContext) -> MotivesAnalysisResult:
         """Fallback analysis method when enhanced analysis fails."""
         try:
             logger.warning("Using fallback analysis for motives")
@@ -549,9 +504,7 @@ class MotivesAnalyzer(BaseAnalyzer):
 
             # Try to use fact-check results if available
             if context.fact_check_result:
-                fact_check_verdict = self._extract_fact_check_verdict(
-                    context.fact_check_result
-                )
+                fact_check_verdict = self._extract_fact_check_verdict(context.fact_check_result)
                 if fact_check_verdict.lower() == "false":
                     primary_motive = "disinformation"
                     risk_level = "high"
@@ -581,13 +534,5 @@ class MotivesAnalyzer(BaseAnalyzer):
             )
 
         except Exception as e:
-            logger.error(f"Even fallback analysis failed: {e}")
-            # Return minimal safe result
-            return MotivesAnalysisResult(
-                primary_motive="unknown",
-                confidence_score=0.0,
-                credibility_assessment="moderate",
-                risk_level="moderate",
-                manipulation_indicators=[],
-                analysis_summary="Analysis failed completely",
-            )
+            logger.error("Even fallback analysis failed: %s", e)
+            raise MotivesAnalysisError(f"Fallback motives analysis failed: {e}") from e

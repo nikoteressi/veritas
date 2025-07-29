@@ -70,17 +70,11 @@ async def verify_post(
         raise
     except Exception as e:
         logger.error(f"Unexpected error in verify_post: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="An unexpected error occurred during verification"
-        )
+        raise HTTPException(status_code=500, detail="An unexpected error occurred during verification")
 
 
-@router.get(
-    "/verification-status/{verification_id}", response_model=VerificationResponse
-)
-async def get_verification_status(
-    verification_id: str, db: AsyncSession = Depends(get_db)
-) -> dict[str, Any]:
+@router.get("/verification-status/{verification_id}", response_model=VerificationResponse)
+async def get_verification_status(verification_id: str, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     """
     Get the status and result of a verification request.
 

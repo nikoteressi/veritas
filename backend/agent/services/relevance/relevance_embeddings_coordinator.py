@@ -6,14 +6,16 @@ Handles embeddings generation, caching, and coordination for relevance scoring.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from app.exceptions import ValidationError
+
+from ..analysis.adaptive_thresholds import AdaptiveThresholds
+from ..cache.intelligent_cache import IntelligentCache
+from ..cache.temporal_analysis_cache import TemporalAnalysisCache
 from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from .explainable_relevance_scorer import ExplainableRelevanceScorer
-from ..cache.temporal_analysis_cache import TemporalAnalysisCache
-from ..cache.intelligent_cache import IntelligentCache
-from ..analysis.adaptive_thresholds import AdaptiveThresholds
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +25,12 @@ class RelevanceEmbeddingsCoordinator:
 
     def __init__(self):
         """Initialize the relevance embeddings coordinator."""
-        self.embeddings: Optional[EnhancedOllamaEmbeddings] = None
-        self.hybrid_scorer: Optional[CachedHybridRelevanceScorer] = None
-        self.temporal_cache: Optional[TemporalAnalysisCache] = None
-        self.explainable_scorer: Optional[ExplainableRelevanceScorer] = None
-        self.intelligent_cache: Optional[IntelligentCache] = None
-        self.adaptive_thresholds: Optional[AdaptiveThresholds] = None
+        self.embeddings: EnhancedOllamaEmbeddings | None = None
+        self.hybrid_scorer: CachedHybridRelevanceScorer | None = None
+        self.temporal_cache: TemporalAnalysisCache | None = None
+        self.explainable_scorer: ExplainableRelevanceScorer | None = None
+        self.intelligent_cache: IntelligentCache | None = None
+        self.adaptive_thresholds: AdaptiveThresholds | None = None
         self._initialized = False
 
     async def initialize(self) -> bool:
@@ -51,15 +53,11 @@ class RelevanceEmbeddingsCoordinator:
 
             # Initialize hybrid scorer with shared embeddings
             self.hybrid_scorer = CachedHybridRelevanceScorer(
-                shared_embeddings=self.embeddings,
-                cache_size=200
-            )
+                shared_embeddings=self.embeddings, cache_size=200)
 
             # Initialize explainable scorer
             self.explainable_scorer = ExplainableRelevanceScorer(
-                hybrid_scorer=self.hybrid_scorer,
-                cache_size=200
-            )
+                hybrid_scorer=self.hybrid_scorer, cache_size=200)
 
             self._initialized = True
             logger.info(
@@ -67,11 +65,10 @@ class RelevanceEmbeddingsCoordinator:
             return True
 
         except Exception as e:
-            logger.error(
-                f"Failed to initialize RelevanceEmbeddingsCoordinator: {e}")
-            return False
+            raise ValidationError(
+                f"Failed to initialize RelevanceEmbeddingsCoordinator: {e}") from e
 
-    async def generate_embeddings(self, text: str) -> Optional[List[float]]:
+    async def generate_embeddings(self, text: str) -> list[float] | None:
         """Generate embeddings for the given text."""
         if not self._initialized or not self.embeddings:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -79,16 +76,13 @@ class RelevanceEmbeddingsCoordinator:
 
         try:
             return await self.embeddings.embed_text(text)
+
         except Exception as e:
-            logger.error(f"Error generating embeddings: {e}")
-            return None
+            raise ValidationError(f"Failed to generate embeddings: {e}") from e
 
     async def calculate_hybrid_relevance(
-        self,
-        query: str,
-        document: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, query: str, document: str, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Calculate hybrid relevance score using multiple scoring methods."""
         if not self._initialized or not self.hybrid_scorer:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -97,15 +91,12 @@ class RelevanceEmbeddingsCoordinator:
         try:
             return await self.hybrid_scorer.calculate_hybrid_score(query, document, metadata)
         except Exception as e:
-            logger.error(f"Error calculating hybrid relevance: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to calculate hybrid relevance: {e}") from e
 
     async def get_explainable_score(
-        self,
-        query: str,
-        document: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, query: str, document: str, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Get explainable relevance score with reasoning."""
         if not self._initialized or not self.explainable_scorer:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -114,15 +105,12 @@ class RelevanceEmbeddingsCoordinator:
         try:
             return await self.explainable_scorer.explain_relevance(query, document, metadata)
         except Exception as e:
-            logger.error(f"Error getting explainable score: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to get explainable score: {e}") from e
 
     async def analyze_temporal_relevance(
-        self,
-        query: str,
-        document: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, query: str, document: str, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Analyze temporal aspects of relevance."""
         if not self._initialized or not self.temporal_cache:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -130,22 +118,23 @@ class RelevanceEmbeddingsCoordinator:
 
         try:
             # Extract content_date from metadata or use current time
-            content_date = metadata.get('date') if metadata else None
+            content_date = metadata.get("date") if metadata else None
             # Calculate base relevance score (simplified for now)
             base_relevance = 0.5
             return await self.temporal_cache.analyze_temporal_relevance(
-                query=query, 
-                content=document, 
-                content_date=content_date, 
+                query=query,
+                content=document,
+                content_date=content_date,
                 base_relevance=base_relevance,
                 time_window=None,
-                use_cache=True
+                use_cache=True,
             )
-        except Exception as e:
-            logger.error(f"Error analyzing temporal relevance: {e}")
-            return {"error": str(e)}
 
-    async def get_adaptive_threshold(self, context: Dict[str, Any] = None) -> float:
+        except Exception as e:
+            raise ValidationError(
+                f"Failed to analyze temporal relevance: {e}") from e
+
+    async def get_adaptive_threshold(self, context: dict[str, Any] = None) -> float:
         """Get adaptive threshold for the given context."""
         if not self._initialized or not self.adaptive_thresholds:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -153,18 +142,19 @@ class RelevanceEmbeddingsCoordinator:
 
         try:
             # Extract query_type and source_type from context or use defaults
-            query_type = context.get('query_type', 'general') if context else 'general'
-            source_type = context.get('source_type', 'web') if context else 'web'
+            query_type = context.get(
+                "query_type", "general") if context else "general"
+            source_type = context.get(
+                "source_type", "web") if context else "web"
             return await self.adaptive_thresholds.get_adaptive_threshold(
-                query_type=query_type,
-                source_type=source_type,
-                context=context
+                query_type=query_type, source_type=source_type, context=context
             )
-        except Exception as e:
-            logger.error(f"Error getting adaptive threshold: {e}")
-            return 0.5  # Default threshold
 
-    async def batch_process_embeddings(self, texts: List[str]) -> List[Optional[List[float]]]:
+        except Exception as e:
+            raise ValidationError(
+                f"Failed to get adaptive threshold: {e}") from e
+
+    async def batch_process_embeddings(self, texts: list[str]) -> list[list[float] | None]:
         """Process multiple texts for embeddings in batch."""
         if not self._initialized or not self.embeddings:
             logger.error("RelevanceEmbeddingsCoordinator not initialized")
@@ -173,11 +163,12 @@ class RelevanceEmbeddingsCoordinator:
         try:
             tasks = [self.generate_embeddings(text) for text in texts]
             return await asyncio.gather(*tasks, return_exceptions=True)
-        except Exception as e:
-            logger.error(f"Error in batch processing embeddings: {e}")
-            return [None] * len(texts)
 
-    async def optimize_embeddings_performance(self) -> Dict[str, Any]:
+        except Exception as e:
+            raise ValidationError(
+                f"Failed to process batch embeddings: {e}") from e
+
+    async def optimize_embeddings_performance(self) -> dict[str, Any]:
         """Optimize embeddings performance based on usage patterns."""
         if not self._initialized:
             return {"error": "Coordinator not initialized"}
@@ -203,10 +194,10 @@ class RelevanceEmbeddingsCoordinator:
             return optimization_results
 
         except Exception as e:
-            logger.error(f"Error optimizing embeddings performance: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to optimize embeddings performance: {e}") from e
 
-    async def get_performance_metrics(self) -> Dict[str, Any]:
+    async def get_performance_metrics(self) -> dict[str, Any]:
         """Get performance metrics for all embeddings components."""
         if not self._initialized:
             return {"error": "Coordinator not initialized"}
@@ -229,8 +220,8 @@ class RelevanceEmbeddingsCoordinator:
             return metrics
 
         except Exception as e:
-            logger.error(f"Error getting performance metrics: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to get performance metrics: {e}") from e
 
     async def close(self):
         """Clean up resources."""
@@ -253,11 +244,12 @@ class RelevanceEmbeddingsCoordinator:
             logger.info("RelevanceEmbeddingsCoordinator closed successfully")
 
         except Exception as e:
-            logger.error(f"Error closing RelevanceEmbeddingsCoordinator: {e}")
+            raise ValidationError(
+                f"Failed to close RelevanceEmbeddingsCoordinator: {e}") from e
 
 
 # Global instance management
-_relevance_embeddings_coordinator: Optional[RelevanceEmbeddingsCoordinator] = None
+_relevance_embeddings_coordinator: RelevanceEmbeddingsCoordinator | None = None
 
 
 def get_relevance_embeddings_coordinator() -> RelevanceEmbeddingsCoordinator:

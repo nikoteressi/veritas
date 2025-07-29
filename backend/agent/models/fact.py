@@ -12,9 +12,7 @@ from pydantic import BaseModel, Field
 class Fact(BaseModel):
     """Represents a single, atomic, verifiable fact that supports the primary thesis."""
 
-    description: str = Field(
-        description="A clear, concise statement of the fact for verification."
-    )
+    description: str = Field(description="A clear, concise statement of the fact for verification.")
     context: dict[str, Any] = Field(
         default_factory=dict,
         description="Structured data extracted for this fact (e.g., amounts, dates, entities) to aid in targeted verification.",

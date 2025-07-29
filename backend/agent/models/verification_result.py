@@ -13,9 +13,7 @@ class FactCheckResults(BaseModel):
     """Fact-checking results."""
 
     examined_sources: int = Field(..., description="Number of examined sources")
-    search_queries_used: list[str] = Field(
-        default_factory=list, description="Search queries used"
-    )
+    search_queries_used: list[str] = Field(default_factory=list, description="Search queries used")
     summary: FactCheckSummary = Field(..., description="Fact-checking summary")
 
 

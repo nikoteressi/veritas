@@ -22,9 +22,7 @@ class ImageAnalysisResult(BaseModel):
         default_factory=list,
         description="A list of any other dates or time references found in the text.",
     )
-    extracted_text: str = Field(
-        description="A verbatim transcription of all visible text from the image."
-    )
+    extracted_text: str = Field(description="A verbatim transcription of all visible text from the image.")
     fact_hierarchy: FactHierarchy = Field(
         description="A structured representation of the claims and their relationships."
     )

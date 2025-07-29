@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.crud import VerificationResultCRUD
+from app.exceptions import AgentError
 
 from ...models import VerificationResult
 from ...vector_store import vector_store
@@ -58,9 +59,7 @@ class StorageService:
             "tools_used": json.dumps(["SearxNGSearchTool"]),
         }
 
-        return await VerificationResultCRUD.create_verification_result(
-            db=db, result_data=result_data
-        )
+        return await VerificationResultCRUD.create_verification_result(db=db, result_data=result_data)
 
     async def store_in_vector_db(self, verification_data: dict[str, Any]) -> None:
         """
@@ -73,7 +72,7 @@ class StorageService:
 
         except Exception as e:
             logger.error(f"Failed to store in vector DB: {e}", exc_info=True)
-            # This operation should not fail the entire request, so we just log the error.
+            raise AgentError(f"Vector database storage failed: {str(e)}") from e
 
 
 # Singleton instance

@@ -57,9 +57,7 @@ class UserCRUD:
         return user
 
     @staticmethod
-    async def update_user_reputation(
-        db: AsyncSession, nickname: str, verdict: str
-    ) -> User | None:
+    async def update_user_reputation(db: AsyncSession, nickname: str, verdict: str) -> User | None:
         """Update a user's reputation based on the verification verdict."""
         user = await UserCRUD.get_or_create_user(db, nickname)
         if not user:
@@ -84,7 +82,8 @@ class UserCRUD:
 
         if user.false_count >= 20 and not user.notification_issued:
             user.notification_issued = True
-            logger.warning(f"Notification threshold reached for user: {nickname}")
+            logger.warning(
+                f"Notification threshold reached for user: {nickname}")
 
         await db.flush()
         await db.refresh(user)
@@ -95,7 +94,7 @@ class UserCRUD:
     @staticmethod
     async def get_users_with_warnings(db: AsyncSession) -> list[User]:
         """Get all users who have received warnings."""
-        result = await db.execute(select(User).where(User.warning_issued == True))
+        result = await db.execute(select(User).where(User.warning_issued))
         return result.scalars().all()
 
 
@@ -103,9 +102,7 @@ class VerificationResultCRUD:
     """CRUD operations for VerificationResult model."""
 
     @staticmethod
-    async def create_verification_result(
-        db: AsyncSession, result_data: dict
-    ) -> VerificationResult:
+    async def create_verification_result(db: AsyncSession, result_data: dict) -> VerificationResult:
         """Create a new verification result."""
         result = VerificationResult(**result_data)
         db.add(result)
@@ -113,8 +110,7 @@ class VerificationResultCRUD:
         await db.refresh(result)
 
         logger.info(
-            f"Created verification result for {result.user_nickname}: {result.verdict}"
-        )
+            f"Created verification result for {result.user_nickname}: {result.verdict}")
         return result
 
     @staticmethod
@@ -131,24 +127,17 @@ class VerificationResultCRUD:
         return result.scalars().all()
 
     @staticmethod
-    async def get_verification_result_by_id(
-        db: AsyncSession, result_id: int
-    ) -> VerificationResult | None:
+    async def get_verification_result_by_id(db: AsyncSession, result_id: int) -> VerificationResult | None:
         """Get a verification result by its ID."""
-        result = await db.execute(
-            select(VerificationResult).filter(VerificationResult.id == result_id)
-        )
+        result = await db.execute(select(VerificationResult).filter(VerificationResult.id == result_id))
         return result.scalars().first()
 
     @staticmethod
-    async def get_recent_results(
-        db: AsyncSession, limit: int = 50
-    ) -> list[VerificationResult]:
+    async def get_recent_results(db: AsyncSession, limit: int = 50) -> list[VerificationResult]:
         """Get recent verification results across all users."""
         result = await db.execute(
-            select(VerificationResult)
-            .order_by(VerificationResult.created_at.desc())
-            .limit(limit)
+            select(VerificationResult).order_by(
+                VerificationResult.created_at.desc()).limit(limit)
         )
         return result.scalars().all()
 
@@ -157,7 +146,5 @@ class VerificationResultCRUD:
         db: AsyncSession,
     ) -> list[VerificationResult]:
         """Get all verification results."""
-        result = await db.execute(
-            select(VerificationResult).order_by(VerificationResult.created_at.desc())
-        )
+        result = await db.execute(select(VerificationResult).order_by(VerificationResult.created_at.desc()))
         return result.scalars().all()

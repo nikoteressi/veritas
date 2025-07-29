@@ -30,9 +30,7 @@ class UserReputation(BaseModel):
 class VerificationRequest(BaseModel):
     """Request model for post verification."""
 
-    prompt: str = Field(
-        ..., min_length=1, max_length=1000, description="User's question or prompt"
-    )
+    prompt: str = Field(..., min_length=1, max_length=1000, description="User's question or prompt")
     message: str
     verification_id: str | None = None
     session_id: str | None = None

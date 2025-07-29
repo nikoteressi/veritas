@@ -6,6 +6,7 @@ import logging
 import time
 from typing import Any
 
+from app.exceptions import AnalysisError
 from app.json_utils import json_dumps, prepare_for_json_serialization
 
 logger = logging.getLogger(__name__)
@@ -47,15 +48,16 @@ class ResultCompiler:
         motives_analysis = context.get_motives_analysis()
         summarization_result = context.get_summarization_result()
 
-        serializable_temporal = self._prepare_temporal_analysis(temporal_analysis)
+        serializable_temporal = self._prepare_temporal_analysis(
+            temporal_analysis)
         serializable_motives = self._prepare_motives_analysis(motives_analysis)
         serializable_summarization = self._prepare_summarization_result(
-            summarization_result
-        )
+            summarization_result)
 
         # Ensure summarization result is provided
         if not summarization_result:
-            raise ValueError("Summarization result is required for compilation")
+            raise ValueError(
+                "Summarization result is required for compilation")
 
         summary_text = summarization_result.summary
 
@@ -88,7 +90,7 @@ class ResultCompiler:
             "summarization_details": serializable_summarization,
         }
 
-        return self._ensure_json_serializable(final_result, context)
+        return self._ensure_json_serializable(final_result)
 
     def _prepare_temporal_analysis(self, temporal_analysis: Any) -> dict[str, Any]:
         """Prepare temporal analysis data for JSON serialization."""
@@ -103,10 +105,8 @@ class ResultCompiler:
             # Otherwise, use the general serialization function
             return prepare_for_json_serialization(temporal_analysis)
         except Exception as e:
-            logger.warning(
-                f"Failed to prepare temporal analysis for serialization: {e}"
-            )
-            return {}
+            raise AnalysisError(
+                f"Temporal analysis serialization failed: {str(e)}") from e
 
     def _prepare_motives_analysis(self, motives_analysis: Any) -> dict[str, Any]:
         """Prepare motives analysis data for JSON serialization."""
@@ -121,12 +121,10 @@ class ResultCompiler:
             # Otherwise, use the general serialization function
             return prepare_for_json_serialization(motives_analysis)
         except Exception as e:
-            logger.warning(f"Failed to prepare motives analysis for serialization: {e}")
-            return {}
+            raise AnalysisError(
+                f"Motives analysis serialization failed: {str(e)}") from e
 
-    def _prepare_summarization_result(
-        self, summarization_result: Any
-    ) -> dict[str, Any]:
+    def _prepare_summarization_result(self, summarization_result: Any) -> dict[str, Any]:
         """Prepare summarization result data for JSON serialization."""
         try:
             if summarization_result is None:
@@ -139,14 +137,10 @@ class ResultCompiler:
             # Otherwise, use the general serialization function
             return prepare_for_json_serialization(summarization_result)
         except Exception as e:
-            logger.warning(
-                f"Failed to prepare summarization result for serialization: {e}"
-            )
-            return {}
+            raise AnalysisError(
+                f"Summarization result serialization failed: {str(e)}") from e
 
-    def _ensure_json_serializable(
-        self, final_result: dict[str, Any], context: "VerificationContext"
-    ) -> dict[str, Any]:
+    def _ensure_json_serializable(self, final_result: dict[str, Any]) -> dict[str, Any]:
         """
         Test JSON serialization and raise error if serialization fails.
 

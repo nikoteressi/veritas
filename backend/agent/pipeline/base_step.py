@@ -6,6 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from agent.models.verification_context import VerificationContext
+from app.exceptions import AgentError
 
 
 class BasePipelineStep(ABC):
@@ -44,4 +45,4 @@ class BasePipelineStep(ABC):
             return result_context
         except Exception as e:
             self.logger.error("Failed %s step: %s", self.name, e, exc_info=True)
-            raise
+            raise AgentError(f"Failed {self.name} step: {e}") from e

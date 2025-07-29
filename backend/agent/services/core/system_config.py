@@ -39,9 +39,7 @@ class UncertaintyLevel(Enum):
 class CacheConfig:
     """Configuration for intelligent caching system."""
 
-    cache_types: list[CacheType] = field(
-        default_factory=lambda: [CacheType.MEMORY, CacheType.REDIS]
-    )
+    cache_types: list[CacheType] = field(default_factory=lambda: [CacheType.MEMORY, CacheType.REDIS])
     memory_cache_size: int = 1000
     redis_url: str | None = "redis://localhost:6379"
     disk_cache_dir: str = "./cache"
@@ -213,18 +211,10 @@ class SystemConfig:
     # Component configurations
     cache_config: CacheConfig = field(default_factory=CacheConfig)
     neo4j_config: Neo4jConfig = field(default_factory=Neo4jConfig)
-    source_reputation_config: SourceReputationConfig = field(
-        default_factory=SourceReputationConfig
-    )
-    clustering_config: AdvancedClusteringConfig = field(
-        default_factory=AdvancedClusteringConfig
-    )
-    uncertainty_config: BayesianUncertaintyConfig = field(
-        default_factory=BayesianUncertaintyConfig
-    )
-    relationship_config: RelationshipAnalysisConfig = field(
-        default_factory=RelationshipAnalysisConfig
-    )
+    source_reputation_config: SourceReputationConfig = field(default_factory=SourceReputationConfig)
+    clustering_config: AdvancedClusteringConfig = field(default_factory=AdvancedClusteringConfig)
+    uncertainty_config: BayesianUncertaintyConfig = field(default_factory=BayesianUncertaintyConfig)
+    relationship_config: RelationshipAnalysisConfig = field(default_factory=RelationshipAnalysisConfig)
 
     # Global settings
     enable_all_features: bool = True
@@ -256,12 +246,8 @@ class SystemConfig:
             "neo4j": {
                 "uri": self.neo4j_config.uri if self.neo4j_config else "",
                 "database": self.neo4j_config.database if self.neo4j_config else "",
-                "versioning": (
-                    self.neo4j_config.enable_versioning if self.neo4j_config else False
-                ),
-                "compression": (
-                    self.neo4j_config.enable_compression if self.neo4j_config else False
-                ),
+                "versioning": (self.neo4j_config.enable_versioning if self.neo4j_config else False),
+                "compression": (self.neo4j_config.enable_compression if self.neo4j_config else False),
             },
             "source_reputation": {
                 "weights": {

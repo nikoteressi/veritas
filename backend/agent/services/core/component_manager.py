@@ -12,12 +12,17 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from app.exceptions import AgentError
+
 from ..analysis.advanced_clustering import AdvancedClusteringSystem, ClusteringConfig
 from ..analysis.bayesian_uncertainty import BayesianVerificationModel, UncertaintyConfig
+from ..analysis.relationship_analysis import (
+    RelationshipAnalysisEngine,
+    RelationshipConfig,
+)
+from ..cache.intelligent_cache import IntelligentCache
 from ..graph.graph_fact_checking import GraphFactCheckingService
 from ..graph.graph_storage import Neo4jGraphStorage
-from ..cache.intelligent_cache import IntelligentCache
-from ..analysis.relationship_analysis import RelationshipAnalysisEngine, RelationshipConfig
 from ..reputation.source_reputation import SourceReputationSystem
 from .system_config import SystemConfig
 
@@ -65,8 +70,7 @@ class ComponentManager:
 
             # Initialize cache system
             self.cache_system = IntelligentCache(
-                max_memory_size=self.config.cache_config.memory_cache_size
-            )
+                max_memory_size=self.config.cache_config.memory_cache_size)
             await self.cache_system.initialize()
             self.logger.info("Cache system initialized")
 
@@ -131,9 +135,9 @@ class ComponentManager:
 
             return True
 
-        except (ConnectionError, ValueError, RuntimeError, OSError) as e:
-            self.logger.error("Failed to initialize system components: %s", e)
-            return False
+        except Exception as e:
+            raise AgentError(
+                f"Failed to initialize system components: {e}") from e
 
     async def shutdown_components(self) -> bool:
         """
@@ -176,8 +180,7 @@ class ComponentManager:
             return True
 
         except Exception as e:
-            self.logger.error("Error during component shutdown: %s", e)
-            return False
+            raise AgentError(f"Error during component shutdown: {e}") from e
 
     def get_component(self, component_name: str) -> Any:
         """
@@ -261,8 +264,7 @@ class ComponentManager:
             self.logger.info("All caches cleared")
             return True
         except Exception as e:
-            self.logger.error("Failed to clear caches: %s", e)
-            return False
+            raise AgentError(f"Failed to clear caches: {e}") from e
 
     @property
     def initialized(self) -> bool:

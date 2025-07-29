@@ -18,12 +18,8 @@ class QueryGenerationReasoning(BaseModel):
         ...,
         description="Step-by-step analysis of the claim's components (entities, actions, etc.).",
     )
-    domain_determination: str = Field(
-        ..., description="The determined domain for the claim (e.g., Finance, Science)."
-    )
-    query_formulation_plan: str = Field(
-        ..., description="The plan or reasoning for formulating the list of queries."
-    )
+    domain_determination: str = Field(..., description="The determined domain for the claim (e.g., Finance, Science).")
+    query_formulation_plan: str = Field(..., description="The plan or reasoning for formulating the list of queries.")
 
 
 class QueryGenerationOutput(BaseModel):
@@ -35,6 +31,4 @@ class QueryGenerationOutput(BaseModel):
     reasoning: QueryGenerationReasoning = Field(
         ..., description="The detailed reasoning process behind the query generation."
     )
-    queries: list[SearchQuery] = Field(
-        ..., description="The list of generated search queries for fact-checking."
-    )
+    queries: list[SearchQuery] = Field(..., description="The list of generated search queries for fact-checking.")

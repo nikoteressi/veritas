@@ -6,8 +6,10 @@ import logging
 
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
-from agent.services.graph_fact_checking import GraphFactCheckingService
 from agent.tools import searxng_tool
+from app.exceptions import AgentError
+
+from ..services.graph.graph_fact_checking import GraphFactCheckingService
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +25,7 @@ class GraphFactCheckingStep(BasePipelineStep):
     def __init__(self):
         super().__init__("Graph Fact Checking")
 
-        self.graph_fact_checking_service = GraphFactCheckingService(
-            search_tool=searxng_tool
-        )
+        self.graph_fact_checking_service = GraphFactCheckingService(search_tool=searxng_tool)
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """
@@ -55,9 +55,7 @@ class GraphFactCheckingStep(BasePipelineStep):
 
         try:
             # Perform graph-based fact checking
-            fact_check_result = await self.graph_fact_checking_service.verify_facts(
-                context
-            )
+            fact_check_result = await self.graph_fact_checking_service.verify_facts(context)
 
             # Store the result in context
             context.fact_check_result = fact_check_result
@@ -72,17 +70,15 @@ class GraphFactCheckingStep(BasePipelineStep):
             if context.event_service:
                 await context.event_service.emit_fact_checking_completed()
 
-        except Exception as e:
+        except (ValueError, RuntimeError, AttributeError, TypeError) as e:
             logger.error("Graph fact checking failed: %s", e, exc_info=True)
 
             # Emit error event if available
-            if context.event_service and hasattr(
-                context.event_service, "emit_fact_checking_error"
-            ):
+            if context.event_service and hasattr(context.event_service, "emit_fact_checking_error"):
                 await context.event_service.emit_fact_checking_error(str(e))
 
-            # Re-raise the exception to be handled by the pipeline
-            raise
+            # Re-raise as AgentError to be handled by the pipeline
+            raise AgentError(f"Graph fact checking failed: {e}") from e
 
         return context
 
@@ -98,14 +94,11 @@ class GraphFactCheckingStep(BasePipelineStep):
     async def close(self):
         """Close all resources and cleanup."""
         try:
-            if (
-                hasattr(self, "graph_fact_checking_service")
-                and self.graph_fact_checking_service
-            ):
+            if hasattr(self, "graph_fact_checking_service") and self.graph_fact_checking_service:
                 await self.graph_fact_checking_service.close()
                 logger.info("GraphFactCheckingStep closed successfully")
         except Exception as e:
-            logger.error(f"Error during GraphFactCheckingStep cleanup: {e}")
+            raise AgentError(f"Failed to close GraphFactCheckingStep: {e}") from e
 
     async def __aenter__(self):
         """Async context manager entry."""

@@ -8,6 +8,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from app.exceptions import AgentError
 from app.schemas import ProgressEvent
 
 logger = logging.getLogger(__name__)
@@ -29,11 +30,12 @@ class EventEmissionService:
         if self.event_callback:
             try:
                 await self.event_callback(event)
-                logger.debug(f"Event emitted: {event_name}")
+                logger.debug("Event emitted: %s", event_name)
             except Exception as e:
-                logger.warning(f"Failed to emit event {event_name}: {e}")
+                raise AgentError(
+                    f"Event emission failed for {event_name}: {str(e)}") from e
         else:
-            logger.warning(f"No event callback set for event: {event_name}")
+            logger.warning("No event callback set for event: %s", event_name)
 
     async def emit_verification_started(self):
         """Signal the start of verification."""
@@ -45,9 +47,7 @@ class EventEmissionService:
 
     async def emit_screenshot_parsing_completed(self, extracted_info: dict[str, Any]):
         """Signal the completion of screenshot parsing."""
-        await self.emit_event(
-            "SCREENSHOT_PARSING_COMPLETED", {"extracted_info": extracted_info}
-        )
+        await self.emit_event("SCREENSHOT_PARSING_COMPLETED", {"extracted_info": extracted_info})
 
     async def emit_post_analysis_started(self):
         """Signal the start of post analysis."""
@@ -85,9 +85,7 @@ class EventEmissionService:
         """Signal the start of fact-checking."""
         await self.emit_event("FACT_CHECKING_STARTED", {"total_claims": total_claims})
 
-    async def emit_fact_checking_item_completed(
-        self, checked: int, total: int, claim_text: str
-    ):
+    async def emit_fact_checking_item_completed(self, checked: int, total: int, claim_text: str):
         """Signal the completion of a fact-checking item."""
         await self.emit_event(
             "FACT_CHECKING_ITEM_COMPLETED",

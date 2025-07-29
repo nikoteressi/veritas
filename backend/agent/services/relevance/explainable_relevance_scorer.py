@@ -12,12 +12,13 @@ import re
 import time
 from collections import Counter
 from typing import Any
+from app.exceptions import ValidationError
 
 import numpy as np
 
-from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
 from ..cache.temporal_analysis_cache import TemporalAnalysisCache
+from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +72,9 @@ class ExplainableRelevanceScorer:
         }
 
         logger.info(
-            f"Explainable relevance scorer initialized with {explanation_depth} explanations"
-        )
+            "Explainable relevance scorer initialized with %s explanations", explanation_depth)
 
-    def _generate_cache_key(
-        self, query: str, text: str, depth: str = "detailed"
-    ) -> str:
+    def _generate_cache_key(self, query: str, text: str, depth: str = "detailed") -> str:
         """Generate cache key for explanation."""
         combined = f"{query}|{text}|{depth}"
         text_hash = hashlib.md5(combined.encode("utf-8")).hexdigest()
@@ -95,24 +93,17 @@ class ExplainableRelevanceScorer:
             word_freq = Counter(words)
 
             # Pattern matching
-            question_matches = sum(
-                len(re.findall(pattern, text, re.IGNORECASE))
-                for pattern in self.question_patterns
-            )
+            question_matches = sum(len(re.findall(pattern, text, re.IGNORECASE))
+                                   for pattern in self.question_patterns)
             importance_matches = sum(
-                len(re.findall(pattern, text, re.IGNORECASE))
-                for pattern in self.importance_indicators
+                len(re.findall(pattern, text, re.IGNORECASE)) for pattern in self.importance_indicators
             )
 
             # Text complexity metrics
             avg_word_length = np.mean([len(word)
                                       for word in words]) if words else 0
-            avg_sentence_length = (
-                np.mean([len(sent.split())
-                        for sent in sentences if sent.strip()])
-                if sentences
-                else 0
-            )
+            avg_sentence_length = np.mean(
+                [len(sent.split()) for sent in sentences if sent.strip()]) if sentences else 0
 
             # Named entity patterns (simple heuristic)
             capitalized_words = [word for word in words if word.istitle()]
@@ -134,8 +125,8 @@ class ExplainableRelevanceScorer:
             return features
 
         except Exception as e:
-            logger.error(f"Failed to extract linguistic features: {e}")
-            return {}
+            raise ValidationError(
+                f"Failed to extract linguistic features: {e}") from e
 
     def _calculate_word_importance(self, query: str, text: str) -> dict[str, float]:
         """Calculate importance scores for words in text."""
@@ -179,8 +170,8 @@ class ExplainableRelevanceScorer:
             return word_importance
 
         except Exception as e:
-            logger.error(f"Failed to calculate word importance: {e}")
-            return {}
+            raise ValidationError(
+                f"Failed to calculate word importance: {e}") from e
 
     def _calculate_attention_weights(self, query: str, text: str) -> dict[str, float]:
         """Calculate attention weights for text segments."""
@@ -209,20 +200,16 @@ class ExplainableRelevanceScorer:
                 length_weight = min(len(sentence.split()) / 20.0, 1.0)
 
                 # Combined attention weight
-                attention = (
-                    overlap_ratio * 0.6 + position_weight * 0.3 + length_weight * 0.1
-                )
+                attention = overlap_ratio * 0.6 + position_weight * 0.3 + length_weight * 0.1
                 attention_weights[f"sentence_{i}"] = attention
 
             return attention_weights
 
         except Exception as e:
-            logger.error(f"Failed to calculate attention weights: {e}")
-            return {}
+            raise ValidationError(
+                f"Failed to calculate attention weights: {e}") from e
 
-    def _generate_basic_explanation(
-        self, score: float, components: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _generate_basic_explanation(self, score: float, components: dict[str, Any]) -> dict[str, Any]:
         """Generate basic explanation for relevance score."""
         explanation = {
             "score": score,
@@ -266,9 +253,8 @@ class ExplainableRelevanceScorer:
 
         # Add word importance
         word_importance = self._calculate_word_importance(query, text)
-        top_words = sorted(word_importance.items(), key=lambda x: x[1], reverse=True)[
-            :10
-        ]
+        top_words = sorted(word_importance.items(),
+                           key=lambda x: x[1], reverse=True)[:10]
         explanation["important_words"] = top_words
 
         # Add matching analysis
@@ -277,16 +263,8 @@ class ExplainableRelevanceScorer:
 
         explanation["matching_analysis"] = {
             "exact_matches": list(query_words.intersection(text_words)),
-            "query_coverage": (
-                len(query_words.intersection(text_words)) / len(query_words)
-                if query_words
-                else 0
-            ),
-            "text_relevance": (
-                len(query_words.intersection(text_words)) / len(text_words)
-                if text_words
-                else 0
-            ),
+            "query_coverage": (len(query_words.intersection(text_words)) / len(query_words) if query_words else 0),
+            "text_relevance": (len(query_words.intersection(text_words)) / len(text_words) if text_words else 0),
         }
 
         return explanation
@@ -297,8 +275,7 @@ class ExplainableRelevanceScorer:
         """Generate comprehensive explanation for relevance score."""
         # Start with detailed explanation
         explanation = self._generate_detailed_explanation(
-            query, text, score, components
-        )
+            query, text, score, components)
         explanation["level"] = "comprehensive"
 
         # Add attention analysis
@@ -310,13 +287,11 @@ class ExplainableRelevanceScorer:
 
         # Add recommendations
         explanation["recommendations"] = self._generate_recommendations(
-            query, text, score, components
-        )
+            query, text, score, components)
 
         # Add confidence metrics
         explanation["confidence_metrics"] = self._calculate_confidence_metrics(
-            components
-        )
+            components)
 
         return explanation
 
@@ -333,26 +308,21 @@ class ExplainableRelevanceScorer:
         else:
             return "Not relevant - poor match with query"
 
-    def _generate_recommendations(
-        self, query: str, text: str, score: float, components: dict[str, Any]
-    ) -> list[str]:
+    def _generate_recommendations(self, query: str, text: str, score: float, components: dict[str, Any]) -> list[str]:
         """Generate recommendations for improving relevance."""
         recommendations = []
 
         if score < 0.5:
             recommendations.append(
-                "Consider refining the query to better match the content"
-            )
+                "Consider refining the query to better match the content")
 
             if components.get("bm25_score", 0) < 0.3:
                 recommendations.append(
-                    "Add more specific keywords that appear in the text"
-                )
+                    "Add more specific keywords that appear in the text")
 
             if components.get("semantic_score", 0) < 0.3:
                 recommendations.append(
-                    "Use synonyms or related terms to improve semantic matching"
-                )
+                    "Use synonyms or related terms to improve semantic matching")
 
         if len(text.split()) < 50:
             recommendations.append(
@@ -360,23 +330,17 @@ class ExplainableRelevanceScorer:
 
         return recommendations
 
-    def _calculate_confidence_metrics(
-        self, components: dict[str, Any]
-    ) -> dict[str, float]:
+    def _calculate_confidence_metrics(self, components: dict[str, Any]) -> dict[str, float]:
         """Calculate confidence metrics for the relevance score."""
         confidence = {}
 
         # Score consistency
-        scores = [
-            v
-            for k, v in components.items()
-            if k.endswith("_score") and isinstance(v, (int, float))
-        ]
+        scores = [v for k, v in components.items() if k.endswith(
+            "_score") and isinstance(v, (int, float))]
         if scores:
             confidence["score_variance"] = float(np.var(scores))
-            confidence["score_consistency"] = 1.0 - min(
-                confidence["score_variance"], 1.0
-            )
+            confidence["score_consistency"] = 1.0 - \
+                min(confidence["score_variance"], 1.0)
 
         # Component agreement
         if "bm25_score" in components and "semantic_score" in components:
@@ -421,25 +385,20 @@ class ExplainableRelevanceScorer:
                 return cached_explanation
 
         # Calculate hybrid relevance score with explanation
-        hybrid_score, hybrid_components = (
-            await self.hybrid_scorer.calculate_hybrid_score(
-                query, text, use_cache=True, explain=True
-            )
+        hybrid_score, hybrid_components = await self.hybrid_scorer.calculate_hybrid_score(
+            query, text, use_cache=True, explain=True
         )
 
         # Generate explanation based on depth
         if explanation_depth == "basic":
             explanation = self._generate_basic_explanation(
-                hybrid_score, hybrid_components
-            )
+                hybrid_score, hybrid_components)
         elif explanation_depth == "detailed":
             explanation = self._generate_detailed_explanation(
-                query, text, hybrid_score, hybrid_components
-            )
+                query, text, hybrid_score, hybrid_components)
         else:  # comprehensive
             explanation = self._generate_comprehensive_explanation(
-                query, text, hybrid_score, hybrid_components
-            )
+                query, text, hybrid_score, hybrid_components)
 
         # Add temporal analysis if date provided
         if content_date:
@@ -550,9 +509,7 @@ class ExplainableRelevanceScorer:
 
 
 # Factory function for easy initialization
-def create_explainable_scorer(
-    explanation_depth: str = "detailed", cache_size: int = 300
-) -> ExplainableRelevanceScorer:
+def create_explainable_scorer(explanation_depth: str = "detailed", cache_size: int = 300) -> ExplainableRelevanceScorer:
     """
     Factory function to create explainable relevance scorer.
 
@@ -563,6 +520,4 @@ def create_explainable_scorer(
     Returns:
         ExplainableRelevanceScorer instance
     """
-    return ExplainableRelevanceScorer(
-        explanation_depth=explanation_depth, cache_size=cache_size
-    )
+    return ExplainableRelevanceScorer(explanation_depth=explanation_depth, cache_size=cache_size)

@@ -12,11 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
-from agent.services.event_emission import EventEmissionService
-from agent.services.result_compiler import ResultCompiler
-from agent.services.storage import storage_service
 from app.config import settings
 from app.exceptions import AgentError
+
+from ..services.infrastructure.event_emission import EventEmissionService
+from ..services.infrastructure.storage import storage_service
+from ..services.output.result_compiler import ResultCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +44,16 @@ class VerificationPipeline:
         try:
             self.steps = step_registry.create_pipeline_steps(step_names)
             self.step_names = step_names
-            logger.info(f"Initialized verification pipeline with steps: {step_names}")
+            logger.info(
+                "Initialized verification pipeline with steps: %s",
+                step_names,
+            )
         except Exception as e:
-            logger.error(f"Failed to initialize pipeline with steps {step_names}: {e}")
+            logger.error(
+                "Failed to initialize pipeline with steps %s: %s",
+                step_names,
+                e,
+            )
             raise AgentError(f"Pipeline initialization failed: {e}") from e
 
     async def execute(
@@ -80,9 +88,7 @@ class VerificationPipeline:
                 session_id=session_id,
                 filename=filename,
                 db=db,
-                event_service=(
-                    EventEmissionService(event_callback) if event_callback else None
-                ),
+                event_service=(EventEmissionService(event_callback) if event_callback else None),
                 result_compiler=ResultCompiler(),
             )
         except Exception as e:
@@ -116,18 +122,18 @@ class VerificationPipeline:
 
             processing_time = context.result_compiler.get_processing_time()
             logger.info(
-                f"Verification completed in {processing_time}s: {context.verdict_result.verdict}"
+                "Verification completed in %s: %s",
+                processing_time,
+                context.verdict_result.verdict,
             )
 
             return final_result
 
         except Exception as e:
-            logger.error(f"Pipeline execution failed: {e}", exc_info=True)
+            logger.error("Pipeline execution failed: %s", e, exc_info=True)
             raise AgentError(f"Verification pipeline failed: {e}") from e
 
-    async def _compile_final_result(
-        self, context: VerificationContext
-    ) -> dict[str, Any]:
+    async def _compile_final_result(self, context: VerificationContext) -> dict[str, Any]:
         """Compile the final verification result."""
 
         final_result = await context.result_compiler.compile_result(context=context)
@@ -161,10 +167,16 @@ class VerificationPipeline:
                 self.step_names.insert(position, step_name)
 
             logger.info(
-                f"Added step '{step_name}' to pipeline at position {position or len(self.steps)-1}"
+                "Added step '%s' to pipeline at position %s",
+                step_name,
+                position or len(self.steps) - 1,
             )
         except Exception as e:
-            logger.error(f"Failed to add step '{step_name}': {e}")
+            logger.error(
+                "Failed to add step '%s' to pipeline: %s",
+                step_name,
+                e,
+            )
             raise AgentError(f"Failed to add step to pipeline: {e}") from e
 
     def remove_step(self, step_name: str) -> bool:
@@ -182,11 +194,18 @@ class VerificationPipeline:
                 index = self.step_names.index(step_name)
                 self.steps.pop(index)
                 self.step_names.remove(step_name)
-                logger.info(f"Removed step '{step_name}' from pipeline")
+                logger.info(
+                    "Removed step '%s' from pipeline",
+                    step_name,
+                )
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to remove step '{step_name}': {e}")
+            logger.error(
+                "Failed to remove step '%s' from pipeline: %s",
+                step_name,
+                e,
+            )
             raise AgentError(f"Failed to remove step from pipeline: {e}") from e
 
     def reorder_steps(self, new_step_names: list[str]) -> None:
@@ -208,9 +227,15 @@ class VerificationPipeline:
             self.steps = new_steps
             self.step_names = new_step_names
 
-            logger.info(f"Reordered pipeline steps to: {new_step_names}")
+            logger.info(
+                "Reordered pipeline steps to: %s",
+                new_step_names,
+            )
         except Exception as e:
-            logger.error(f"Failed to reorder steps: {e}")
+            logger.error(
+                "Failed to reorder pipeline steps: %s",
+                e,
+            )
             raise AgentError(f"Failed to reorder pipeline steps: {e}") from e
 
     async def close(self) -> None:
@@ -221,9 +246,9 @@ class VerificationPipeline:
             try:
                 if hasattr(step, "close") and callable(step.close):
                     await step.close()
-                    logger.debug(f"Closed step: {step.name}")
+                    logger.debug("Closed step: %s", step.name)
             except Exception as e:
-                logger.error(f"Error closing step {step.name}: {e}")
+                logger.error("Error closing step %s: %s", step.name, e)
 
         logger.info("Verification pipeline closed successfully")
 

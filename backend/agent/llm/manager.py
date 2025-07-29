@@ -12,6 +12,7 @@ from langchain_ollama import ChatOllama
 from PIL import Image
 
 from app.config import settings
+from app.exceptions import LLMError
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class OllamaLLMManager:
 
         except Exception as e:
             logger.error(f"Failed to initialize Ollama LLMs: {e}")
-            raise
+            raise LLMError(f"Failed to initialize Ollama LLMs: {e}") from e
 
     def encode_image_to_base64(self, image_bytes: bytes) -> str:
         """
@@ -86,7 +87,7 @@ class OllamaLLMManager:
 
         except Exception as e:
             logger.error(f"Failed to encode image: {e}")
-            raise
+            raise LLMError(f"Failed to encode image: {e}") from e
 
     def create_multimodal_message(self, text: str, image_base64: str) -> HumanMessage:
         """
@@ -131,15 +132,13 @@ class OllamaLLMManager:
             # Invoke LLM
             response = await self.vision_llm.ainvoke([message], **kwargs)
 
-            logger.debug(
-                f"Vision LLM response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---"
-            )
+            logger.debug(f"Vision LLM response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---")
             logger.info("Successfully invoked multimodal LLM")
             return response.content
 
         except Exception as e:
             logger.error(f"Failed to invoke multimodal LLM: {e}")
-            raise
+            raise LLMError(f"Failed to invoke multimodal LLM: {e}") from e
 
     async def invoke_text_only(self, text: str, **kwargs) -> str:
         """
@@ -153,20 +152,14 @@ class OllamaLLMManager:
             LLM response text
         """
         try:
-            logger.debug(
-                f"Invoking text-only LLM with prompt:\n---PROMPT START---\n{text}\n---PROMPT END---"
-            )
-            response = await self.reasoning_llm.ainvoke(
-                [HumanMessage(content=text)], **kwargs
-            )
-            logger.debug(
-                f"LLM text-only response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---"
-            )
+            logger.debug(f"Invoking text-only LLM with prompt:\n---PROMPT START---\n{text}\n---PROMPT END---")
+            response = await self.reasoning_llm.ainvoke([HumanMessage(content=text)], **kwargs)
+            logger.debug(f"LLM text-only response:\n---RESPONSE START---\n{response.content}\n---RESPONSE END---")
             logger.info("Successfully invoked text-only LLM")
             return response.content
         except Exception as e:
             logger.error(f"Failed to invoke text-only LLM: {e}")
-            raise
+            raise LLMError(f"Failed to invoke text-only LLM: {e}") from e
 
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the current models."""

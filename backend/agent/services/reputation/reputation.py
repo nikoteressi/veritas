@@ -27,13 +27,9 @@ class ReputationService:
         """Generate warnings based on the user's reputation."""
         warnings = []
         if user_reputation.warning_issued:
-            warnings.append(
-                "A warning has been issued for repeatedly submitting content that was found to be false."
-            )
+            warnings.append("A warning has been issued for repeatedly submitting content that was found to be false.")
         if user_reputation.notification_issued:
-            warnings.append(
-                "A notification has been sent regarding a high volume of false content submissions."
-            )
+            warnings.append("A notification has been sent regarding a high volume of false content submissions.")
         return warnings
 
 

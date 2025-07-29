@@ -62,8 +62,7 @@ def safe_json_dumps(obj: Any) -> str:
         converted_obj = convert_numpy_types(obj)
         return json.dumps(converted_obj)
     except (TypeError, ValueError) as e:
-        logging.getLogger(__name__).error(
-            f"Failed to serialize object to JSON: {e}")
+        logging.getLogger(__name__).error(f"Failed to serialize object to JSON: {e}")
         return "{}"
 
 
@@ -115,9 +114,7 @@ class Neo4jGraphStorage:
                 try:
                     session.run(constraint)
                 except (ClientError, DatabaseError) as e:
-                    self.logger.debug(
-                        "Constraint/Index already exists or failed: %s", e
-                    )
+                    self.logger.debug("Constraint/Index already exists or failed: %s", e)
 
     def store_graph(self, graph: FactGraph, graph_id: str = None) -> str:
         """
@@ -184,9 +181,7 @@ class Neo4jGraphStorage:
                     self.logger.error(
                         f"Invalid verification_status type for node {node.id}: {type(node.verification_status)}"
                     )
-                    raise ValueError(
-                        f"Invalid verification_status type for node {node.id}"
-                    )
+                    raise ValueError(f"Invalid verification_status type for node {node.id}")
 
             # Serialize embedding if present
             embedding_data = None
@@ -194,14 +189,11 @@ class Neo4jGraphStorage:
                 try:
                     # Convert numpy array to list for JSON serialization
                     if hasattr(node.embedding, "tolist"):
-                        embedding_data = safe_json_dumps(
-                            node.embedding.tolist())
+                        embedding_data = safe_json_dumps(node.embedding.tolist())
                     else:
                         embedding_data = safe_json_dumps(list(node.embedding))
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to serialize embedding for node {node.id}: {e}"
-                    )
+                except (TypeError, ValueError, AttributeError) as e:
+                    self.logger.warning(f"Failed to serialize embedding for node {node.id}: {e}")
                     embedding_data = None
 
             node_data.append(
@@ -211,14 +203,9 @@ class Neo4jGraphStorage:
                     "domain": node.domain,
                     "confidence": node.confidence,
                     "verification_status": verification_status_value,
-                    "metadata": (
-                        safe_json_dumps(
-                            node.metadata) if node.metadata else "{}"
-                    ),
+                    "metadata": (safe_json_dumps(node.metadata) if node.metadata else "{}"),
                     "verification_results": (
-                        safe_json_dumps(node.verification_results)
-                        if node.verification_results
-                        else "{}"
+                        safe_json_dumps(node.verification_results) if node.verification_results else "{}"
                     ),
                     "embedding": embedding_data,
                 }
@@ -253,9 +240,7 @@ class Neo4jGraphStorage:
                     self.logger.error(
                         f"Invalid relationship_type type for edge {edge.id}: {type(edge.relationship_type)}"
                     )
-                    raise ValueError(
-                        f"Invalid relationship_type type for edge {edge.id}"
-                    )
+                    raise ValueError(f"Invalid relationship_type type for edge {edge.id}")
 
             edge_data.append(
                 {
@@ -264,18 +249,13 @@ class Neo4jGraphStorage:
                     "target_id": edge.target_id,
                     "relationship_type": relationship_type_value,
                     "strength": edge.strength,
-                    "metadata": (
-                        safe_json_dumps(
-                            edge.metadata) if edge.metadata else "{}"
-                    ),
+                    "metadata": (safe_json_dumps(edge.metadata) if edge.metadata else "{}"),
                 }
             )
 
         session.run(query, edges=edge_data, graph_id=graph_id)
 
-    def _store_clusters(
-        self, session: Session, clusters: list[FactCluster], graph_id: str
-    ):
+    def _store_clusters(self, session: Session, clusters: list[FactCluster], graph_id: str):
         """Store fact clusters in Neo4j."""
         for cluster in clusters:
             # Safe enum handling for cluster_type
@@ -289,9 +269,7 @@ class Neo4jGraphStorage:
                     self.logger.error(
                         f"Invalid cluster_type type for cluster {cluster.id}: {type(cluster.cluster_type)}"
                     )
-                    raise ValueError(
-                        f"Invalid cluster_type type for cluster {cluster.id}"
-                    )
+                    raise ValueError(f"Invalid cluster_type type for cluster {cluster.id}")
 
             # Create cluster node
             cluster_query = """
@@ -314,10 +292,7 @@ class Neo4jGraphStorage:
                 cluster_type=cluster_type_value,
                 shared_context=cluster.shared_context,
                 verification_strategy=cluster.verification_strategy,
-                metadata=(
-                    safe_json_dumps(
-                        cluster.metadata) if cluster.metadata else "{}"
-                ),
+                metadata=(safe_json_dumps(cluster.metadata) if cluster.metadata else "{}"),
                 batch_queries=safe_json_dumps(cluster.batch_queries),
                 shared_sources=safe_json_dumps(cluster.shared_sources),
                 cluster_verification_result=(
@@ -352,9 +327,7 @@ class Neo4jGraphStorage:
 
         for key, default_value in required_keys.items():
             if key not in stats:
-                self.logger.warning(
-                    f"Missing key '{key}' in graph stats, using default value: {default_value}"
-                )
+                self.logger.warning(f"Missing key '{key}' in graph stats, using default value: {default_value}")
                 stats[key] = default_value
 
         query = """
@@ -430,16 +403,10 @@ class Neo4jGraphStorage:
         for record in result:
             verification_status = None
             if record["verification_status"]:
-                verification_status = VerificationStatus(
-                    record["verification_status"])
+                verification_status = VerificationStatus(record["verification_status"])
 
-            metadata = json.loads(
-                record["metadata"]) if record["metadata"] else {}
-            verification_results = (
-                json.loads(record["verification_results"])
-                if record["verification_results"]
-                else {}
-            )
+            metadata = json.loads(record["metadata"]) if record["metadata"] else {}
+            verification_results = json.loads(record["verification_results"]) if record["verification_results"] else {}
 
             # Deserialize embedding if present
             embedding = None
@@ -447,10 +414,8 @@ class Neo4jGraphStorage:
                 try:
                     embedding_list = json.loads(record["embedding"])
                     embedding = np.array(embedding_list)
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to deserialize embedding for node {record['id']}: {e}"
-                    )
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    self.logger.warning(f"Failed to deserialize embedding for node {record['id']}: {e}")
                     embedding = None
 
             node = FactNode(
@@ -480,15 +445,13 @@ class Neo4jGraphStorage:
         edges = []
 
         for record in result:
-            metadata = json.loads(
-                record["metadata"]) if record["metadata"] else {}
+            metadata = json.loads(record["metadata"]) if record["metadata"] else {}
 
             edge = FactEdge(
                 id=record["id"],
                 source_id=record["source_id"],
                 target_id=record["target_id"],
-                relationship_type=RelationshipType(
-                    record["relationship_type"]),
+                relationship_type=RelationshipType(record["relationship_type"]),
                 strength=record["strength"],
                 metadata=metadata,
             )
@@ -496,9 +459,7 @@ class Neo4jGraphStorage:
 
         return edges
 
-    def _load_clusters(
-        self, session: Session, graph_id: str, nodes: list[FactNode]
-    ) -> list[FactCluster]:
+    def _load_clusters(self, session: Session, graph_id: str, nodes: list[FactNode]) -> list[FactCluster]:
         """Load fact clusters from Neo4j."""
         query = """
         MATCH (c:FactCluster {graph_id: $graph_id})-[:CONTAINS]->(n:FactNode)
@@ -514,25 +475,12 @@ class Neo4jGraphStorage:
         node_map = {node.id: node for node in nodes}
 
         for record in result:
-            cluster_nodes = [
-                node_map[node_id]
-                for node_id in record["node_ids"]
-                if node_id in node_map
-            ]
-            metadata = json.loads(
-                record["metadata"]) if record["metadata"] else {}
-            batch_queries = (
-                json.loads(record["batch_queries"]
-                           ) if record["batch_queries"] else []
-            )
-            shared_sources = (
-                json.loads(record["shared_sources"]
-                           ) if record["shared_sources"] else []
-            )
+            cluster_nodes = [node_map[node_id] for node_id in record["node_ids"] if node_id in node_map]
+            metadata = json.loads(record["metadata"]) if record["metadata"] else {}
+            batch_queries = json.loads(record["batch_queries"]) if record["batch_queries"] else []
+            shared_sources = json.loads(record["shared_sources"]) if record["shared_sources"] else []
             cluster_verification_result = (
-                json.loads(record["cluster_verification_result"])
-                if record["cluster_verification_result"]
-                else None
+                json.loads(record["cluster_verification_result"]) if record["cluster_verification_result"] else None
             )
 
             # Parse created_at
@@ -540,8 +488,7 @@ class Neo4jGraphStorage:
             if record["created_at"]:
                 try:
                     if isinstance(record["created_at"], str):
-                        created_at = datetime.fromisoformat(
-                            record["created_at"])
+                        created_at = datetime.fromisoformat(record["created_at"])
                     else:
                         # Neo4j datetime object
                         created_at = record["created_at"].to_native()
@@ -580,11 +527,8 @@ class Neo4jGraphStorage:
             elif isinstance(verification_status, str):
                 verification_status_value = verification_status
             else:
-                self.logger.error(
-                    f"Invalid verification_status type for node {node_id}: {type(verification_status)}"
-                )
-                raise ValueError(
-                    f"Invalid verification_status type for node {node_id}")
+                self.logger.error(f"Invalid verification_status type for node {node_id}: {type(verification_status)}")
+                raise ValueError(f"Invalid verification_status type for node {node_id}")
 
         query = """
         MATCH (n:FactNode {id: $node_id})
@@ -628,9 +572,7 @@ class Neo4jGraphStorage:
 
             return {}
 
-    def get_verification_history(
-        self, fact_claim: str, limit: int = 10
-    ) -> list[dict[str, Any]]:
+    def get_verification_history(self, fact_claim: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get verification history for nodes matching a specific fact claim."""
         query = """
         MATCH (n:FactNode)
@@ -650,9 +592,7 @@ class Neo4jGraphStorage:
 
             for record in result:
                 verification_results = (
-                    json.loads(record["verification_results"])
-                    if record["verification_results"]
-                    else {}
+                    json.loads(record["verification_results"]) if record["verification_results"] else {}
                 )
 
                 history_item = {
@@ -662,11 +602,7 @@ class Neo4jGraphStorage:
                     "verification_status": record["verification_status"],
                     "confidence": record["confidence"],
                     "verification_results": verification_results,
-                    "updated_at": (
-                        record["updated_at"].isoformat()
-                        if record["updated_at"]
-                        else None
-                    ),
+                    "updated_at": (record["updated_at"].isoformat() if record["updated_at"] else None),
                     "graph_id": record["graph_id"],
                 }
                 history.append(history_item)

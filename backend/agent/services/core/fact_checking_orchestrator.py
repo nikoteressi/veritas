@@ -12,9 +12,11 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from app.exceptions import AgentError
+
+from ..processing.verification_processor import VerificationProcessor
 from .component_manager import ComponentManager
 from .system_health_monitor import SystemHealthMonitor
-from ..processing.verification_processor import VerificationProcessor
 
 
 class FactCheckingOrchestrator:
@@ -76,16 +78,15 @@ class FactCheckingOrchestrator:
 
             initialization_time = (datetime.now() - start_time).total_seconds()
             self.logger.info(
-                "Fact-checking system initialized successfully in %.2fs", initialization_time)
+                "Fact-checking system initialized successfully in %.2fs",
+                initialization_time,
+            )
 
         except Exception as e:
-            self.logger.error("System initialization failed: %s", e)
             self._initialized = False
-            raise
+            raise AgentError(f"System initialization failed: {e}") from e
 
-    async def verify_facts(
-        self, facts: list[dict[str, Any]], context: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def verify_facts(self, facts: list[dict[str, Any]], context: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Verify facts using the enhanced system.
 
@@ -131,9 +132,7 @@ class FactCheckingOrchestrator:
 
         return await self.verification_processor.analyze_source_reputation(source_url)
 
-    async def analyze_fact_relationships(
-        self, facts: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def analyze_fact_relationships(self, facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Analyze relationships between facts.
 
@@ -149,9 +148,7 @@ class FactCheckingOrchestrator:
 
         return await self.verification_processor.analyze_fact_relationships(facts)
 
-    async def get_uncertainty_analysis(
-        self, verification_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def get_uncertainty_analysis(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """
         Get uncertainty analysis for verification data.
 
@@ -199,8 +196,15 @@ class FactCheckingOrchestrator:
         orchestrator_stats = {
             "orchestrator": {
                 "initialized": self._initialized,
-                "initialization_timestamp": self._initialization_timestamp.isoformat() if self._initialization_timestamp else None,
-                "uptime_seconds": (datetime.now() - self._initialization_timestamp).total_seconds() if self._initialization_timestamp else 0,
+                "initialization_timestamp": (
+                    self._initialization_timestamp.isoformat(
+                    ) if self._initialization_timestamp else None
+                ),
+                "uptime_seconds": (
+                    (datetime.now() - self._initialization_timestamp).total_seconds()
+                    if self._initialization_timestamp
+                    else 0
+                ),
                 "version": "enhanced_v1.0",
             }
         }
@@ -268,8 +272,7 @@ class FactCheckingOrchestrator:
             self.logger.info("System shutdown completed successfully")
 
         except Exception as e:
-            self.logger.error("Error during shutdown: %s", e)
-            raise
+            raise AgentError(f"Error during shutdown: {e}") from e
 
     async def close(self) -> None:
         """
@@ -308,9 +311,7 @@ class FactCheckingOrchestrator:
         return self.component_manager.get_active_components()
 
     # Advanced orchestration methods
-    async def process_batch_verification(
-        self, batch_requests: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    async def process_batch_verification(self, batch_requests: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Process multiple verification requests in batch.
 
@@ -347,7 +348,7 @@ class FactCheckingOrchestrator:
 
         # Combine results
         return {
-            "status": "operational" if health_result.get("overall_health") == "healthy" else "degraded",
+            "status": ("operational" if health_result.get("overall_health") == "healthy" else "degraded"),
             "health": health_result,
             "statistics": stats_result,
             "active_components": self._get_active_components(),
@@ -405,7 +406,10 @@ class FactCheckingOrchestrator:
             "class_name": self.__class__.__name__,
             "version": "enhanced_v1.0",
             "initialized": self._initialized,
-            "initialization_timestamp": self._initialization_timestamp.isoformat() if self._initialization_timestamp else None,
+            "initialization_timestamp": (
+                self._initialization_timestamp.isoformat(
+                ) if self._initialization_timestamp else None
+            ),
             "component_managers": {
                 "component_manager": self.component_manager.__class__.__name__,
                 "health_monitor": self.health_monitor.__class__.__name__,

@@ -7,7 +7,9 @@ responsibilities to specialized components.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+from app.exceptions import ValidationError
 
 from ..cache.cache_monitor import CacheMonitor
 from .relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
@@ -25,8 +27,8 @@ class RelevanceOrchestrator:
 
     def __init__(self):
         """Initialize the relevance orchestrator."""
-        self.cache_monitor: Optional[CacheMonitor] = None
-        self.embeddings_coordinator: Optional[RelevanceEmbeddingsCoordinator] = None
+        self.cache_monitor: CacheMonitor | None = None
+        self.embeddings_coordinator: RelevanceEmbeddingsCoordinator | None = None
         self._initialized = False
 
     @property
@@ -51,15 +53,12 @@ class RelevanceOrchestrator:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to initialize RelevanceOrchestrator: {e}")
-            return False
+            raise ValidationError(
+                f"Failed to initialize RelevanceOrchestrator: {e}") from e
 
     async def calculate_comprehensive_relevance(
-        self,
-        query: str,
-        document: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, query: str, document: str, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Calculate comprehensive relevance score using hybrid scoring and temporal analysis.
 
@@ -71,24 +70,16 @@ class RelevanceOrchestrator:
 
         try:
             # Get hybrid relevance score
-            hybrid_result = await self.embeddings_coordinator.calculate_hybrid_relevance(
-                query, document, metadata
-            )
+            hybrid_result = await self.embeddings_coordinator.calculate_hybrid_relevance(query, document, metadata)
 
             # Get temporal analysis
-            temporal_result = await self.embeddings_coordinator.analyze_temporal_relevance(
-                query, document, metadata
-            )
+            temporal_result = await self.embeddings_coordinator.analyze_temporal_relevance(query, document, metadata)
 
             # Get explainable score for transparency
-            explainable_result = await self.embeddings_coordinator.get_explainable_score(
-                query, document, metadata
-            )
+            explainable_result = await self.embeddings_coordinator.get_explainable_score(query, document, metadata)
 
             # Get adaptive threshold
-            threshold = await self.embeddings_coordinator.get_adaptive_threshold(
-                f"{query}:{document[:100]}"
-            )
+            threshold = await self.embeddings_coordinator.get_adaptive_threshold(f"{query}:{document[:100]}")
 
             # Combine results
             comprehensive_score = {
@@ -100,15 +91,15 @@ class RelevanceOrchestrator:
                     "hybrid_details": hybrid_result,
                     "temporal_details": temporal_result,
                     "explanation": explainable_result.get("explanation", ""),
-                    "confidence": explainable_result.get("confidence", 0.0)
-                }
+                    "confidence": explainable_result.get("confidence", 0.0),
+                },
             }
 
             # Calculate final weighted score
             final_score = (
-                comprehensive_score["hybrid_score"] * 0.5 +
-                comprehensive_score["temporal_score"] * 0.3 +
-                comprehensive_score["explainable_score"] * 0.2
+                comprehensive_score["hybrid_score"] * 0.5
+                + comprehensive_score["temporal_score"] * 0.3
+                + comprehensive_score["explainable_score"] * 0.2
             )
 
             comprehensive_score["final_score"] = final_score
@@ -117,15 +108,15 @@ class RelevanceOrchestrator:
             return comprehensive_score
 
         except Exception as e:
-            logger.error(f"Error calculating comprehensive relevance: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to calculate comprehensive relevance: {e}") from e
 
     async def batch_analyze_relevance(
         self,
-        queries: List[str],
-        documents: List[str],
-        metadata_list: Optional[List[Dict[str, Any]]] = None
-    ) -> List[Dict[str, Any]]:
+        queries: list[str],
+        documents: list[str],
+        metadata_list: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Analyze relevance for multiple query-document pairs in batch.
 
@@ -143,7 +134,7 @@ class RelevanceOrchestrator:
             # Process in parallel
             tasks = [
                 self.calculate_comprehensive_relevance(query, doc, metadata)
-                for query, doc, metadata in zip(queries, documents, metadata_list)
+                for query, doc, metadata in zip(queries, documents, metadata_list, strict=False)
             ]
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -159,8 +150,8 @@ class RelevanceOrchestrator:
             return processed_results
 
         except Exception as e:
-            logger.error(f"Error in batch relevance analysis: {e}")
-            return [{"error": str(e)}] * len(queries)
+            raise ValidationError(
+                f"Failed to process batch relevance analysis: {e}") from e
 
     async def get_performance_report(self) -> str:
         """
@@ -193,10 +184,10 @@ class RelevanceOrchestrator:
             return report
 
         except Exception as e:
-            logger.error(f"Error generating performance report: {e}")
-            return f"Error generating performance report: {e}"
+            raise ValidationError(
+                f"Failed to generate performance report: {e}") from e
 
-    async def optimize_performance(self) -> Dict[str, Any]:
+    async def optimize_performance(self) -> dict[str, Any]:
         """
         Optimize performance of all relevance components.
 
@@ -222,10 +213,10 @@ class RelevanceOrchestrator:
             return optimization_results
 
         except Exception as e:
-            logger.error(f"Error optimizing performance: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to optimize performance: {e}") from e
 
-    async def check_health(self) -> Dict[str, Any]:
+    async def check_health(self) -> dict[str, Any]:
         """
         Check health of all relevance system components.
 
@@ -235,10 +226,7 @@ class RelevanceOrchestrator:
             return {"status": "error", "message": "Orchestrator not initialized"}
 
         try:
-            health_status = {
-                "status": "healthy",
-                "components": {}
-            }
+            health_status = {"status": "healthy", "components": {}}
 
             # Check embeddings coordinator health
             if self.embeddings_coordinator:
@@ -255,10 +243,10 @@ class RelevanceOrchestrator:
             return health_status
 
         except Exception as e:
-            logger.error(f"Error checking system health: {e}")
-            return {"status": "error", "message": str(e)}
+            raise ValidationError(
+                f"Failed to check system health: {e}") from e
 
-    async def get_cache_metrics(self) -> Dict[str, Any]:
+    async def get_cache_metrics(self) -> dict[str, Any]:
         """
         Get cache performance metrics.
 
@@ -270,8 +258,8 @@ class RelevanceOrchestrator:
         try:
             return await self.cache_monitor.collect_cache_metrics()
         except Exception as e:
-            logger.error(f"Error getting cache metrics: {e}")
-            return {"error": str(e)}
+            raise ValidationError(
+                f"Failed to get cache metrics: {e}") from e
 
     async def close(self):
         """Clean up all orchestrator resources."""
@@ -283,18 +271,19 @@ class RelevanceOrchestrator:
                 await self.embeddings_coordinator.close()
 
             # Stop cache monitoring
-            if self.cache_monitor and hasattr(self.cache_monitor, 'stop_monitoring'):
+            if self.cache_monitor and hasattr(self.cache_monitor, "stop_monitoring"):
                 await self.cache_monitor.stop_monitoring()
 
             self._initialized = False
             logger.info("RelevanceOrchestrator closed successfully")
 
         except Exception as e:
-            logger.error(f"Error closing RelevanceOrchestrator: {e}")
+            raise ValidationError(
+                f"Failed to close RelevanceOrchestrator: {e}") from e
 
 
 # Global instance management (maintaining existing interface)
-_relevance_orchestrator: Optional[RelevanceOrchestrator] = None
+_relevance_orchestrator: RelevanceOrchestrator | None = None
 
 
 def get_relevance_manager() -> RelevanceOrchestrator:

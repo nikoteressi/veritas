@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from agent.models.verification_context import VerificationContext
+from app.exceptions import AgentError
 
 
 class BaseAnalyzer(ABC):
@@ -50,9 +51,7 @@ class BaseAnalyzer(ABC):
 
     def _log_analysis_error(self, error: Exception) -> None:
         """Log analysis error."""
-        self.logger.error(
-            f"Failed {self.analyzer_name} analysis: {error}", exc_info=True
-        )
+        self.logger.error(f"Failed {self.analyzer_name} analysis: {error}", exc_info=True)
 
     async def safe_analyze(self, context: VerificationContext) -> dict[str, Any]:
         """
@@ -69,9 +68,13 @@ class BaseAnalyzer(ABC):
             result = await self.analyze(context)
             self._log_analysis_complete(result)
             return result
-        except Exception as e:
+        except (ValueError, RuntimeError, AttributeError, TypeError) as e:
             self._log_analysis_error(e)
-            return self._get_error_result(e)
+            # For safe_analyze, we return error result instead of raising
+            # This maintains the safe wrapper behavior while logging the AgentError context
+            agent_error = AgentError(f"Analysis failed in {self.analyzer_name}: {e}")
+            self.logger.error(f"AgentError context: {agent_error}")
+            return self._get_error_result(agent_error)
 
     def _get_error_result(self, error: Exception) -> dict[str, Any]:
         """

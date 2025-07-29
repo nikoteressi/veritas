@@ -13,6 +13,8 @@ from typing import Any
 
 import numpy as np
 
+from app.exceptions import AnalysisError
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Lazy imports for heavy libraries
@@ -25,8 +27,7 @@ def _ensure_bayesian_libraries():
     global pm, az
     if pm is None or az is None:
         logger.info(
-            "Initializing Bayesian libraries (PyMC and ArviZ) - lazy initialization"
-        )
+            "Initializing Bayesian libraries (PyMC and ArviZ) - lazy initialization")
         try:
             import arviz as az_module
             import pymc as pm_module
@@ -35,8 +36,8 @@ def _ensure_bayesian_libraries():
             az = az_module
             logger.info("Bayesian libraries initialized successfully")
         except ImportError as e:
-            logger.error(f"Failed to import Bayesian libraries: {e}")
-            raise ImportError(f"Bayesian libraries not available: {e}") from e
+            raise AnalysisError(
+                f"Bayesian libraries not available: {e}") from e
 
 
 logger = logging.getLogger(__name__)
@@ -84,22 +85,18 @@ class BayesianVerificationModel:
             if n_evidence > 0:
                 if self.config.evidence_weight_prior == "beta":
                     evidence_weights = pm.Beta(
-                        "evidence_weights", alpha=1, beta=1, shape=n_evidence
-                    )
+                        "evidence_weights", alpha=1, beta=1, shape=n_evidence)
                 else:
                     evidence_weights = pm.Dirichlet(
-                        "evidence_weights", a=np.ones(n_evidence)
-                    )
+                        "evidence_weights", a=np.ones(n_evidence))
 
             # Temporal decay for evidence
             evidence_ages = evidence_data.get("evidence_ages", [])
             if evidence_ages:
                 temporal_factors = pm.Deterministic(
                     "temporal_factors",
-                    pm.math.exp(
-                        -self.config.temporal_decay_rate *
-                        np.array(evidence_ages)
-                    ),
+                    pm.math.exp(-self.config.temporal_decay_rate *
+                                np.array(evidence_ages)),
                 )
 
             # Likelihood for verification outcome
@@ -110,10 +107,7 @@ class BayesianVerificationModel:
                     weighted_evidence = pm.Deterministic(
                         "weighted_evidence",
                         pm.math.sum(
-                            evidence_weights
-                            * np.array(evidence_scores)
-                            * temporal_factors
-                        ),
+                            evidence_weights * np.array(evidence_scores) * temporal_factors),
                     )
                 else:
                     weighted_evidence = pm.Deterministic(
@@ -124,15 +118,13 @@ class BayesianVerificationModel:
 
                 # Verification probability
                 verification_prob = pm.Deterministic(
-                    "verification_prob", source_reliability * weighted_evidence
-                )
+                    "verification_prob", source_reliability * weighted_evidence)
 
                 # Observed verification outcome (if available)
                 observed_outcome = evidence_data.get("observed_outcome")
                 if observed_outcome is not None:
                     outcome = pm.Bernoulli(
-                        "outcome", p=verification_prob, observed=observed_outcome
-                    )
+                        "outcome", p=verification_prob, observed=observed_outcome)
                 else:
                     outcome = pm.Bernoulli("outcome", p=verification_prob)
 
@@ -166,9 +158,8 @@ class BayesianVerificationModel:
 
         # Verification probability statistics
         if "verification_prob" in self.trace.posterior:
-            verification_prob = self.trace.posterior[
-                "verification_prob"
-            ].values.flatten()
+            verification_prob = self.trace.posterior["verification_prob"].values.flatten(
+            )
             results["verification_prob"] = {
                 "mean": float(np.mean(verification_prob)),
                 "std": float(np.std(verification_prob)),
@@ -179,15 +170,12 @@ class BayesianVerificationModel:
 
         # Source reliability statistics
         if "source_reliability" in self.trace.posterior:
-            source_reliability = self.trace.posterior[
-                "source_reliability"
-            ].values.flatten()
+            source_reliability = self.trace.posterior["source_reliability"].values.flatten(
+            )
             results["source_reliability"] = {
                 "mean": float(np.mean(source_reliability)),
                 "std": float(np.std(source_reliability)),
-                "credible_interval": self._compute_credible_interval(
-                    source_reliability
-                ),
+                "credible_interval": self._compute_credible_interval(source_reliability),
             }
 
         # Evidence weights
@@ -227,22 +215,36 @@ class BayesianVerificationModel:
             mcse = az.mcse(self.trace)
 
             diagnostics = {
-                "rhat": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
-                         else float(val.values.mean()) if hasattr(val, 'values')
-                         else float(val) for var, val in rhat.data_vars.items()},
-                "ess": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
-                        else float(val.values.mean()) if hasattr(val, 'values')
-                        else float(val) for var, val in ess.data_vars.items()},
-                "mcse": {var: float(val.values.item()) if hasattr(val, 'values') and val.values.size == 1
-                         else float(val.values.mean()) if hasattr(val, 'values')
-                         else float(val) for var, val in mcse.data_vars.items()},
+                "rhat": {
+                    var: (
+                        float(val.values.item())
+                        if hasattr(val, "values") and val.values.size == 1
+                        else (float(val.values.mean()) if hasattr(val, "values") else float(val))
+                    )
+                    for var, val in rhat.data_vars.items()
+                },
+                "ess": {
+                    var: (
+                        float(val.values.item())
+                        if hasattr(val, "values") and val.values.size == 1
+                        else (float(val.values.mean()) if hasattr(val, "values") else float(val))
+                    )
+                    for var, val in ess.data_vars.items()
+                },
+                "mcse": {
+                    var: (
+                        float(val.values.item())
+                        if hasattr(val, "values") and val.values.size == 1
+                        else (float(val.values.mean()) if hasattr(val, "values") else float(val))
+                    )
+                    for var, val in mcse.data_vars.items()
+                },
             }
 
             return diagnostics
 
         except Exception as e:
-            self.logger.warning(f"Failed to compute diagnostics: {e}")
-            return {}
+            raise AnalysisError(f"Failed to compute diagnostics: {e}") from e
 
 
 class UncertaintyPropagationEngine:
@@ -252,9 +254,7 @@ class UncertaintyPropagationEngine:
         self.config = config or UncertaintyConfig()
         self.logger = logging.getLogger(__name__)
 
-    def propagate_cluster_uncertainty(
-        self, cluster_results: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def propagate_cluster_uncertainty(self, cluster_results: list[dict[str, Any]]) -> dict[str, Any]:
         """Propagate uncertainty across cluster verification results."""
         if not cluster_results:
             return {"overall_uncertainty": 1.0, "confidence": 0.0}
@@ -279,7 +279,8 @@ class UncertaintyPropagationEngine:
         if weights_sum > 0:
             weights = weights / weights_sum  # Normalize
         else:
-            weights = np.ones_like(weights) / len(weights)  # Equal weights if sum is zero
+            # Equal weights if sum is zero
+            weights = np.ones_like(weights) / len(weights)
 
         # Combine uncertainties using weighted variance
         weighted_uncertainty = np.sqrt(
@@ -300,9 +301,7 @@ class UncertaintyPropagationEngine:
             "propagation_method": "weighted_variance",
         }
 
-    def _estimate_correlation_factor(
-        self, cluster_results: list[dict[str, Any]]
-    ) -> float:
+    def _estimate_correlation_factor(self, cluster_results: list[dict[str, Any]]) -> float:
         """Estimate correlation factor between cluster results."""
         if len(cluster_results) <= 1:
             return 1.0
@@ -325,9 +324,7 @@ class UncertaintyPropagationEngine:
             # Mixed agreement - moderate correlation factor
             return 1.0
 
-    def compute_evidence_uncertainty(
-        self, evidence_list: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def compute_evidence_uncertainty(self, evidence_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Compute uncertainty for a collection of evidence."""
         if not evidence_list:
             return {"uncertainty": 1.0, "reliability": 0.0}
@@ -354,15 +351,12 @@ class UncertaintyPropagationEngine:
 
         # Source reliability uncertainty
         reliability_mean = np.mean(source_reliabilities)
-        reliability_std = (
-            np.std(source_reliabilities) if len(
-                source_reliabilities) > 1 else 0.1
-        )
+        reliability_std = np.std(source_reliabilities) if len(
+            source_reliabilities) > 1 else 0.1
 
         # Combined uncertainty
         combined_uncertainty = np.sqrt(
-            score_std**2 + temporal_uncertainty**2 + reliability_std**2
-        )
+            score_std**2 + temporal_uncertainty**2 + reliability_std**2)
 
         return {
             "uncertainty": float(min(1.0, combined_uncertainty)),
@@ -383,9 +377,7 @@ class BayesianUncertaintyHandler:
         self.propagation_engine = UncertaintyPropagationEngine(config)
         self.logger = logging.getLogger(__name__)
 
-    async def analyze_verification_uncertainty(
-        self, verification_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def analyze_verification_uncertainty(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """Analyze uncertainty for a verification task."""
         # Prepare evidence data for Bayesian analysis
         evidence_data = self._prepare_evidence_data(verification_data)
@@ -402,22 +394,14 @@ class BayesianUncertaintyHandler:
         uncertainty_analysis = {
             "bayesian_results": bayesian_results,
             "evidence_uncertainty": evidence_uncertainty,
-            "overall_confidence": self._compute_overall_confidence(
-                bayesian_results, evidence_uncertainty
-            ),
-            "uncertainty_level": self._classify_uncertainty_level(
-                bayesian_results, evidence_uncertainty
-            ),
-            "recommendations": self._generate_recommendations(
-                bayesian_results, evidence_uncertainty
-            ),
+            "overall_confidence": self._compute_overall_confidence(bayesian_results, evidence_uncertainty),
+            "uncertainty_level": self._classify_uncertainty_level(bayesian_results, evidence_uncertainty),
+            "recommendations": self._generate_recommendations(bayesian_results, evidence_uncertainty),
         }
 
         return uncertainty_analysis
 
-    def _prepare_evidence_data(
-        self, verification_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _prepare_evidence_data(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """Prepare evidence data for Bayesian model."""
         evidence = verification_data.get("evidence", [])
 
@@ -502,29 +486,25 @@ class BayesianUncertaintyHandler:
 
         if prob_std > 0.3:
             recommendations.append(
-                "High uncertainty in verification probability - consider gathering more evidence"
-            )
+                "High uncertainty in verification probability - consider gathering more evidence")
 
         # Check evidence count
         evidence_count = evidence_uncertainty.get("evidence_count", 0)
         if evidence_count < 3:
             recommendations.append(
-                "Limited evidence available - seek additional sources"
-            )
+                "Limited evidence available - seek additional sources")
 
         # Check source reliability
         source_reliability = evidence_uncertainty.get("reliability", 0.5)
         if source_reliability < 0.6:
             recommendations.append(
-                "Low source reliability - verify with more credible sources"
-            )
+                "Low source reliability - verify with more credible sources")
 
         # Check temporal uncertainty
         temporal_unc = evidence_uncertainty.get("temporal_uncertainty", 0.0)
         if temporal_unc > 0.5:
             recommendations.append(
-                "Evidence may be outdated - seek more recent information"
-            )
+                "Evidence may be outdated - seek more recent information")
 
         # Check model diagnostics
         diagnostics = bayesian_results.get("diagnostics", {})

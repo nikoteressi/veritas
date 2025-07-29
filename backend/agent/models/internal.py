@@ -11,17 +11,11 @@ class ClaimResult(BaseModel):
     """Result of checking a single claim."""
 
     claim: str = Field(description="The claim that was checked")
-    assessment: str = Field(
-        description='One of "true", "likely_true", "unverified", "likely_false", "false"'
-    )
+    assessment: str = Field(description='One of "true", "likely_true", "unverified", "likely_false", "false"')
     confidence: float = Field(description="Confidence score from 0.0 to 1.0")
     supporting_evidence: int = Field(description="Number of supporting evidence pieces")
-    contradicting_evidence: int = Field(
-        description="Number of contradicting evidence pieces"
-    )
-    sources: list[str] = Field(
-        default_factory=list, description="Sources used for this claim"
-    )
+    contradicting_evidence: int = Field(description="Number of contradicting evidence pieces")
+    sources: list[str] = Field(default_factory=list, description="Sources used for this claim")
     reasoning: str = Field(description="Reasoning for the assessment")
 
 
@@ -52,9 +46,7 @@ class VerdictResult(BaseModel):
     sources: list[str] | None = []
 
     # Typed motives analysis
-    motives_analysis_typed: MotivesAnalysisResult | None = Field(
-        None, description="Typed motives analysis"
-    )
+    motives_analysis_typed: MotivesAnalysisResult | None = Field(None, description="Typed motives analysis")
 
     def set_motives_analysis(self, analysis: MotivesAnalysisResult) -> None:
         """Set motives analysis using the typed field."""
@@ -68,9 +60,7 @@ class VerdictResult(BaseModel):
 class CredibleSource(BaseModel):
     """Represents a single credible source with its name and URL."""
 
-    source: str = Field(
-        description="The name of the source (e.g., 'Reuters', 'Associated Press')."
-    )
+    source: str = Field(description="The name of the source (e.g., 'Reuters', 'Associated Press').")
     url: str = Field(description="The direct URL to the article or source.")
 
 

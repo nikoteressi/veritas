@@ -12,6 +12,8 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from app.exceptions import AgentError
+
 from ...models import ClaimResult, FactCheckResult, FactCheckSummary
 from ...models.graph import FactGraph, VerificationStatus
 from ...models.verification_context import VerificationContext
@@ -23,16 +25,16 @@ from ..analysis.bayesian_uncertainty import (
     BayesianUncertaintyHandler,
     UncertaintyConfig,
 )
-from .graph_builder import GraphBuilder
-from .graph_config import VerificationConfig
-from .graph_storage import Neo4jGraphStorage
-from .verification.engine import GraphVerificationEngine
-from ..cache.intelligent_cache import get_general_cache, get_verification_cache
 from ..analysis.relationship_analysis import (
     RelationshipAnalysisEngine,
     RelationshipConfig,
 )
+from ..cache.intelligent_cache import get_general_cache, get_verification_cache
 from ..reputation.source_reputation import SourceReputationSystem
+from .graph_builder import GraphBuilder
+from .graph_config import VerificationConfig
+from .graph_storage import Neo4jGraphStorage
+from .verification.engine import GraphVerificationEngine
 
 if TYPE_CHECKING:
     from ...tools import SearxNGSearchTool
@@ -68,9 +70,7 @@ class GraphFactCheckingService:
         self.graph_builder = GraphBuilder(clustering_config)
 
         # Initialize verification engine
-        self.verification_engine = GraphVerificationEngine(
-            search_tool=search_tool, config=verification_config
-        )
+        self.verification_engine = GraphVerificationEngine(search_tool=search_tool, config=verification_config)
 
         # Initialize persistent storage (try to connect, but don't fail if unavailable)
         self.graph_storage = None
@@ -98,9 +98,7 @@ class GraphFactCheckingService:
         self.advanced_clustering = None
         try:
             clustering_config = ClusteringConfig()
-            self.advanced_clustering = AdvancedClusteringSystem(
-                clustering_config, self.graph_builder
-            )
+            self.advanced_clustering = AdvancedClusteringSystem(clustering_config, self.graph_builder)
             logger.info("Advanced clustering system initialized")
         except Exception as e:
             logger.warning(f"Advanced clustering unavailable: {e}")
@@ -108,15 +106,13 @@ class GraphFactCheckingService:
         # Initialize Bayesian uncertainty handler (lazy initialization)
         self.uncertainty_handler = None
         self._uncertainty_handler_initialized = False
-        logger.info(
-            "Bayesian uncertainty handler will be initialized on first use")
+        logger.info("Bayesian uncertainty handler will be initialized on first use")
 
         # Initialize relationship analysis engine
         self.relationship_analyzer = None
         try:
             relationship_config = RelationshipConfig()
-            self.relationship_analyzer = RelationshipAnalysisEngine(
-                relationship_config)
+            self.relationship_analyzer = RelationshipAnalysisEngine(relationship_config)
             logger.info("Relationship analysis engine initialized")
         except Exception as e:
             logger.warning(f"Relationship analyzer unavailable: {e}")
@@ -130,16 +126,11 @@ class GraphFactCheckingService:
         """Ensure Bayesian uncertainty handler is initialized (lazy initialization)."""
         if not self._uncertainty_handler_initialized:
             try:
-                logger.info(
-                    "Initializing Bayesian uncertainty handler (lazy initialization)"
-                )
+                logger.info("Initializing Bayesian uncertainty handler (lazy initialization)")
                 uncertainty_config = UncertaintyConfig()
-                self.uncertainty_handler = BayesianUncertaintyHandler(
-                    uncertainty_config
-                )
+                self.uncertainty_handler = BayesianUncertaintyHandler(uncertainty_config)
                 self._uncertainty_handler_initialized = True
-                logger.info(
-                    "Bayesian uncertainty handler initialized successfully")
+                logger.info("Bayesian uncertainty handler initialized successfully")
             except Exception as e:
                 logger.warning(f"Uncertainty handler unavailable: {e}")
                 self.uncertainty_handler = None
@@ -164,23 +155,17 @@ class GraphFactCheckingService:
 
         try:
             # Extract fact hierarchy from context
-            if (
-                not context.post_analysis_result
-                or not context.post_analysis_result.fact_hierarchy
-            ):
+            if not context.post_analysis_result or not context.post_analysis_result.fact_hierarchy:
                 self.logger.warning("No fact hierarchy found in context")
                 return self._create_empty_result()
 
             fact_hierarchy = context.post_analysis_result.fact_hierarchy
 
             if not fact_hierarchy.supporting_facts:
-                self.logger.warning(
-                    "No supporting facts found in fact hierarchy")
+                self.logger.warning("No supporting facts found in fact hierarchy")
                 return self._create_empty_result()
 
-            self.logger.info(
-                "Processing %d facts", len(fact_hierarchy.supporting_facts)
-            )
+            self.logger.info("Processing %d facts", len(fact_hierarchy.supporting_facts))
 
             # Generate cache key for this verification
             cache_key = self._generate_cache_key(fact_hierarchy)
@@ -200,14 +185,10 @@ class GraphFactCheckingService:
                 try:
                     graph = self.graph_storage.load_graph(graph_id)
                     if graph:
-                        self.logger.info(
-                            "Loaded existing graph from Neo4j storage")
+                        self.logger.info("Loaded existing graph from Neo4j storage")
                 except Exception as e:
-                    self.logger.error(
-                        f"Critical error: Failed to load graph from storage: {e}"
-                    )
-                    raise RuntimeError(
-                        f"Graph storage is unavailable: {e}") from e
+                    self.logger.error(f"Critical error: Failed to load graph from storage: {e}")
+                    raise AgentError(f"Graph storage is unavailable: {e}") from e
 
             # Step 2: Build the fact graph if not loaded from storage
             if not graph:
@@ -217,21 +198,13 @@ class GraphFactCheckingService:
                 # Apply advanced clustering if available
                 if self.advanced_clustering:
                     try:
-                        enhanced_clusters = (
-                            await self.advanced_clustering.cluster_facts(graph)
-                        )
+                        enhanced_clusters = await self.advanced_clustering.cluster_facts(graph)
                         # Update graph with enhanced clusters
-                        graph = await self._apply_enhanced_clustering(
-                            graph, enhanced_clusters
-                        )
+                        graph = await self._apply_enhanced_clustering(graph, enhanced_clusters)
                         self.logger.info("Applied advanced clustering")
                     except Exception as e:
-                        self.logger.error(
-                            f"Critical error: Advanced clustering failed: {e}"
-                        )
-                        raise RuntimeError(
-                            f"Advanced clustering is required but failed: {e}"
-                        ) from e
+                        self.logger.error(f"Critical error: Advanced clustering failed: {e}")
+                        raise AgentError(f"Advanced clustering is required but failed: {e}") from e
 
                 # Analyze relationships between facts
                 if self.relationship_analyzer:
@@ -245,21 +218,12 @@ class GraphFactCheckingService:
                             }
                             for node in graph.nodes.values()
                         ]
-                        relationships = (
-                            await self.relationship_analyzer.analyze_fact_relationships(
-                                fact_data
-                            )
-                        )
+                        relationships = await self.relationship_analyzer.analyze_fact_relationships(fact_data)
                         # Update graph with relationship information
-                        graph = await self._apply_relationship_analysis(
-                            graph, relationships
-                        )
-                        self.logger.info(
-                            f"Analyzed {len(relationships)} fact relationships"
-                        )
+                        graph = await self._apply_relationship_analysis(graph, relationships)
+                        self.logger.info(f"Analyzed {len(relationships)} fact relationships")
                     except Exception as e:
-                        self.logger.warning(
-                            f"Relationship analysis failed: {e}")
+                        self.logger.warning(f"Relationship analysis failed: {e}")
 
                 # Save to persistent storage
                 if self.graph_storage and graph_id:
@@ -267,11 +231,8 @@ class GraphFactCheckingService:
                         self.graph_storage.store_graph(graph, graph_id)
                         self.logger.info("Saved graph to Neo4j storage")
                     except Exception as e:
-                        self.logger.error(
-                            f"Critical error: Failed to save graph to storage: {e}"
-                        )
-                        raise RuntimeError(
-                            f"Graph storage save failed: {e}") from e
+                        self.logger.error(f"Critical error: Failed to save graph to storage: {e}")
+                        raise AgentError(f"Graph storage save failed: {e}") from e
 
             # Step 3: Enhance context with source reputation if available
             enhanced_context = context
@@ -279,9 +240,7 @@ class GraphFactCheckingService:
                 enhanced_context = await self._enhance_context_with_reputation(context)
 
             # Step 4: Verify the graph
-            verification_results = await self.verification_engine.verify_graph(
-                graph, enhanced_context
-            )
+            verification_results = await self.verification_engine.verify_graph(graph, enhanced_context)
 
             # Step 5: Apply Bayesian uncertainty analysis
             await self._ensure_uncertainty_handler()  # Lazy initialization
@@ -297,41 +256,29 @@ class GraphFactCheckingService:
                             }
                             for node in graph.nodes.values()
                         ],
-                        "cluster_results": verification_results.get(
-                            "cluster_results", []
-                        ),
+                        "cluster_results": verification_results.get("cluster_results", []),
                     }
 
-                    uncertainty_analysis = (
-                        await self.uncertainty_handler.analyze_verification_uncertainty(
-                            verification_data
-                        )
+                    uncertainty_analysis = await self.uncertainty_handler.analyze_verification_uncertainty(
+                        verification_data
                     )
                     verification_results["uncertainty_analysis"] = uncertainty_analysis
                     self.logger.info(
                         f"Applied Bayesian uncertainty analysis: {uncertainty_analysis.get('uncertainty_level', 'unknown')}"
                     )
                 except Exception as e:
-                    self.logger.warning(
-                        f"Bayesian uncertainty analysis failed: {e}")
+                    self.logger.warning(f"Bayesian uncertainty analysis failed: {e}")
 
             # Step 6: Update graph storage with verification results
             if self.graph_storage and graph_id:
                 try:
-                    await self._update_graph_with_results(
-                        graph_id, verification_results
-                    )
+                    await self._update_graph_with_results(graph_id, verification_results)
                 except Exception as e:
-                    self.logger.error(
-                        f"Critical error: Failed to update graph storage: {e}"
-                    )
-                    raise RuntimeError(
-                        f"Failed to update graph storage: {e}") from e
+                    self.logger.error(f"Critical error: Failed to update graph storage: {e}")
+                    raise AgentError(f"Failed to update graph storage: {e}") from e
 
             # Step 7: Convert results to standard format
-            fact_check_result = await self._convert_to_standard_format(
-                verification_results, graph, enhanced_context
-            )
+            fact_check_result = await self._convert_to_standard_format(verification_results, graph, enhanced_context)
 
             verification_time = (datetime.now() - start_time).total_seconds()
             self.logger.info(
@@ -358,9 +305,7 @@ class GraphFactCheckingService:
             return fact_check_result
 
         except (ValueError, RuntimeError, KeyError, AttributeError) as e:
-            self.logger.error(
-                "Enhanced graph-based fact checking failed: %s", e, exc_info=True
-            )
+            self.logger.error("Enhanced graph-based fact checking failed: %s", e, exc_info=True)
             # Return error result in legacy format
             return self._create_error_result(str(e))
 
@@ -400,9 +345,7 @@ class GraphFactCheckingService:
             ) in cluster_result.get("individual_results", {}).items():
                 node = graph.nodes.get(node_id)
                 if node:
-                    claim_result = self._convert_fact_result_to_claim_result(
-                        fact_result, node, cluster_result
-                    )
+                    claim_result = self._convert_fact_result_to_claim_result(fact_result, node, cluster_result)
                     claim_results.append(claim_result)
 
                     # Collect sources and queries
@@ -415,17 +358,13 @@ class GraphFactCheckingService:
             if "node_id" in individual_result:
                 node = graph.nodes.get(individual_result["node_id"])
                 if node:
-                    claim_result = self._convert_fact_result_to_claim_result(
-                        individual_result, node
-                    )
+                    claim_result = self._convert_fact_result_to_claim_result(individual_result, node)
                     claim_results.append(claim_result)
                     all_sources.update(claim_result.sources)
                     all_queries.add(f"individual_query_{node.id}")
 
         # Compile summary
-        summary = self._compile_summary_from_graph_results(
-            verification_results, claim_results
-        )
+        summary = self._compile_summary_from_graph_results(verification_results, claim_results)
 
         return FactCheckResult(
             claim_results=claim_results,
@@ -447,8 +386,7 @@ class GraphFactCheckingService:
             "MIXED": "mixed",
         }
 
-        assessment = verdict_map.get(
-            fact_result.get("verdict", "ERROR"), "error")
+        assessment = verdict_map.get(fact_result.get("verdict", "ERROR"), "error")
         confidence = fact_result.get("confidence", 0.0)
         reasoning = fact_result.get("reasoning", "No reasoning provided")
 
@@ -498,16 +436,11 @@ class GraphFactCheckingService:
         self, verification_results: dict[str, Any], claim_results: list[ClaimResult]
     ) -> FactCheckSummary:
         """Compile summary from graph verification results."""
-        total_sources_found = sum(len(result.sources)
-                                  for result in claim_results)
+        total_sources_found = sum(len(result.sources) for result in claim_results)
         # In graph approach, all found sources are considered credible
         credible_sources = total_sources_found
-        supporting_evidence = sum(
-            result.supporting_evidence for result in claim_results
-        )
-        contradicting_evidence = sum(
-            result.contradicting_evidence for result in claim_results
-        )
+        supporting_evidence = sum(result.supporting_evidence for result in claim_results)
+        contradicting_evidence = sum(result.contradicting_evidence for result in claim_results)
 
         return FactCheckSummary(
             total_sources_found=total_sources_found,
@@ -564,9 +497,7 @@ class GraphFactCheckingService:
         # Add storage stats if available
         if self.graph_storage and graph_id:
             try:
-                storage_stats = asyncio.run(
-                    self.graph_storage.get_graph_stats(graph_id)
-                )
+                storage_stats = asyncio.run(self.graph_storage.get_graph_stats(graph_id))
                 stats["graph_storage"] = storage_stats
             except Exception as e:
                 self.logger.warning(f"Failed to get storage stats: {e}")
@@ -622,9 +553,7 @@ class GraphFactCheckingService:
 
         return hashlib.sha256(full_str.encode()).hexdigest()[:16]
 
-    async def _enhance_context_with_reputation(
-        self, context: VerificationContext
-    ) -> VerificationContext:
+    async def _enhance_context_with_reputation(self, context: VerificationContext) -> VerificationContext:
         """Enhance verification context with source reputation information."""
         if not self.source_reputation:
             return context
@@ -642,32 +571,21 @@ class GraphFactCheckingService:
             return enhanced_context
 
         except Exception as e:
-            self.logger.warning(
-                f"Failed to enhance context with reputation: {e}")
+            self.logger.warning(f"Failed to enhance context with reputation: {e}")
             return context
 
-    async def _update_graph_with_results(
-        self, graph_id: str, verification_results: dict[str, Any]
-    ):
+    async def _update_graph_with_results(self, graph_id: str, verification_results: dict[str, Any]):
         """Update graph storage with verification results."""
         if not self.graph_storage:
             return
 
         try:
             # Update node verification results
-            for cluster_result in verification_results.get(
-                "detailed_cluster_results", []
-            ):
+            for cluster_result in verification_results.get("detailed_cluster_results", []):
                 for node_id, result in cluster_result.individual_results.items():
                     # Extract required parameters from result
-                    verification_results_data = (
-                        result if isinstance(result, dict) else {}
-                    )
-                    confidence = (
-                        result.get("confidence", 0.0)
-                        if isinstance(result, dict)
-                        else 0.0
-                    )
+                    verification_results_data = result if isinstance(result, dict) else {}
+                    confidence = result.get("confidence", 0.0) if isinstance(result, dict) else 0.0
 
                     # Determine verification status based on result
                     if isinstance(result, dict) and result.get("verdict"):
@@ -711,17 +629,14 @@ class GraphFactCheckingService:
         except Exception as e:
             self.logger.error(f"Failed to update graph with results: {e}")
 
-    async def get_verification_history(
-        self, fact_claim: str, limit: int = 10
-    ) -> list[dict[str, Any]]:
+    async def get_verification_history(self, fact_claim: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get verification history for a specific fact claim."""
         if not self.graph_storage:
             return []
 
         try:
             # Use the new method from Neo4jGraphStorage
-            history = self.graph_storage.get_verification_history(
-                fact_claim, limit)
+            history = self.graph_storage.get_verification_history(fact_claim, limit)
 
             # Enhance history with additional metadata if available
             enhanced_history = []
@@ -735,16 +650,12 @@ class GraphFactCheckingService:
                         source_scores = []
                         for source in verification_results["sources"]:
                             if isinstance(source, dict) and "url" in source:
-                                score = await self.get_source_reputation_score(
-                                    source["url"]
-                                )
+                                score = await self.get_source_reputation_score(source["url"])
                                 if score is not None:
                                     source_scores.append(score)
 
                         if source_scores:
-                            enhanced_item["average_source_reputation"] = sum(
-                                source_scores
-                            ) / len(source_scores)
+                            enhanced_item["average_source_reputation"] = sum(source_scores) / len(source_scores)
 
                 enhanced_history.append(enhanced_item)
 
@@ -834,9 +745,7 @@ class GraphFactCheckingService:
         # Add advanced clustering stats
         if self.advanced_clustering:
             try:
-                stats["advanced_clustering"] = (
-                    self.advanced_clustering.get_clustering_stats()
-                )
+                stats["advanced_clustering"] = self.advanced_clustering.get_clustering_stats()
             except Exception as e:
                 self.logger.warning(f"Failed to get clustering stats: {e}")
 
@@ -844,34 +753,26 @@ class GraphFactCheckingService:
         await self._ensure_uncertainty_handler()  # Lazy initialization
         if self.uncertainty_handler:
             try:
-                stats["uncertainty_handler"] = (
-                    self.uncertainty_handler.get_uncertainty_stats()
-                )
+                stats["uncertainty_handler"] = self.uncertainty_handler.get_uncertainty_stats()
             except Exception as e:
                 self.logger.warning(f"Failed to get uncertainty stats: {e}")
 
         # Add relationship analyzer stats
         if self.relationship_analyzer:
             try:
-                stats["relationship_analyzer"] = (
-                    self.relationship_analyzer.get_relationship_stats()
-                )
+                stats["relationship_analyzer"] = self.relationship_analyzer.get_relationship_stats()
             except Exception as e:
                 self.logger.warning(f"Failed to get relationship stats: {e}")
 
         return stats
 
-    async def analyze_fact_relationships_standalone(
-        self, facts: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def analyze_fact_relationships_standalone(self, facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Analyze relationships between facts as a standalone operation."""
         if not self.relationship_analyzer:
             return []
 
         try:
-            relationships = await self.relationship_analyzer.analyze_fact_relationships(
-                facts
-            )
+            relationships = await self.relationship_analyzer.analyze_fact_relationships(facts)
             return [
                 {
                     "fact_id_1": rel.fact_id_1,
@@ -889,17 +790,13 @@ class GraphFactCheckingService:
             self.logger.error(f"Standalone relationship analysis failed: {e}")
             return []
 
-    async def get_uncertainty_analysis(
-        self, verification_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def get_uncertainty_analysis(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """Get uncertainty analysis for verification data."""
         if not self.uncertainty_handler:
             return {"error": "Uncertainty handler not available"}
 
         try:
-            return await self.uncertainty_handler.analyze_verification_uncertainty(
-                verification_data
-            )
+            return await self.uncertainty_handler.analyze_verification_uncertainty(verification_data)
         except Exception as e:
             self.logger.error(f"Uncertainty analysis failed: {e}")
             return {"error": str(e)}
@@ -928,9 +825,8 @@ class GraphFactCheckingService:
 
             self.logger.info("GraphFactCheckingService closed successfully")
 
-        except Exception as e:
-            self.logger.error(
-                f"Error during GraphFactCheckingService cleanup: {e}")
+        except AgentError as e:
+            self.logger.error(f"Error during GraphFactCheckingService cleanup: {e}")
 
     async def __aenter__(self):
         """Async context manager entry."""

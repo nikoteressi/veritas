@@ -21,6 +21,8 @@ from sklearn.cluster import DBSCAN, AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
 from torch_geometric.nn import GATConv, GCNConv, global_mean_pool
 
+from app.exceptions import AnalysisError
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,8 +66,7 @@ class GraphNeuralNetwork(nn.Module):
 
         # Attention layer for final representation
         self.attention = GATConv(
-            hidden_dim, output_dim, heads=attention_heads, concat=False
-        )
+            hidden_dim, output_dim, heads=attention_heads, concat=False)
 
         # Dropout for regularization
         self.dropout = nn.Dropout(0.1)
@@ -109,12 +110,12 @@ class AdvancedClusteringSystem:
             # For now, just mark that GNN should be used
             self.gnn_model = None
             self.logger.info(
-                "GNN will be initialized dynamically based on embedding dimensions"
-            )
+                "GNN will be initialized dynamically based on embedding dimensions")
 
-        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
-            self.logger.error("Failed to initialize GNN: %s", e)
+        except Exception as e:
             self.config.use_gnn = False
+            raise AnalysisError(
+                f"Failed to initialize GNN: {e}") from e
 
     def _initialize_gnn_with_embedding_dim(self, embedding_dim: int):
         """Initialize GNN with the actual embedding dimension."""
@@ -133,12 +134,12 @@ class AdvancedClusteringSystem:
             # Set to evaluation mode (we'll implement training later)
             self.gnn_model.eval()
             self.logger.info(
-                "GNN model initialized with embedding dimension %d", embedding_dim
-            )
+                "GNN model initialized with embedding dimension %d", embedding_dim)
 
-        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
-            self.logger.error("Failed to initialize GNN with embedding dim: %s", e)
+        except Exception as e:
             self.config.use_gnn = False
+            raise AnalysisError(
+                f"Failed to initialize GNN with embedding dim: {e}") from e
 
     async def cluster_facts(self, graph) -> dict[str, list[str]]:
         """
@@ -153,15 +154,14 @@ class AdvancedClusteringSystem:
         if not graph.nodes:
             return {}
 
-        self.logger.info("Starting advanced clustering for %d facts", len(graph.nodes))
+        self.logger.info(
+            "Starting advanced clustering for %d facts", len(graph.nodes))
 
         # Step 1: Extract features and build similarity matrix
         similarity_matrix = await self._build_similarity_matrix(graph)
 
         # Step 2: Apply clustering algorithm
-        clusters = await self._apply_clustering(
-            similarity_matrix, list(graph.nodes.keys())
-        )
+        clusters = await self._apply_clustering(similarity_matrix, list(graph.nodes.keys()))
 
         # Step 3: Validate and optimize clusters
         optimized_clusters = await self._optimize_clusters(clusters, graph)
@@ -183,9 +183,8 @@ class AdvancedClusteringSystem:
 
         # Generate missing embeddings
         if nodes_without_embeddings:
-            self.logger.info(
-                "Generating embeddings for %d nodes", len(nodes_without_embeddings)
-            )
+            self.logger.info("Generating embeddings for %d nodes",
+                             len(nodes_without_embeddings))
             try:
                 # Extract claims for embedding generation
                 claims = [node.claim for node in nodes_without_embeddings]
@@ -210,8 +209,8 @@ class AdvancedClusteringSystem:
                 )
 
             except Exception as e:
-                self.logger.error("Failed to generate embeddings: %s", e)
-                raise RuntimeError(f"Failed to generate missing embeddings: {e}") from e
+                raise AnalysisError(
+                    f"Failed to generate missing embeddings: {e}") from e
 
         # Get embeddings with validation
         embeddings = []
@@ -221,11 +220,9 @@ class AdvancedClusteringSystem:
                 # Check for NaN or invalid values
                 if np.any(np.isnan(embedding)) or np.any(np.isinf(embedding)):
                     self.logger.error(
-                        "Node %s has invalid embedding with NaN/Inf values", node.id
-                    )
+                        "Node %s has invalid embedding with NaN/Inf values", node.id)
                     raise ValueError(
-                        f"Invalid embedding for node {node.id}: contains NaN or Inf values"
-                    )
+                        f"Invalid embedding for node {node.id}: contains NaN or Inf values")
                 embeddings.append(embedding)
             else:
                 self.logger.error("Node %s has no valid embedding", node.id)
@@ -236,11 +233,9 @@ class AdvancedClusteringSystem:
         # Validate embeddings shape
         if embeddings.ndim != 2:
             self.logger.error(
-                "Embeddings have invalid shape: %s, expected 2D array", embeddings.shape
-            )
+                "Embeddings have invalid shape: %s, expected 2D array", embeddings.shape)
             raise ValueError(
-                f"Embeddings must be 2D array, got shape: {embeddings.shape}"
-            )
+                f"Embeddings must be 2D array, got shape: {embeddings.shape}")
 
         if embeddings.shape[0] != n_nodes:
             self.logger.error(
@@ -249,15 +244,14 @@ class AdvancedClusteringSystem:
                 n_nodes,
             )
             raise ValueError(
-                f"Embeddings count ({embeddings.shape[0]}) doesn't match nodes count ({n_nodes})"
-            )
+                f"Embeddings count ({embeddings.shape[0]}) doesn't match nodes count ({n_nodes})")
 
         # 1. Semantic similarity (cosine similarity of embeddings)
         try:
             semantic_sim = cosine_similarity(embeddings)
         except Exception as e:
-            self.logger.error("Failed to compute semantic similarity: %s", e)
-            raise RuntimeError(f"Semantic similarity computation failed: {e}") from e
+            raise AnalysisError(
+                f"Semantic similarity computation failed: {e}") from e
 
         # 2. Temporal similarity
         temporal_sim = self._compute_temporal_similarity(nodes)
@@ -279,11 +273,8 @@ class AdvancedClusteringSystem:
 
         if gnn_sim is not None:
             # Adjust weights to include GNN similarity
-            total_weight = (
-                self.config.semantic_weight
-                + self.config.temporal_weight
-                + self.config.structural_weight
-            )
+            total_weight = self.config.semantic_weight + \
+                self.config.temporal_weight + self.config.structural_weight
             gnn_weight = 0.3
 
             # Renormalize existing weights
@@ -348,7 +339,8 @@ class AdvancedClusteringSystem:
                 if neighbors_i or neighbors_j:
                     intersection = len(neighbors_i & neighbors_j)
                     union = len(neighbors_i | neighbors_j)
-                    structural_sim[i, j] = intersection / union if union > 0 else 0.0
+                    structural_sim[i, j] = intersection / \
+                        union if union > 0 else 0.0
 
         return structural_sim
 
@@ -365,8 +357,7 @@ class AdvancedClusteringSystem:
             # If GNN is still None (initialization failed), return zeros
             if self.gnn_model is None:
                 self.logger.warning(
-                    "GNN not available, returning zero similarity matrix"
-                )
+                    "GNN not available, returning zero similarity matrix")
                 return np.zeros((len(nodes), len(nodes)))
 
             # Prepare data for GNN - convert to numpy array first for better performance
@@ -389,7 +380,8 @@ class AdvancedClusteringSystem:
                 # No edges, return identity matrix
                 return np.eye(len(nodes))
 
-            edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
+            edge_index = torch.tensor(
+                edge_list, dtype=torch.long).t().contiguous()
 
             # Forward pass through GNN
             with torch.no_grad():
@@ -401,13 +393,11 @@ class AdvancedClusteringSystem:
 
             return gnn_similarity
 
-        except (ValueError, RuntimeError, torch.cuda.OutOfMemoryError) as e:
-            self.logger.warning("GNN similarity computation failed: %s", e)
-            return np.zeros((len(nodes), len(nodes)))
+        except Exception as e:
+            raise AnalysisError(
+                f"GNN similarity computation failed: {e}") from e
 
-    async def _apply_clustering(
-        self, similarity_matrix: np.ndarray, node_ids: list[str]
-    ) -> dict[str, list[str]]:
+    async def _apply_clustering(self, similarity_matrix: np.ndarray, node_ids: list[str]) -> dict[str, list[str]]:
         """Apply clustering algorithm to similarity matrix."""
         if self.config.clustering_algorithm == "adaptive":
             return await self._adaptive_clustering(similarity_matrix, node_ids)
@@ -417,12 +407,9 @@ class AdvancedClusteringSystem:
             return await self._hierarchical_clustering(similarity_matrix, node_ids)
         else:
             raise ValueError(
-                f"Unknown clustering algorithm: {self.config.clustering_algorithm}"
-            )
+                f"Unknown clustering algorithm: {self.config.clustering_algorithm}")
 
-    async def _adaptive_clustering(
-        self, similarity_matrix: np.ndarray, node_ids: list[str]
-    ) -> dict[str, list[str]]:
+    async def _adaptive_clustering(self, similarity_matrix: np.ndarray, node_ids: list[str]) -> dict[str, list[str]]:
         """Adaptive clustering that chooses the best algorithm based on data characteristics."""
         n_nodes = len(node_ids)
 
@@ -437,9 +424,7 @@ class AdvancedClusteringSystem:
             # Large dataset: use a combination approach
             return await self._combined_clustering(similarity_matrix, node_ids)
 
-    async def _dbscan_clustering(
-        self, similarity_matrix: np.ndarray, node_ids: list[str]
-    ) -> dict[str, list[str]]:
+    async def _dbscan_clustering(self, similarity_matrix: np.ndarray, node_ids: list[str]) -> dict[str, list[str]]:
         """DBSCAN clustering using distance matrix."""
         # Convert similarity to distance
         distance_matrix = 1 - similarity_matrix
@@ -493,9 +478,7 @@ class AdvancedClusteringSystem:
 
         return clusters
 
-    async def _combined_clustering(
-        self, similarity_matrix: np.ndarray, node_ids: list[str]
-    ) -> dict[str, list[str]]:
+    async def _combined_clustering(self, similarity_matrix: np.ndarray, node_ids: list[str]) -> dict[str, list[str]]:
         """Combined clustering approach for large datasets."""
         # First pass: rough clustering with DBSCAN
         rough_clusters = await self._dbscan_clustering(similarity_matrix, node_ids)
@@ -508,12 +491,12 @@ class AdvancedClusteringSystem:
                 refined_clusters[cluster_id] = cluster_nodes
             else:
                 # Refine large cluster
-                node_indices = [node_ids.index(node_id) for node_id in cluster_nodes]
-                sub_similarity = similarity_matrix[np.ix_(node_indices, node_indices)]
+                node_indices = [node_ids.index(node_id)
+                                for node_id in cluster_nodes]
+                sub_similarity = similarity_matrix[np.ix_(
+                    node_indices, node_indices)]
 
-                sub_clusters = await self._hierarchical_clustering(
-                    sub_similarity, cluster_nodes
-                )
+                sub_clusters = await self._hierarchical_clustering(sub_similarity, cluster_nodes)
 
                 # Add refined clusters with new IDs
                 for i, (_, sub_cluster_nodes) in enumerate(sub_clusters.items()):
@@ -521,9 +504,7 @@ class AdvancedClusteringSystem:
 
         return refined_clusters
 
-    async def _optimize_clusters(
-        self, clusters: dict[str, list[str]], graph
-    ) -> dict[str, list[str]]:
+    async def _optimize_clusters(self, clusters: dict[str, list[str]], graph) -> dict[str, list[str]]:
         """Optimize clusters by validating and adjusting them."""
         optimized_clusters = {}
 
@@ -545,7 +526,8 @@ class AdvancedClusteringSystem:
                 if not merged:
                     # Create singleton clusters
                     for i, node_id in enumerate(node_ids):
-                        optimized_clusters[f"{cluster_id}_singleton_{i}"] = [node_id]
+                        optimized_clusters[f"{cluster_id}_singleton_{i}"] = [
+                            node_id]
 
             elif len(node_ids) > self.config.max_cluster_size:
                 # Split large cluster
@@ -559,9 +541,7 @@ class AdvancedClusteringSystem:
 
         return optimized_clusters
 
-    def _should_merge_clusters(
-        self, cluster1: list[str], cluster2: list[str], graph
-    ) -> bool:
+    def _should_merge_clusters(self, cluster1: list[str], cluster2: list[str], graph) -> bool:
         """Determine if two clusters should be merged."""
         # Simple heuristic: merge if clusters are small and have high inter-cluster similarity
         if len(cluster1) + len(cluster2) > self.config.max_cluster_size:
@@ -576,7 +556,8 @@ class AdvancedClusteringSystem:
                 node1 = graph.nodes.get(node1_id)
                 node2 = graph.nodes.get(node2_id)
                 if node1 and node2:
-                    sim = cosine_similarity([node1.embedding], [node2.embedding])[0, 0]
+                    sim = cosine_similarity(
+                        [node1.embedding], [node2.embedding])[0, 0]
                     total_similarity += sim
                     count += 1
 
@@ -605,11 +586,11 @@ class AdvancedClusteringSystem:
         similarity_matrix = cosine_similarity(embeddings)
 
         # Determine number of clusters
-        target_clusters = max(2, len(valid_node_ids) // self.config.max_cluster_size)
+        target_clusters = max(2, len(valid_node_ids) //
+                              self.config.max_cluster_size)
 
         clustering = AgglomerativeClustering(
-            n_clusters=target_clusters, metric="precomputed", linkage="average"
-        )
+            n_clusters=target_clusters, metric="precomputed", linkage="average")
 
         distance_matrix = 1 - similarity_matrix
         cluster_labels = clustering.fit_predict(distance_matrix)
@@ -639,8 +620,9 @@ class AdvancedClusteringSystem:
             if match:
                 try:
                     return parser.parse(match.group())
-                except (ValueError, TypeError, parser.ParserError):
-                    continue
+                except Exception as e:
+                    raise AnalysisError(
+                        f"Timestamp extraction failed: {e}") from e
 
         return None
 

@@ -4,10 +4,10 @@ Relevance Services Module
 This module contains all relevance-related services and components.
 """
 
-from .relevance_orchestrator import RelevanceOrchestrator
-from .relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
 from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from .explainable_relevance_scorer import ExplainableRelevanceScorer
+from .relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
+from .relevance_orchestrator import RelevanceOrchestrator
 
 # Convenience functions
 
@@ -24,10 +24,10 @@ def close_relevance_manager(orchestrator):
 
 
 __all__ = [
-    'RelevanceOrchestrator',
-    'RelevanceEmbeddingsCoordinator',
-    'CachedHybridRelevanceScorer',
-    'ExplainableRelevanceScorer',
-    'get_relevance_manager',
-    'close_relevance_manager'
+    "RelevanceOrchestrator",
+    "RelevanceEmbeddingsCoordinator",
+    "CachedHybridRelevanceScorer",
+    "ExplainableRelevanceScorer",
+    "get_relevance_manager",
+    "close_relevance_manager",
 ]

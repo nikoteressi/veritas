@@ -89,9 +89,7 @@ class ValidationService:
 
         # Basic image format validation (check for common image headers)
         if not self._has_valid_image_signature(file_data):
-            raise ValidationError(
-                "Invalid image format. Please upload a valid image file."
-            )
+            raise ValidationError("Invalid image format. Please upload a valid image file.")
 
         return file_data
 
@@ -115,14 +113,10 @@ class ValidationService:
         cleaned_prompt = prompt.strip()
 
         if len(cleaned_prompt) < self.settings.min_prompt_length:
-            raise ValidationError(
-                f"Prompt too short. Minimum length is {self.settings.min_prompt_length} characters"
-            )
+            raise ValidationError(f"Prompt too short. Minimum length is {self.settings.min_prompt_length} characters")
 
         if len(cleaned_prompt) > self.settings.max_prompt_length:
-            raise ValidationError(
-                f"Prompt too long. Maximum length is {self.settings.max_prompt_length} characters"
-            )
+            raise ValidationError(f"Prompt too long. Maximum length is {self.settings.max_prompt_length} characters")
 
         # Check for obvious spam or malicious content
         if self._contains_suspicious_content(cleaned_prompt):
@@ -198,13 +192,9 @@ class ValidationService:
             True if suspicious content detected
         """
         prompt_lower = prompt.lower()
-        return any(
-            pattern in prompt_lower for pattern in self.settings.suspicious_patterns
-        )
+        return any(pattern in prompt_lower for pattern in self.settings.suspicious_patterns)
 
-    def validate_analysis_result(
-        self, analysis_result: dict[str, Any]
-    ) -> dict[str, Any]:
+    def validate_analysis_result(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """
         Validate analysis result structure and content.
 
@@ -237,9 +227,7 @@ class ValidationService:
 
         return analysis_result
 
-    def validate_reputation_data(
-        self, reputation_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def validate_reputation_data(self, reputation_data: dict[str, Any]) -> dict[str, Any]:
         """
         Validate reputation data structure and values.
 

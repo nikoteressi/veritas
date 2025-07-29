@@ -16,9 +16,7 @@ class SearchResult(BaseModel):
     url: str = Field(description="URL of the search result")
     content: str = Field(description="Content/snippet of the search result")
     engine: str = Field(description="Search engine that provided this result")
-    score: float | None = Field(
-        default=None, description="Relevance score if available"
-    )
+    score: float | None = Field(default=None, description="Relevance score if available")
 
     def validate_url(self, v):
         """Ensure URL is not empty."""
@@ -33,9 +31,7 @@ class SearchResponse(BaseModel):
     query: str = Field(description="Original search query")
     results: list[SearchResult] = Field(description="List of search results")
     total_results: int = Field(description="Total number of results found")
-    search_info: dict[str, Any] = Field(
-        default_factory=dict, description="Additional search metadata"
-    )
+    search_info: dict[str, Any] = Field(default_factory=dict, description="Additional search metadata")
 
     def validate_results(self, v):
         """Ensure results list is valid."""
@@ -55,21 +51,15 @@ class SearchError(BaseModel):
 
     error_type: str = Field(description="Type of error")
     message: str = Field(description="Error message")
-    query: str | None = Field(
-        default=None, description="Original query that caused the error"
-    )
+    query: str | None = Field(default=None, description="Original query that caused the error")
 
 
 class SearchResultWrapper(BaseModel):
     """Wrapper for search results that can handle both success and error cases."""
 
     success: bool = Field(description="Whether the search was successful")
-    data: SearchResponse | None = Field(
-        default=None, description="Search response data if successful"
-    )
-    error: SearchError | None = Field(
-        default=None, description="Error information if failed"
-    )
+    data: SearchResponse | None = Field(default=None, description="Search response data if successful")
+    error: SearchError | None = Field(default=None, description="Error information if failed")
 
     def validate_data_error_consistency(self, v, values):
         """Ensure data and error are consistent with success flag."""

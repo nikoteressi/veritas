@@ -106,9 +106,7 @@ class ConnectionManager:
                 json_message = json_dumps(message)
                 await websocket.send_text(json_message)
             except TypeError as e:
-                logger.error(
-                    f"Failed to serialize message for {session_id}: {e}\\nMessage: {message}"
-                )
+                logger.error(f"Failed to serialize message for {session_id}: {e}\\nMessage: {message}")
                 # Try to send a fallback error message
                 try:
                     await websocket.send_text(
@@ -142,9 +140,7 @@ class ConnectionManager:
         try:
             json_message = json_dumps(message)
         except TypeError as e:
-            logger.error(
-                f"Failed to serialize broadcast message: {e}\\nMessage: {message}"
-            )
+            logger.error(f"Failed to serialize broadcast message: {e}\\nMessage: {message}")
             return  # Cannot send to anyone
 
         # Send to all connections
@@ -186,9 +182,7 @@ class ConnectionManager:
             },
         )
 
-    async def send_progress_update(
-        self, session_id: str, step: str, progress: int, details: str | None = None
-    ):
+    async def send_progress_update(self, session_id: str, step: str, progress: int, details: str | None = None):
         """
         Send a progress update to a specific session.
 
@@ -248,9 +242,7 @@ class ConnectionManager:
             },
         )
 
-    async def send_error(
-        self, session_id: str, error_message: str, error_code: str | None = None
-    ):
+    async def send_error(self, session_id: str, error_message: str, error_code: str | None = None):
         """
         Send an error message to a specific session.
 
@@ -281,9 +273,7 @@ class ConnectionManager:
             },
         )
 
-    async def start_verification_session(
-        self, session_id: str, verification_data: dict[str, Any]
-    ):
+    async def start_verification_session(self, session_id: str, verification_data: dict[str, Any]):
         """
         Start a new verification session.
 
@@ -379,9 +369,7 @@ class EventProgressTracker:
             error_message: Error message
             error_code: Optional error code
         """
-        await self.connection_manager.send_error(
-            self.session_id, error_message, error_code
-        )
+        await self.connection_manager.send_error(self.session_id, error_message, error_code)
 
         logger.error(f"Verification failed [{self.session_id}]: {error_message}")
 
@@ -404,9 +392,7 @@ class ProgressTracker:
             details: Optional additional details
         """
         self.current_progress = progress
-        await self.connection_manager.send_progress_update(
-            self.session_id, step, progress, details
-        )
+        await self.connection_manager.send_progress_update(self.session_id, step, progress, details)
 
         logger.info(f"Progress update [{self.session_id}]: {step} ({progress}%)")
 
@@ -429,9 +415,7 @@ class ProgressTracker:
             error_message: Error message
             error_code: Optional error code
         """
-        await self.connection_manager.send_error(
-            self.session_id, error_message, error_code
-        )
+        await self.connection_manager.send_error(self.session_id, error_message, error_code)
 
         logger.error(f"Verification failed [{self.session_id}]: {error_message}")
 

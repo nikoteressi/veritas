@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.pipeline.verification_pipeline import verification_pipeline
-from app.exceptions import AgentError
+from app.exceptions import PipelineError
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +63,8 @@ class WorkflowCoordinator:
                 event_callback=event_callback,
                 filename=filename,
             )
-        except Exception as e:
-            logger.error(f"Workflow coordination failed: {e}", exc_info=True)
-            raise AgentError(f"Verification workflow failed: {e}") from e
+        except (ValueError, RuntimeError, AttributeError, TypeError) as e:
+            raise PipelineError(f"Verification workflow failed: {e}") from e
 
     async def close(self) -> None:
         """Close the workflow coordinator and release resources."""
@@ -75,8 +74,9 @@ class WorkflowCoordinator:
             if hasattr(self.pipeline, "close") and callable(self.pipeline.close):
                 await self.pipeline.close()
                 logger.debug("Closed verification pipeline")
-        except Exception as e:
-            logger.error(f"Error closing verification pipeline: {e}")
+        except (ValueError, RuntimeError, AttributeError, TypeError) as e:
+            raise PipelineError(
+                f"Failed to close verification pipeline: {e}") from e
 
         logger.info("Workflow coordinator closed successfully")
 

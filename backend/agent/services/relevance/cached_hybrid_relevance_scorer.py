@@ -8,6 +8,7 @@ and modern semantic similarity with intelligent caching.
 import asyncio
 import hashlib
 import logging
+import traceback
 import time
 from typing import Any, Optional
 
@@ -15,9 +16,10 @@ from rank_bm25 import BM25Okapi
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.config import settings
+from app.exceptions import ValidationError
 
-from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
+from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +75,8 @@ class CachedHybridRelevanceScorer:
                 model=embeddings_model, base_url=embeddings_url, cache_size=cache_size
             )
 
-        self.cache = IntelligentCache(
-            max_memory_size=cache_size // 2
-        )  # Further reduced for Docker
+        # Further reduced for Docker
+        self.cache = IntelligentCache(max_memory_size=cache_size // 2)
 
         # BM25 and TF-IDF components
         self.bm25_corpus = None
@@ -98,9 +99,7 @@ class CachedHybridRelevanceScorer:
 
         logger.info("Cached hybrid relevance scorer initialized")
 
-    def _generate_cache_key(
-        self, query: str, text: str, score_type: str = "hybrid"
-    ) -> str:
+    def _generate_cache_key(self, query: str, text: str, score_type: str = "hybrid") -> str:
         """Generate cache key for relevance score."""
         combined = f"{query}|{text}|{score_type}"
         text_hash = hashlib.md5(combined.encode("utf-8")).hexdigest()
@@ -150,16 +149,14 @@ class CachedHybridRelevanceScorer:
                         len(self.bm25_corpus))
 
         except Exception as e:
-            logger.error("Failed to prepare corpus: %s", e)
-            raise
+            raise ValidationError(f"Failed to prepare corpus: {e}") from e
 
     def calculate_bm25_score(self, query: str, text: str) -> float:
         """Calculate BM25 relevance score."""
         try:
             if self.bm25_scorer is None:
                 logger.warning(
-                    "BM25 scorer not initialized. Call prepare_corpus first."
-                )
+                    "BM25 scorer not initialized. Call prepare_corpus first.")
                 return 0.0
 
             query_tokens = self._preprocess_text(query).split()
@@ -203,34 +200,13 @@ class CachedHybridRelevanceScorer:
     async def calculate_semantic_score(self, query: str, text: str) -> float:
         """Calculate semantic similarity score using embeddings."""
         try:
-            logger.debug("=== ENTERING calculate_semantic_score ===")
-            logger.debug(f"Query: {query[:50]}...")
-            logger.debug(f"Text: {text[:50]}...")
-            logger.debug(f"Embeddings object type: {type(self.embeddings)}")
-
             # Get embeddings for query and text
-            logger.debug("About to call embed_text for query...")
             query_embedding = await self.embeddings.embed_text(query)
-            logger.debug(f"Query embedding type: {type(query_embedding)}")
-            logger.debug(
-                f"Query embedding is coroutine: {asyncio.iscoroutine(query_embedding)}")
-            if asyncio.iscoroutine(query_embedding):
-                raise RuntimeError("Query embedding is still a coroutine!")
-
-            logger.debug("About to call embed_text for text...")
             text_embedding = await self.embeddings.embed_text(text)
-            logger.debug(f"Text embedding type: {type(text_embedding)}")
-            logger.debug(
-                f"Text embedding is coroutine: {asyncio.iscoroutine(text_embedding)}")
-            if asyncio.iscoroutine(text_embedding):
-                raise RuntimeError("Text embedding is still a coroutine!")
-
-            logger.debug("About to call calculate_similarity...")
             # Calculate similarity
             similarity = self.embeddings.calculate_similarity(
-                query_embedding, text_embedding
-            )
-            logger.info(f"Similarity calculated: {similarity}")
+                query_embedding, text_embedding)
+
             return max(similarity, 0.0)
 
         except (ValueError, RuntimeError, ImportError) as e:
@@ -253,16 +229,11 @@ class CachedHybridRelevanceScorer:
             Relevance score or (score, explanation) if explain=True
         """
         try:
-            logger.info("=== ENTERING calculate_hybrid_score ===")
-            logger.info(f"Query: {query[:50]}...")
-            logger.info(f"Text: {text[:50]}...")
-            logger.info(f"Use cache: {use_cache}, Explain: {explain}")
-
             start_time = time.time()
             self.metrics["total_scores"] += 1
 
             cache_key = self._generate_cache_key(query, text, "hybrid")
-            logger.info(f"Generated cache key: {cache_key}")
+            logger.info("Generated cache key: %s", cache_key)
 
             # Try cache first
             if use_cache:
@@ -277,20 +248,20 @@ class CachedHybridRelevanceScorer:
                 logger.info("Cache miss, proceeding with calculation...")
 
             # Calculate individual scores
-            logger.info(f"Calculating BM25 score for text: {text[:50]}...")
+            logger.info("Calculating BM25 score for text: %s...", text[:50])
             bm25_score = self.calculate_bm25_score(query, text)
-            logger.info(f"BM25 score calculated: {bm25_score}")
+            logger.info("BM25 score calculated: %s", bm25_score)
 
-            logger.info(f"Calculating semantic score for text: {text[:50]}...")
+            logger.info(
+                "Calculating semantic score for text: %s...", text[:50])
             semantic_score = await self.calculate_semantic_score(query, text)
-            logger.info(f"Semantic score calculated: {semantic_score}")
+            logger.info("Semantic score calculated: %s", semantic_score)
 
-            logger.info(f"BM25: {bm25_score}, Semantic: {semantic_score}")
+            logger.info("BM25: %s, Semantic: %s", bm25_score, semantic_score)
 
             # Combine scores
-            hybrid_score = (
-                self.bm25_weight * bm25_score + self.semantic_weight * semantic_score
-            )
+            hybrid_score = self.bm25_weight * bm25_score + \
+                self.semantic_weight * semantic_score
 
             # Apply minimum threshold
             final_score = max(hybrid_score, 0.0)
@@ -329,17 +300,18 @@ class CachedHybridRelevanceScorer:
             self.metrics["hybrid_scores"] += 1
             self.metrics["processing_time"] += time.time() - start_time
 
-            logger.info(f"Hybrid score calculation completed: {final_score}")
+            logger.info("Hybrid score calculation completed: %s", final_score)
 
             if explain:
                 return final_score, explanation
             return final_score
 
         except Exception as e:
-            logger.error(f"Error in calculate_hybrid_score: {e}")
-            logger.error(f"Query: {query[:100]}")
-            logger.error(f"Text: {text[:100]}")
-            raise
+            logger.error("Unexpected error in calculate_hybrid_score: %s", e)
+            logger.error("Query: %s", query[:100])
+            logger.error("Text: %s", text[:100])
+            raise ValidationError(
+                f"Failed to calculate hybrid score due to unexpected error: {e}") from e
 
     async def score_documents(
         self,
@@ -360,12 +332,6 @@ class CachedHybridRelevanceScorer:
         Returns:
             List of scores or (score, explanation) tuples
         """
-        logger.debug("=== ENTERING score_documents ===")
-        logger.info(
-            f"Scoring {len(documents)} documents with query: {query[:50]}...")
-        logger.info(
-            f"Use cache: {use_cache}, Return explanations: {return_explanations}")
-
         # Prepare corpus if not already done
         if self.bm25_scorer is None:
             logger.info("Preparing corpus for BM25 scoring")
@@ -378,45 +344,35 @@ class CachedHybridRelevanceScorer:
         # Create tasks one by one and log each
         tasks = []
         for i, doc in enumerate(documents):
-            logger.debug(f"Creating task {i} for document: {doc[:50]}...")
             task = self.calculate_hybrid_score(
                 query, doc, use_cache, return_explanations)
-            logger.debug(f"Task {i} created, type: {type(task)}")
-            logger.debug(f"Task {i} is coroutine: {asyncio.iscoroutine(task)}")
             tasks.append(task)
 
         logger.info(f"Created {len(tasks)} tasks, gathering results...")
 
         try:
-            logger.debug("About to call asyncio.gather...")
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            logger.info(
-                f"asyncio.gather completed, got {len(results)} results")
 
             # Check for exceptions or coroutines in results
             for i, result in enumerate(results):
-                logger.debug(f"Checking result {i}: type={type(result)}")
+                logger.debug("Checking result %d: type=%s", i, type(result))
                 if isinstance(result, Exception):
-                    logger.error(f"Exception in task {i}: {result}")
+                    logger.error("Exception in task %d: %s", i, result)
                     raise result
-                elif asyncio.iscoroutine(result):
-                    logger.error(
-                        f"Task {i} returned a coroutine instead of result: {type(result)}")
-                    raise RuntimeError(
-                        f"Task {i} returned unawaited coroutine")
                 else:
                     logger.info(
-                        f"Task {i} result type: {type(result)}, value: {result}")
+                        "Task %d result type: %s, value: %s", i, type(result), result)
 
-            logger.info(f"Successfully scored {len(results)} documents")
+            logger.info("Successfully scored %d documents", len(results))
             return results
 
         except Exception as e:
-            logger.error(f"Error in score_documents: {e}")
-            logger.error(f"Error type: {type(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            raise
+            logger.error("Unexpected error in score_documents: %s", e)
+            logger.error("Error type: %s", type(e))
+
+            logger.error("Traceback: %s", traceback.format_exc())
+            raise ValidationError(
+                f"Failed to score documents due to unexpected error: {e}") from e
 
     async def rank_documents(
         self,
@@ -444,9 +400,8 @@ class CachedHybridRelevanceScorer:
 
         # Filter by minimum score
         if min_score is not None:
-            doc_scores = [
-                (doc, score) for doc, score in doc_scores if score >= min_score
-            ]
+            doc_scores = [(doc, score)
+                          for doc, score in doc_scores if score >= min_score]
 
         # Sort by score (descending)
         doc_scores.sort(key=lambda x: x[1], reverse=True)

@@ -7,10 +7,10 @@ while maintaining compatibility with the existing infrastructure.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
-from .cache_monitor import CacheMonitor
 from ..relevance.relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
+from .cache_monitor import CacheMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class RelevanceCacheMonitor(CacheMonitor):
     caches used by the relevance system components.
     """
 
-    def __init__(self, embeddings_coordinator: Optional[RelevanceEmbeddingsCoordinator] = None):
+    def __init__(self, embeddings_coordinator: RelevanceEmbeddingsCoordinator | None = None):
         """
         Initialize the relevance cache monitor.
 
@@ -34,13 +34,15 @@ class RelevanceCacheMonitor(CacheMonitor):
         self.embeddings_coordinator = embeddings_coordinator
 
         # Add relevance-specific monitoring data
-        self._monitoring_data.update({
-            "temporal_cache": [],
-            "adaptive_thresholds_cache": [],
-            "explainable_scorer_cache": []
-        })
+        self._monitoring_data.update(
+            {
+                "temporal_cache": [],
+                "adaptive_thresholds_cache": [],
+                "explainable_scorer_cache": [],
+            }
+        )
 
-    async def collect_cache_metrics(self) -> Dict[str, Dict[str, Any]]:
+    async def collect_cache_metrics(self) -> dict[str, dict[str, Any]]:
         """
         Collect comprehensive metrics from all caches including relevance caches.
 
@@ -62,7 +64,7 @@ class RelevanceCacheMonitor(CacheMonitor):
             logger.error(f"Error collecting cache metrics: {e}")
             return {}
 
-    async def _collect_relevance_cache_metrics(self) -> Dict[str, Dict[str, Any]]:
+    async def _collect_relevance_cache_metrics(self) -> dict[str, dict[str, Any]]:
         """
         Collect metrics from relevance-specific caches.
 
@@ -78,7 +80,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                 relevance_metrics["temporal_cache"] = {
                     **temporal_stats,
                     "timestamp": datetime.now().isoformat(),
-                    "cache_type": "temporal"
+                    "cache_type": "temporal",
                 }
 
             # Adaptive thresholds cache metrics
@@ -87,7 +89,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                 relevance_metrics["adaptive_thresholds_cache"] = {
                     **thresholds_stats,
                     "timestamp": datetime.now().isoformat(),
-                    "cache_type": "adaptive_thresholds"
+                    "cache_type": "adaptive_thresholds",
                 }
 
             # Explainable scorer cache metrics
@@ -96,7 +98,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                 relevance_metrics["explainable_scorer_cache"] = {
                     **explainable_stats,
                     "timestamp": datetime.now().isoformat(),
-                    "cache_type": "explainable_scorer"
+                    "cache_type": "explainable_scorer",
                 }
 
             # Store metrics for trend analysis
@@ -114,10 +116,10 @@ class RelevanceCacheMonitor(CacheMonitor):
             logger.error(f"Error collecting relevance cache metrics: {e}")
             return {}
 
-    async def _get_temporal_cache_stats(self) -> Dict[str, Any]:
+    async def _get_temporal_cache_stats(self) -> dict[str, Any]:
         """Get statistics from temporal analysis cache."""
         try:
-            if hasattr(self.embeddings_coordinator.temporal_cache, 'get_stats'):
+            if hasattr(self.embeddings_coordinator.temporal_cache, "get_stats"):
                 return await self.embeddings_coordinator.temporal_cache.get_stats()
             else:
                 # Fallback basic stats
@@ -126,16 +128,16 @@ class RelevanceCacheMonitor(CacheMonitor):
                     "miss_rate": 1.0,
                     "total_requests": 0,
                     "cache_size": 0,
-                    "memory_usage": 0.0
+                    "memory_usage": 0.0,
                 }
         except Exception as e:
             logger.error(f"Error getting temporal cache stats: {e}")
             return {"error": str(e)}
 
-    async def _get_adaptive_thresholds_stats(self) -> Dict[str, Any]:
+    async def _get_adaptive_thresholds_stats(self) -> dict[str, Any]:
         """Get statistics from adaptive thresholds cache."""
         try:
-            if hasattr(self.embeddings_coordinator.adaptive_thresholds, 'get_stats'):
+            if hasattr(self.embeddings_coordinator.adaptive_thresholds, "get_stats"):
                 return await self.embeddings_coordinator.adaptive_thresholds.get_stats()
             else:
                 # Fallback basic stats
@@ -144,16 +146,16 @@ class RelevanceCacheMonitor(CacheMonitor):
                     "miss_rate": 1.0,
                     "total_requests": 0,
                     "cache_size": 0,
-                    "memory_usage": 0.0
+                    "memory_usage": 0.0,
                 }
         except Exception as e:
             logger.error(f"Error getting adaptive thresholds stats: {e}")
             return {"error": str(e)}
 
-    async def _get_explainable_scorer_stats(self) -> Dict[str, Any]:
+    async def _get_explainable_scorer_stats(self) -> dict[str, Any]:
         """Get statistics from explainable scorer cache."""
         try:
-            if hasattr(self.embeddings_coordinator.explainable_scorer, 'get_cache_stats'):
+            if hasattr(self.embeddings_coordinator.explainable_scorer, "get_cache_stats"):
                 return await self.embeddings_coordinator.explainable_scorer.get_cache_stats()
             else:
                 # Fallback basic stats
@@ -162,7 +164,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                     "miss_rate": 1.0,
                     "total_requests": 0,
                     "cache_size": 0,
-                    "memory_usage": 0.0
+                    "memory_usage": 0.0,
                 }
         except Exception as e:
             logger.error(f"Error getting explainable scorer stats: {e}")
@@ -220,13 +222,11 @@ class RelevanceCacheMonitor(CacheMonitor):
                     report += f"  Memory Usage: {cache_stats['memory_usage']:.2f} MB\n"
 
                 # Performance analysis
-                performance_grade = self._calculate_performance_grade(
-                    cache_stats)
+                performance_grade = self._calculate_performance_grade(cache_stats)
                 report += f"  Performance Grade: {performance_grade}\n"
 
                 # Relevance-specific recommendations
-                recommendations = self._generate_relevance_cache_recommendations(
-                    cache_name, cache_stats)
+                recommendations = self._generate_relevance_cache_recommendations(cache_name, cache_stats)
                 if recommendations:
                     report += "  Recommendations:\n"
                     for rec in recommendations:
@@ -240,9 +240,7 @@ class RelevanceCacheMonitor(CacheMonitor):
             logger.error(f"Error generating relevance cache report: {e}")
             return f"\n=== RELEVANCE CACHE PERFORMANCE ===\nError: {e}\n"
 
-    def _generate_relevance_cache_recommendations(
-        self, cache_name: str, cache_stats: Dict[str, Any]
-    ) -> list[str]:
+    def _generate_relevance_cache_recommendations(self, cache_name: str, cache_stats: dict[str, Any]) -> list[str]:
         """Generate optimization recommendations for relevance-specific caches."""
         recommendations = []
 
@@ -257,9 +255,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                     "Temporal cache hit rate is low. Consider increasing TTL for temporal analysis results."
                 )
             if cache_size > 5000:
-                recommendations.append(
-                    "Large temporal cache. Consider implementing time-based eviction policies."
-                )
+                recommendations.append("Large temporal cache. Consider implementing time-based eviction policies.")
 
         elif cache_name == "adaptive_thresholds_cache":
             if hit_rate < 0.8:
@@ -267,9 +263,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                     "Adaptive thresholds should have high reuse. Review threshold calculation frequency."
                 )
             if total_requests > 1000 and cache_size < 50:
-                recommendations.append(
-                    "Consider increasing adaptive thresholds cache size for better performance."
-                )
+                recommendations.append("Consider increasing adaptive thresholds cache size for better performance.")
 
         elif cache_name == "explainable_scorer_cache":
             if hit_rate < 0.5:
@@ -279,13 +273,11 @@ class RelevanceCacheMonitor(CacheMonitor):
 
         # General recommendations
         if hit_rate < 0.4:
-            recommendations.append(
-                f"Critical hit rate for {cache_name}. Review caching strategy and key patterns."
-            )
+            recommendations.append(f"Critical hit rate for {cache_name}. Review caching strategy and key patterns.")
 
         return recommendations
 
-    async def optimize_relevance_cache_settings(self, cache_name: str) -> Dict[str, Any]:
+    async def optimize_relevance_cache_settings(self, cache_name: str) -> dict[str, Any]:
         """
         Suggest optimal cache settings for relevance-specific caches.
 
@@ -298,7 +290,10 @@ class RelevanceCacheMonitor(CacheMonitor):
         try:
             # Check if it's a relevance cache
             relevance_caches = [
-                "temporal_cache", "adaptive_thresholds_cache", "explainable_scorer_cache"]
+                "temporal_cache",
+                "adaptive_thresholds_cache",
+                "explainable_scorer_cache",
+            ]
 
             if cache_name in relevance_caches:
                 trends = await self.get_cache_trends(cache_name)
@@ -311,8 +306,7 @@ class RelevanceCacheMonitor(CacheMonitor):
                 # Relevance-specific optimization logic
                 if cache_name == "temporal_cache":
                     if trends.get("avg_hit_rate", 0) < 0.6:
-                        recommendations[
-                            "ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
+                        recommendations["ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
                         recommendations["strategy"] = "Consider implementing sliding window caching"
 
                 elif cache_name == "adaptive_thresholds_cache":
@@ -337,10 +331,12 @@ class RelevanceCacheMonitor(CacheMonitor):
 
 
 # Global instance management
-_relevance_cache_monitor: Optional[RelevanceCacheMonitor] = None
+_relevance_cache_monitor: RelevanceCacheMonitor | None = None
 
 
-def get_relevance_cache_monitor(embeddings_coordinator: RelevanceEmbeddingsCoordinator = None) -> RelevanceCacheMonitor:
+def get_relevance_cache_monitor(
+    embeddings_coordinator: RelevanceEmbeddingsCoordinator = None,
+) -> RelevanceCacheMonitor:
     """
     Get global relevance cache monitor instance.
 
@@ -352,8 +348,7 @@ def get_relevance_cache_monitor(embeddings_coordinator: RelevanceEmbeddingsCoord
     """
     global _relevance_cache_monitor
     if _relevance_cache_monitor is None:
-        _relevance_cache_monitor = RelevanceCacheMonitor(
-            embeddings_coordinator)
+        _relevance_cache_monitor = RelevanceCacheMonitor(embeddings_coordinator)
     return _relevance_cache_monitor
 
 

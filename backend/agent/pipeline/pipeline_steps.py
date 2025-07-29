@@ -11,14 +11,15 @@ from agent.llm import llm_manager
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.pipeline.graph_fact_checking_step import GraphFactCheckingStep
-from agent.prompt_manager import prompt_manager
-from agent.services.post_analyzer import PostAnalyzerService
-from agent.services.reputation import reputation_service
-from agent.services.screenshot_parser import screenshot_parser_service
-from agent.services.storage import storage_service
-from agent.services.summarizer import SummarizerService
-from agent.services.validation_service import validation_service
-from agent.services.verdict import verdict_service
+from agent.prompts import prompt_manager
+
+from ..services.analysis.post_analyzer import PostAnalyzerService
+from ..services.infrastructure.screenshot_parser import screenshot_parser_service
+from ..services.infrastructure.storage import storage_service
+from ..services.output.summarizer import SummarizerService
+from ..services.output.verdict import verdict_service
+from ..services.processing.validation_service import validation_service
+from ..services.reputation.reputation import reputation_service
 
 logger = logging.getLogger(__name__)
 
@@ -206,9 +207,7 @@ class MotivesAnalysisStep(BasePipelineStep):
 
         # Verify it was set correctly
         verification = context.get_motives_analysis()
-        logger.info(
-            f"Verification after setting: {verification.primary_motive if verification else 'None'}"
-        )
+        logger.info(f"Verification after setting: {verification.primary_motive if verification else 'None'}")
 
         if context.event_service:
             await context.event_service.emit_motives_analysis_completed()
@@ -242,14 +241,10 @@ class VerdictGenerationStep(BasePipelineStep):
         logger.info(
             f"Retrieved motives analysis primary_motive: {motives_analysis_result.primary_motive if motives_analysis_result else 'None'}"
         )
-        logger.info(
-            f"Context motives_analysis_result field: {context.motives_analysis_result}"
-        )
+        logger.info(f"Context motives_analysis_result field: {context.motives_analysis_result}")
 
         # Use summarization result if available, otherwise fallback to context.summary
-        summary_text = (
-            summarization_result.summary if summarization_result else context.summary
-        )
+        summary_text = summarization_result.summary if summarization_result else context.summary
 
         # Log the enhanced context for verdict generation
         if motives_analysis_result:
@@ -258,9 +253,7 @@ class VerdictGenerationStep(BasePipelineStep):
                 motives_analysis_result.primary_motive,
             )
         else:
-            logger.warning(
-                "No motives analysis result available for verdict generation"
-            )
+            logger.warning("No motives analysis result available for verdict generation")
 
         verdict_result = await verdict_service.generate(
             context.fact_check_result,
@@ -275,9 +268,7 @@ class VerdictGenerationStep(BasePipelineStep):
 
         # Emit completion event
         if context.event_service:
-            await context.event_service.emit_verdict_generation_completed(
-                verdict_result.verdict
-            )
+            await context.event_service.emit_verdict_generation_completed(verdict_result.verdict)
 
         return context
 
@@ -299,9 +290,7 @@ class ReputationUpdateStep(BasePipelineStep):
         if context.extracted_info_typed and context.extracted_info_typed.username:
             username = context.extracted_info_typed.username
 
-        updated_reputation = await reputation_service.update(
-            context.db, username, context.verdict_result.verdict
-        )
+        updated_reputation = await reputation_service.update(context.db, username, context.verdict_result.verdict)
 
         context.updated_reputation = updated_reputation
 
@@ -334,16 +323,12 @@ class ResultStorageStep(BasePipelineStep):
         # Debug logging for claims
         logger.info(f"Context claims: {context.claims}")
         logger.info(f"Context claims type: {type(context.claims)}")
-        logger.info(
-            f"Context claims length: {len(context.claims) if context.claims else 'None'}"
-        )
+        logger.info(f"Context claims length: {len(context.claims) if context.claims else 'None'}")
 
         # Add claims from context.claims to the extracted_info_dict
         extracted_info_dict["claims"] = context.claims if context.claims else []
 
-        logger.info(
-            f"Final extracted_info_dict claims: {extracted_info_dict.get('claims', [])}"
-        )
+        logger.info(f"Final extracted_info_dict claims: {extracted_info_dict.get('claims', [])}")
 
         verification_record = await storage_service.save_verification_result(
             db=context.db,

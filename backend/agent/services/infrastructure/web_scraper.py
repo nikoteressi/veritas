@@ -5,6 +5,8 @@ import logging
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 from crawl4ai.extraction_strategy import NoExtractionStrategy
 
+from app.exceptions import AgentError
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,9 +17,7 @@ class WebScraper:
     """
 
     def __init__(self, max_concurrent_scrapes: int = 3):
-        self.browser_config = BrowserConfig(
-            headless=True, verbose=False, extra_args=["--no-sandbox", "--disable-gpu"]
-        )
+        self.browser_config = BrowserConfig(headless=True, verbose=False, extra_args=["--no-sandbox", "--disable-gpu"])
         self.crawler = AsyncWebCrawler(config=self.browser_config)
         self._initialized = False
         # Semaphore to limit concurrent scraping operations
@@ -69,11 +69,8 @@ class WebScraper:
             else:
                 processed_results.append(result)
 
-        successful_scrapes = len(
-            [r for r in processed_results if r.get("status") == "success"]
-        )
-        logger.info(
-            f"Completed scraping: {successful_scrapes}/{len(urls)} successful")
+        successful_scrapes = len([r for r in processed_results if r.get("status") == "success"])
+        logger.info(f"Completed scraping: {successful_scrapes}/{len(urls)} successful")
 
         return processed_results
 
@@ -104,9 +101,7 @@ class WebScraper:
                     "error_message": None,
                 }
             else:
-                error_message = (
-                    f"Scraping failed for {url}: No content or success=False."
-                )
+                error_message = f"Scraping failed for {url}: No content or success=False."
                 logger.error(error_message)
                 return {
                     "url": url,
@@ -118,13 +113,7 @@ class WebScraper:
         except Exception as e:
             error_message = f"Exception during scraping for {url}: {e}"
             logger.error(error_message, exc_info=True)
-            return {
-                "url": url,
-                "content": None,
-                "status": "error",
-                "content_length": 0,
-                "error_message": str(e),
-            }
+            raise AgentError(f"Web scraping failed for {url}: {str(e)}") from e
 
     async def close(self):
         """

@@ -11,12 +11,8 @@ from pydantic import BaseModel, Field
 class ProgressEvent(BaseModel):
     """Event model for progress tracking in the verification pipeline."""
 
-    event_name: str = Field(
-        ..., description="The unique name of the event, e.g., 'CLAIMS_EXTRACTED'."
-    )
-    payload: dict[str, Any] = Field(
-        default_factory=dict, description="A dictionary containing event-specific data."
-    )
+    event_name: str = Field(..., description="The unique name of the event, e.g., 'CLAIMS_EXTRACTED'.")
+    payload: dict[str, Any] = Field(default_factory=dict, description="A dictionary containing event-specific data.")
 
 
 class WebSocketMessage(BaseModel):

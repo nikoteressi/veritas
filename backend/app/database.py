@@ -79,9 +79,7 @@ sync_db_url = settings.database_url
 async_engine = create_async_engine(async_db_url)
 sync_engine = create_engine(sync_db_url)
 
-async_session_factory = async_sessionmaker(
-    async_engine, class_=AsyncSession, expire_on_commit=False
-)
+async_session_factory = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 def create_db_and_tables():

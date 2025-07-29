@@ -25,76 +25,74 @@ class VeritasException(Exception):
 class ImageProcessingError(VeritasException):
     """Exception raised when image processing fails."""
 
-    pass
-
 
 class LLMError(VeritasException):
     """Exception raised when LLM operations fail."""
-
-    pass
 
 
 class DatabaseError(VeritasException):
     """Exception raised when database operations fail."""
 
-    pass
-
 
 class WebSocketError(VeritasException):
     """Exception raised when WebSocket operations fail."""
-
-    pass
 
 
 class ValidationError(VeritasException):
     """Exception raised when input validation fails."""
 
-    pass
-
 
 class ServiceUnavailableError(VeritasException):
     """Exception raised when external services are unavailable."""
-
-    pass
 
 
 class AgentError(VeritasException):
     """Exception raised when agent operations fail."""
 
-    pass
-
 
 class VectorStoreError(VeritasException):
     """Exception raised for vector store operations."""
-
-    pass
 
 
 class ToolError(VeritasException):
     """Exception raised when tool operations fail."""
 
-    pass
-
 
 class StorageError(VeritasException):
     """Exception raised for storage operations."""
-
-    pass
 
 
 class TemporalAnalysisError(VeritasException):
     """Exception raised for temporal analysis operations."""
 
-    pass
-
 
 class MotivesAnalysisError(VeritasException):
     """Exception raised for motives analysis operations."""
-
-    pass
 
 
 class ScreenshotParsingError(VeritasException):
     """Exception raised for screenshot parsing operations."""
 
-    pass
+
+class CacheError(VeritasException):
+    """Exception raised for cache operations."""
+
+
+class EmbeddingError(VeritasException):
+    """Exception raised for embedding operations."""
+
+
+class GraphError(VeritasException):
+    """Exception raised for graph operations."""
+
+
+class RelevanceError(VeritasException):
+    """Exception raised for relevance scoring operations."""
+
+
+class PipelineError(VeritasException):
+    """Exception raised for pipeline execution errors."""
+
+
+class AnalysisError(VeritasException):
+    """Exception raised for general analysis operations."""

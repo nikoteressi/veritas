@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import Any
 
-from agent.chroma_client import OllamaChromaClient
+from agent.clients.chroma_client import OllamaChromaClient
 from app.config import settings
 from app.exceptions import VectorStoreError
 from app.json_utils import json_dumps, prepare_for_json_serialization
@@ -23,9 +23,7 @@ class VectorStore:
     def __init__(self, persist_directory: str = None, lazy_init: bool = True):
         """Initialize ChromaDB client with optional lazy initialization."""
         if persist_directory is None:
-            persist_directory = os.getenv(
-                "CHROMA_PERSIST_DIRECTORY", "./data/chroma_db"
-            )
+            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
 
         self.persist_directory = persist_directory
         self.lazy_init = lazy_init
@@ -44,35 +42,25 @@ class VectorStore:
             return
 
         try:
-            logger.info(
-                "Initializing vector store with Ollama embeddings (no external downloads)..."
-            )
+            logger.info("Initializing vector store with Ollama embeddings (no external downloads)...")
 
             # Create custom ChromaDB client that only uses Ollama embeddings
-            self.client = OllamaChromaClient(
-                host=settings.chroma_host, port=settings.chroma_port
-            )
+            self.client = OllamaChromaClient(host=settings.chroma_host, port=settings.chroma_port)
 
             # Create collections for different types of data with Ollama embeddings
             self.verification_collection = self.client.get_or_create_collection(
                 "verification_results",
-                metadata={
-                    "description": "Stores verification results with embeddings for similarity search"
-                },
+                metadata={"description": "Stores verification results with embeddings for similarity search"},
             )
 
             self.claims_collection = self.client.get_or_create_collection(
                 "claims",
-                metadata={
-                    "description": "Stores individual claims for pattern recognition"
-                },
+                metadata={"description": "Stores individual claims for pattern recognition"},
             )
 
             self.sources_collection = self.client.get_or_create_collection(
                 "sources",
-                metadata={
-                    "description": "Stores source information and credibility data"
-                },
+                metadata={"description": "Stores source information and credibility data"},
             )
 
             self._initialized = True
@@ -81,7 +69,7 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to initialize vector store: {e}")
             self._initialized = False
-            # Don't raise - allow system to continue without vector store
+            raise VectorStoreError(f"Failed to initialize vector store: {e}") from e
 
     async def store_verification_result(self, verification_data: dict[str, Any]) -> str:
         """Store a complete verification result."""
@@ -92,13 +80,9 @@ class VectorStore:
             # Generate unique ID for this verification
             # Prepare data for JSON serialization to avoid datetime issues
             serializable_data = prepare_for_json_serialization(verification_data)
-            content_hash = hashlib.md5(
-                json_dumps(serializable_data, sort_keys=True).encode()
-            ).hexdigest()
+            content_hash = hashlib.md5(json_dumps(serializable_data, sort_keys=True).encode()).hexdigest()
 
-            verification_id = (
-                f"verification_{content_hash}_{int(datetime.now().timestamp())}"
-            )
+            verification_id = f"verification_{content_hash}_{int(datetime.now().timestamp())}"
 
             # Prepare document for embedding
             document_text = self._prepare_verification_document(verification_data)
@@ -116,18 +100,14 @@ class VectorStore:
                 "intent_analysis": temporal_analysis.get("intent_analysis", "unknown"),
             }
 
-            self.verification_collection.add(
-                documents=[document_text], metadatas=[metadata], ids=[verification_id]
-            )
+            self.verification_collection.add(documents=[document_text], metadatas=[metadata], ids=[verification_id])
 
             # Store individual claims from identified_claims list
             claims = verification_data.get("identified_claims", [])
             self._store_claims(claims, verification_id)
 
             # Store source information
-            self._store_sources(
-                verification_data.get("fact_check_results", {}), verification_id
-            )
+            self._store_sources(verification_data.get("fact_check_results", {}), verification_id)
 
             logger.info(f"Stored verification result: {verification_id}")
             return verification_id
@@ -144,10 +124,17 @@ class VectorStore:
         try:
             self._initialize()
             return self._initialized
-        except Exception as e:
-            logger.warning(
-                f"Vector store initialization failed, continuing without it: {e}"
-            )
+        except (
+            ValueError,
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            ConnectionError,
+        ) as e:
+            logger.warning(f"Vector store initialization failed, continuing without it: {e}")
+            return False
+        except VectorStoreError as e:
+            logger.warning(f"Vector store initialization failed, continuing without it: {e}")
             return False
 
     def reset_for_testing(self):
@@ -160,7 +147,13 @@ class VectorStore:
                     try:
                         self.client.delete_collection(collection_name)
                         logger.info(f"Deleted collection: {collection_name}")
-                    except Exception:
+                    except (
+                        ValueError,
+                        RuntimeError,
+                        AttributeError,
+                        TypeError,
+                        ConnectionError,
+                    ):
                         pass  # Collection might not exist
 
             # Reset initialization state
@@ -174,6 +167,7 @@ class VectorStore:
 
         except Exception as e:
             logger.warning(f"Failed to reset vector store: {e}")
+            raise VectorStoreError(f"Failed to reset vector store: {e}") from e
 
     def _prepare_verification_document(self, verification_data: dict[str, Any]) -> str:
         """Prepare a document string for embedding."""
@@ -239,6 +233,7 @@ class VectorStore:
                 )
         except Exception as e:
             logger.error(f"Failed to store claims: {e}")
+            raise VectorStoreError(f"Failed to store claims: {e}") from e
 
     def _store_sources(self, fact_check_results: dict[str, Any], verification_id: str):
         """Store source information in a batch."""
@@ -276,18 +271,15 @@ class VectorStore:
                 )
         except Exception as e:
             logger.error(f"Failed to store sources: {e}")
+            raise VectorStoreError(f"Failed to store sources: {e}") from e
 
-    def find_similar_verifications(
-        self, query_text: str, limit: int = 5
-    ) -> list[dict[str, Any]]:
+    def find_similar_verifications(self, query_text: str, limit: int = 5) -> list[dict[str, Any]]:
         """Find similar verification results."""
         if not self._safe_initialize():
             return []
 
         try:
-            results = self.verification_collection.query(
-                query_texts=[query_text], n_results=limit
-            )
+            results = self.verification_collection.query(query_texts=[query_text], n_results=limit)
 
             similar_verifications = []
             if results["documents"]:
@@ -296,11 +288,7 @@ class VectorStore:
                         {
                             "document": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
-                            "distance": (
-                                results["distances"][0][i]
-                                if results.get("distances")
-                                else None
-                            ),
+                            "distance": (results["distances"][0][i] if results.get("distances") else None),
                             "id": results["ids"][0][i],
                         }
                     )
@@ -310,7 +298,7 @@ class VectorStore:
 
         except Exception as e:
             logger.error(f"Failed to find similar verifications: {e}")
-            return []
+            raise VectorStoreError(f"Failed to find similar verifications: {e}") from e
 
     def find_similar_claims(self, claim: str, limit: int = 10) -> list[dict[str, Any]]:
         """Find similar claims for pattern recognition."""
@@ -327,11 +315,7 @@ class VectorStore:
                         {
                             "claim": results["documents"][0][i],
                             "metadata": results["metadatas"][0][i],
-                            "distance": (
-                                results["distances"][0][i]
-                                if results.get("distances")
-                                else None
-                            ),
+                            "distance": (results["distances"][0][i] if results.get("distances") else None),
                             "id": results["ids"][0][i],
                         }
                     )
@@ -340,14 +324,12 @@ class VectorStore:
 
         except Exception as e:
             logger.error(f"Failed to find similar claims: {e}")
-            return []
+            raise VectorStoreError(f"Failed to find similar claims: {e}") from e
 
     def get_user_history(self, username: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get verification history for a specific user."""
         try:
-            results = self.verification_collection.get(
-                where={"username": username}, limit=limit
-            )
+            results = self.verification_collection.get(where={"username": username}, limit=limit)
 
             user_history = []
             if results["documents"]:
@@ -364,14 +346,12 @@ class VectorStore:
 
         except Exception as e:
             logger.error(f"Failed to get user history: {e}")
-            return []
+            raise VectorStoreError(f"Failed to get user history: {e}") from e
 
     def get_temporal_mismatch_patterns(self, limit: int = 20) -> list[dict[str, Any]]:
         """Get verifications with temporal mismatches for pattern analysis."""
         try:
-            results = self.verification_collection.get(
-                where={"temporal_mismatch": True}, limit=limit
-            )
+            results = self.verification_collection.get(where={"temporal_mismatch": True}, limit=limit)
 
             patterns = []
             if results["documents"]:
@@ -388,7 +368,7 @@ class VectorStore:
 
         except Exception as e:
             logger.error(f"Failed to get temporal mismatch patterns: {e}")
-            return []
+            raise VectorStoreError(f"Failed to get temporal mismatch patterns: {e}") from e
 
 
 # Global vector store instance with lazy initialization to prevent blocking

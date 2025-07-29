@@ -13,6 +13,8 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
+from app.exceptions import AgentError
+
 from ..core.component_manager import ComponentManager
 
 
@@ -42,9 +44,7 @@ class VerificationProcessor:
         # Verification tracking
         self.verification_count = 0
 
-    async def verify_facts(
-        self, facts: list[dict[str, Any]], context: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def verify_facts(self, facts: list[dict[str, Any]], context: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Verify facts using the enhanced system.
 
@@ -56,8 +56,7 @@ class VerificationProcessor:
             Comprehensive verification results with metadata
         """
         if not self.component_manager.initialized:
-            raise RuntimeError(
-                "System not initialized. Call initialize() first.")
+            raise RuntimeError("System not initialized. Call initialize() first.")
 
         if not self.component_manager.graph_service:
             raise RuntimeError("Graph service not available")
@@ -79,18 +78,12 @@ class VerificationProcessor:
                 "facts_processed": len(facts) if facts else 0,
             }
 
-            self.logger.info("Verification completed: ID %d",
-                             self.verification_count)
+            self.logger.info("Verification completed: ID %d", self.verification_count)
             return result
 
         except Exception as e:
             self.logger.error("Verification failed: %s", e)
-            return {
-                "success": False,
-                "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-                "verification_id": self.verification_count,
-            }
+            raise AgentError(f"Fact verification failed: {str(e)}") from e
 
     async def analyze_source_reputation(self, source_url: str) -> dict[str, Any]:
         """
@@ -112,8 +105,7 @@ class VerificationProcessor:
                 domain = domain[4:]
 
             # Get source analysis
-            analysis = self.component_manager.reputation_system.get_source_analysis(
-                domain)
+            analysis = self.component_manager.reputation_system.get_source_analysis(domain)
             if "error" not in analysis:
                 return {
                     "source_url": source_url,
@@ -127,8 +119,7 @@ class VerificationProcessor:
                 }
             else:
                 # Try to evaluate the source if no profile exists
-                profile = self.component_manager.reputation_system.evaluate_source(
-                    source_url)
+                profile = self.component_manager.reputation_system.evaluate_source(source_url)
                 return {
                     "source_url": source_url,
                     "domain": domain,
@@ -145,17 +136,10 @@ class VerificationProcessor:
                     "analysis_timestamp": datetime.now().isoformat(),
                 }
         except Exception as e:
-            self.logger.error(
-                "Source reputation analysis failed for %s: %s", source_url, e)
-            return {
-                "error": str(e),
-                "source_url": source_url,
-                "analysis_timestamp": datetime.now().isoformat(),
-            }
+            self.logger.error("Source reputation analysis failed for %s: %s", source_url, e)
+            raise AgentError(f"Source reputation analysis failed for {source_url}: {str(e)}") from e
 
-    async def analyze_fact_relationships(
-        self, facts: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def analyze_fact_relationships(self, facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Analyze relationships between facts.
 
@@ -166,8 +150,7 @@ class VerificationProcessor:
             list: Relationship analysis results
         """
         if not self.component_manager.graph_service:
-            self.logger.warning(
-                "Graph service not available for relationship analysis")
+            self.logger.warning("Graph service not available for relationship analysis")
             return []
 
         try:
@@ -179,16 +162,17 @@ class VerificationProcessor:
                 relationship["analyzer_version"] = "enhanced_v1.0"
 
             self.logger.info(
-                "Analyzed relationships for %d facts, found %d relationships", len(facts), len(relationships))
+                "Analyzed relationships for %d facts, found %d relationships",
+                len(facts),
+                len(relationships),
+            )
             return relationships
 
         except Exception as e:
             self.logger.error("Fact relationship analysis failed: %s", e)
-            return []
+            raise AgentError(f"Fact relationship analysis failed: {str(e)}") from e
 
-    async def get_uncertainty_analysis(
-        self, verification_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def get_uncertainty_analysis(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """
         Get uncertainty analysis for verification data.
 
@@ -205,22 +189,16 @@ class VerificationProcessor:
             uncertainty_result = await self.component_manager.graph_service.get_uncertainty_analysis(verification_data)
 
             # Add metadata
-            uncertainty_result["analysis_timestamp"] = datetime.now(
-            ).isoformat()
+            uncertainty_result["analysis_timestamp"] = datetime.now().isoformat()
             uncertainty_result["analyzer_version"] = "enhanced_v1.0"
 
             return uncertainty_result
 
         except Exception as e:
             self.logger.error("Uncertainty analysis failed: %s", e)
-            return {
-                "error": str(e),
-                "analysis_timestamp": datetime.now().isoformat(),
-            }
+            raise AgentError(f"Uncertainty analysis failed: {str(e)}") from e
 
-    async def process_batch_verification(
-        self, batch_requests: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def process_batch_verification(self, batch_requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Process multiple verification requests in batch.
 
@@ -243,14 +221,8 @@ class VerificationProcessor:
                 results.append(result)
 
             except Exception as e:
-                self.logger.error(
-                    "Batch verification failed for request %d: %s", i, e)
-                results.append({
-                    "success": False,
-                    "error": str(e),
-                    "batch_index": i,
-                    "timestamp": datetime.now().isoformat(),
-                })
+                self.logger.error("Batch verification failed for request %d: %s", i, e)
+                raise AgentError(f"Batch verification failed for request {i}: {str(e)}") from e
 
         # Add batch metadata
         batch_metadata = {
@@ -302,18 +274,15 @@ class VerificationProcessor:
         # Validate facts structure
         if not facts or not isinstance(facts, list):
             validation_result["valid"] = False
-            validation_result["errors"].append(
-                "Facts must be a non-empty list")
+            validation_result["errors"].append("Facts must be a non-empty list")
 
         # Validate individual facts
         for i, fact in enumerate(facts):
             if not isinstance(fact, dict):
                 validation_result["valid"] = False
-                validation_result["errors"].append(
-                    f"Fact {i} must be a dictionary")
+                validation_result["errors"].append(f"Fact {i} must be a dictionary")
             elif not fact.get("statement"):
-                validation_result["warnings"].append(
-                    f"Fact {i} missing statement field")
+                validation_result["warnings"].append(f"Fact {i} missing statement field")
 
         # Validate context
         if context is not None and not isinstance(context, dict):

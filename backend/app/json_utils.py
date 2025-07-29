@@ -92,15 +92,11 @@ def prepare_for_json_serialization(obj: Any) -> Any:
     if hasattr(obj, "__dict__"):
         # Handle SQLAlchemy models and other custom objects
         d = {
-            key: prepare_for_json_serialization(value)
-            for key, value in obj.__dict__.items()
-            if not key.startswith("_")
+            key: prepare_for_json_serialization(value) for key, value in obj.__dict__.items() if not key.startswith("_")
         }
         return d
     if isinstance(obj, dict):
-        return {
-            key: prepare_for_json_serialization(value) for key, value in obj.items()
-        }
+        return {key: prepare_for_json_serialization(value) for key, value in obj.items()}
     elif isinstance(obj, list):
         return [prepare_for_json_serialization(item) for item in obj]
     elif isinstance(obj, tuple):

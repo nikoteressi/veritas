@@ -7,10 +7,10 @@ relevance system components while maintaining compatibility.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
-from ..core.system_health_monitor import SystemHealthMonitor
 from ..core.relevance_component_manager import RelevanceComponentManager
+from ..core.system_health_monitor import SystemHealthMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
         super().__init__(component_manager)
         self.relevance_component_manager = component_manager
 
-    async def check_system_health(self) -> Dict[str, Any]:
+    async def check_system_health(self) -> dict[str, Any]:
         """
         Perform comprehensive system health check including relevance components.
 
@@ -62,10 +62,10 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
             return {
                 "overall_status": "critical",
                 "error": str(e),
-                "timestamp": self._get_current_timestamp()
+                "timestamp": self._get_current_timestamp(),
             }
 
-    async def _check_relevance_components_health(self) -> Dict[str, Any]:
+    async def _check_relevance_components_health(self) -> dict[str, Any]:
         """
         Check health of relevance-specific components.
 
@@ -76,7 +76,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
             "status": "healthy",
             "components": {},
             "issues": [],
-            "timestamp": self._get_current_timestamp()
+            "timestamp": self._get_current_timestamp(),
         }
 
         try:
@@ -86,8 +86,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
 
             if coordinator_health["status"] != "healthy":
                 health_status["status"] = "degraded"
-                health_status["issues"].extend(
-                    coordinator_health.get("issues", []))
+                health_status["issues"].extend(coordinator_health.get("issues", []))
 
             # Check relevance performance metrics
             performance_health = await self._check_relevance_performance_health()
@@ -96,8 +95,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
             if performance_health["status"] != "healthy":
                 if health_status["status"] == "healthy":
                     health_status["status"] = "degraded"
-                health_status["issues"].extend(
-                    performance_health.get("issues", []))
+                health_status["issues"].extend(performance_health.get("issues", []))
 
             return health_status
 
@@ -106,36 +104,29 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
             return {
                 "status": "critical",
                 "error": str(e),
-                "timestamp": self._get_current_timestamp()
+                "timestamp": self._get_current_timestamp(),
             }
 
-    async def _check_embeddings_coordinator_health(self) -> Dict[str, Any]:
+    async def _check_embeddings_coordinator_health(self) -> dict[str, Any]:
         """
         Check health of the RelevanceEmbeddingsCoordinator.
 
         Returns:
             dict: Health status of embeddings coordinator
         """
-        health_status = {
-            "status": "healthy",
-            "details": {},
-            "issues": []
-        }
+        health_status = {"status": "healthy", "details": {}, "issues": []}
 
         try:
-            coordinator = self.relevance_component_manager.get_component(
-                "relevance_embeddings_coordinator")
+            coordinator = self.relevance_component_manager.get_component("relevance_embeddings_coordinator")
 
             if not coordinator:
                 health_status["status"] = "critical"
-                health_status["issues"].append(
-                    "RelevanceEmbeddingsCoordinator not found")
+                health_status["issues"].append("RelevanceEmbeddingsCoordinator not found")
                 return health_status
 
             if not coordinator._initialized:
                 health_status["status"] = "critical"
-                health_status["issues"].append(
-                    "RelevanceEmbeddingsCoordinator not initialized")
+                health_status["issues"].append("RelevanceEmbeddingsCoordinator not initialized")
                 return health_status
 
             # Check individual components within coordinator
@@ -145,14 +136,13 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
                 ("temporal_cache", coordinator.temporal_cache),
                 ("explainable_scorer", coordinator.explainable_scorer),
                 ("intelligent_cache", coordinator.intelligent_cache),
-                ("adaptive_thresholds", coordinator.adaptive_thresholds)
+                ("adaptive_thresholds", coordinator.adaptive_thresholds),
             ]
 
             for component_name, component in components_to_check:
                 if component is None:
                     health_status["status"] = "degraded"
-                    health_status["issues"].append(
-                        f"{component_name} is not initialized")
+                    health_status["issues"].append(f"{component_name} is not initialized")
                 else:
                     health_status["details"][component_name] = "initialized"
 
@@ -161,8 +151,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
                 test_embeddings = await coordinator.generate_embeddings("test query")
                 if test_embeddings is None:
                     health_status["status"] = "degraded"
-                    health_status["issues"].append(
-                        "Embeddings generation test failed")
+                    health_status["issues"].append("Embeddings generation test failed")
                 else:
                     health_status["details"]["embeddings_test"] = "passed"
             except Exception as e:
@@ -173,23 +162,16 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
 
         except Exception as e:
             logger.error(f"Error checking embeddings coordinator health: {e}")
-            return {
-                "status": "critical",
-                "error": str(e)
-            }
+            return {"status": "critical", "error": str(e)}
 
-    async def _check_relevance_performance_health(self) -> Dict[str, Any]:
+    async def _check_relevance_performance_health(self) -> dict[str, Any]:
         """
         Check performance health of relevance components.
 
         Returns:
             dict: Performance health status
         """
-        health_status = {
-            "status": "healthy",
-            "metrics": {},
-            "issues": []
-        }
+        health_status = {"status": "healthy", "metrics": {}, "issues": []}
 
         try:
             # Get performance metrics
@@ -197,15 +179,13 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
 
             if "error" in metrics:
                 health_status["status"] = "degraded"
-                health_status["issues"].append(
-                    f"Failed to get performance metrics: {metrics['error']}")
+                health_status["issues"].append(f"Failed to get performance metrics: {metrics['error']}")
                 return health_status
 
             health_status["metrics"] = metrics
 
             # Analyze metrics for health issues
-            coordinator_metrics = metrics.get(
-                "relevance_embeddings_coordinator", {})
+            coordinator_metrics = metrics.get("relevance_embeddings_coordinator", {})
 
             # Check cache performance
             cache_metrics = coordinator_metrics.get("cache", {})
@@ -213,27 +193,21 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
                 hit_rate = cache_metrics.get("hit_rate", 0)
                 if hit_rate < 0.5:
                     health_status["status"] = "degraded"
-                    health_status["issues"].append(
-                        f"Low cache hit rate: {hit_rate:.2%}")
+                    health_status["issues"].append(f"Low cache hit rate: {hit_rate:.2%}")
 
             # Check embeddings performance
             embeddings_metrics = coordinator_metrics.get("embeddings", {})
             if embeddings_metrics:
-                avg_response_time = embeddings_metrics.get(
-                    "avg_response_time", 0)
+                avg_response_time = embeddings_metrics.get("avg_response_time", 0)
                 if avg_response_time > 5.0:  # 5 seconds threshold
                     health_status["status"] = "degraded"
-                    health_status["issues"].append(
-                        f"High embeddings response time: {avg_response_time:.2f}s")
+                    health_status["issues"].append(f"High embeddings response time: {avg_response_time:.2f}s")
 
             return health_status
 
         except Exception as e:
             logger.error(f"Error checking relevance performance health: {e}")
-            return {
-                "status": "critical",
-                "error": str(e)
-            }
+            return {"status": "critical", "error": str(e)}
 
     async def get_comprehensive_health_report(self) -> str:
         """
@@ -258,7 +232,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
 
                 # Add any additional details from the component health
                 for key, value in component_health.items():
-                    if key != 'status':
+                    if key != "status":
                         base_report += f"  {key}: {value}\n"
                 base_report += "\n"
 
@@ -304,10 +278,12 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
 
 
 # Global instance management
-_relevance_health_monitor: Optional[RelevanceSystemHealthMonitor] = None
+_relevance_health_monitor: RelevanceSystemHealthMonitor | None = None
 
 
-def get_relevance_health_monitor(component_manager: RelevanceComponentManager = None) -> RelevanceSystemHealthMonitor:
+def get_relevance_health_monitor(
+    component_manager: RelevanceComponentManager = None,
+) -> RelevanceSystemHealthMonitor:
     """
     Get global relevance health monitor instance.
 
@@ -320,10 +296,8 @@ def get_relevance_health_monitor(component_manager: RelevanceComponentManager = 
     global _relevance_health_monitor
     if _relevance_health_monitor is None:
         if component_manager is None:
-            raise ValueError(
-                "RelevanceComponentManager required for first initialization")
-        _relevance_health_monitor = RelevanceSystemHealthMonitor(
-            component_manager)
+            raise ValueError("RelevanceComponentManager required for first initialization")
+        _relevance_health_monitor = RelevanceSystemHealthMonitor(component_manager)
     return _relevance_health_monitor
 
 

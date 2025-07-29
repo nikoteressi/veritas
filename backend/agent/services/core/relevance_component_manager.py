@@ -6,10 +6,10 @@ while maintaining compatibility with the existing infrastructure.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
-from .component_manager import ComponentManager
 from ..relevance.relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
+from .component_manager import ComponentManager
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class RelevanceComponentManager(ComponentManager):
     def __init__(self, config):
         """Initialize the relevance component manager."""
         super().__init__(config)
-        self.relevance_embeddings_coordinator: Optional[RelevanceEmbeddingsCoordinator] = None
+        self.relevance_embeddings_coordinator: RelevanceEmbeddingsCoordinator | None = None
 
     async def initialize_components(self) -> bool:
         """
@@ -50,8 +50,7 @@ class RelevanceComponentManager(ComponentManager):
             coordinator_initialized = await self.relevance_embeddings_coordinator.initialize()
 
             if not coordinator_initialized:
-                logger.error(
-                    "Failed to initialize RelevanceEmbeddingsCoordinator")
+                logger.error("Failed to initialize RelevanceEmbeddingsCoordinator")
                 return False
 
             logger.info("Relevance embeddings coordinator initialized")
@@ -151,7 +150,7 @@ class RelevanceComponentManager(ComponentManager):
             logger.error(f"Failed to clear relevance caches: {e}")
             return False
 
-    async def get_relevance_performance_metrics(self) -> Dict[str, Any]:
+    async def get_relevance_performance_metrics(self) -> dict[str, Any]:
         """
         Get performance metrics for relevance-specific components.
 
@@ -171,7 +170,7 @@ class RelevanceComponentManager(ComponentManager):
             logger.error(f"Error getting relevance performance metrics: {e}")
             return {"error": str(e)}
 
-    async def optimize_relevance_performance(self) -> Dict[str, Any]:
+    async def optimize_relevance_performance(self) -> dict[str, Any]:
         """
         Optimize performance of relevance-specific components.
 
@@ -192,7 +191,7 @@ class RelevanceComponentManager(ComponentManager):
             logger.error(f"Error optimizing relevance performance: {e}")
             return {"error": str(e)}
 
-    async def validate_configuration(self) -> Dict[str, Any]:
+    async def validate_configuration(self) -> dict[str, Any]:
         """
         Validate the current system configuration including relevance components.
 
@@ -205,9 +204,7 @@ class RelevanceComponentManager(ComponentManager):
         try:
             # Add relevance-specific validation
             if self.relevance_embeddings_coordinator and not self.relevance_embeddings_coordinator._initialized:
-                validation_result["warnings"].append(
-                    "RelevanceEmbeddingsCoordinator is not initialized"
-                )
+                validation_result["warnings"].append("RelevanceEmbeddingsCoordinator is not initialized")
 
             # Check for relevance-specific configuration requirements
             # (Add specific checks as needed based on your configuration structure)
@@ -216,14 +213,13 @@ class RelevanceComponentManager(ComponentManager):
 
         except Exception as e:
             logger.error(f"Error validating relevance configuration: {e}")
-            validation_result["errors"].append(
-                f"Relevance validation error: {e}")
+            validation_result["errors"].append(f"Relevance validation error: {e}")
             validation_result["valid"] = False
             return validation_result
 
 
 # Global instance management for relevance component manager
-_relevance_component_manager: Optional[RelevanceComponentManager] = None
+_relevance_component_manager: RelevanceComponentManager | None = None
 
 
 def get_relevance_component_manager(config=None) -> RelevanceComponentManager:

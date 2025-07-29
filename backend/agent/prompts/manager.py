@@ -3,7 +3,9 @@ from pathlib import Path
 import yaml
 from langchain_core.prompts import ChatPromptTemplate
 
-from .models.prompt_structures import PromptStructure
+from app.exceptions import ValidationError
+
+from ..models.prompt_structures import PromptStructure
 
 
 class PromptManager:
@@ -12,12 +14,11 @@ class PromptManager:
     configurations from a YAML file.
     """
 
-    def __init__(self, file_path: str = "prompts.yaml"):
+    def __init__(self, file_path: str = "templates.yaml"):
         self.prompts_path = Path(__file__).parent / file_path
         self._raw_data = self._load_raw_data()
         self.domain_specific_descriptions = self._raw_data.get(
-            "domain_specific_descriptions", {}
-        )
+            "domain_specific_descriptions", {})
         self._validated_prompts = self._validate_prompts()
 
     def _load_raw_data(self) -> dict:
@@ -38,8 +39,8 @@ class PromptManager:
                 continue
             try:
                 validated[name] = PromptStructure.model_validate(data)
-            except Exception as e:
-                raise ValueError(
+            except (ValueError, TypeError, AttributeError) as e:
+                raise ValidationError(
                     f"Invalid prompt structure for '{name}': {e}") from e
         return validated
 
@@ -63,7 +64,8 @@ class PromptManager:
             raise ValueError(
                 f"Missing required parameter for prompt '{name}': {e}") from e
         except Exception as e:
-            raise ValueError(f"Failed to format prompt '{name}': {e}") from e
+            raise ValidationError(
+                f"Failed to format prompt '{name}': {e}") from e
 
     def get_domain_role_description(self, domain: str) -> str:
         """

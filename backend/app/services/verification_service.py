@@ -11,8 +11,8 @@ from uuid import uuid4
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agent.services.validation_service import validation_service
-from agent.workflow_coordinator import workflow_coordinator
+from agent.services.processing.validation_service import validation_service
+from agent.orchestration import workflow_coordinator
 from app.crud import VerificationResultCRUD
 from app.database import async_session_factory
 from app.websocket_manager import EventProgressTracker, connection_manager
@@ -57,9 +57,7 @@ class VerificationService:
         # Generate verification ID
         verification_id = str(uuid4())
 
-        logger.info(
-            f"Received verification request: {filename}, prompt: {validated_data['prompt'][:100]}..."
-        )
+        logger.info("Received verification request: %s, prompt: %s...", filename, validated_data["prompt"][:100])
 
         # If session_id provided, start WebSocket session
         if session_id and session_id in connection_manager.active_connections:
@@ -124,9 +122,7 @@ class VerificationService:
         try:
             # Create a new database session for the background task
             async with async_session_factory() as db:
-                logger.info(
-                    f"Starting background verification for session {session_id}"
-                )
+                logger.info("Starting background verification for session %s", session_id)
 
                 # Run verification with event callback
                 result = await self.coordinator.execute_verification(
@@ -138,19 +134,17 @@ class VerificationService:
                     filename=filename,
                 )
 
-                logger.info(
-                    f"Background verification completed for session {session_id}, sending result"
-                )
+                logger.info("Background verification completed for session %s, sending result", session_id)
 
                 # Explicitly commit the database transaction
                 try:
                     await db.commit()
-                    logger.info(
-                        f"Database transaction committed for session {session_id}"
-                    )
+                    logger.info("Database transaction committed for session %s", session_id)
                 except Exception as commit_error:
                     logger.error(
-                        f"Failed to commit database transaction for session {session_id}: {commit_error}",
+                        "Failed to commit database transaction for session %s: %s",
+                        session_id,
+                        commit_error,
                         exc_info=True,
                     )
                     await db.rollback()
@@ -159,26 +153,26 @@ class VerificationService:
                 # Send final result - handle any WebSocket errors separately after DB commit
                 try:
                     await event_tracker.complete(result)
-                    logger.info(
-                        f"Final result sent successfully for session {session_id}"
-                    )
+                    logger.info("Final result sent successfully for session %s", session_id)
                 except Exception as ws_error:
                     logger.error(
-                        f"Failed to send WebSocket result for session {session_id}: {ws_error}",
+                        "Failed to send WebSocket result for session %s: %s",
+                        session_id,
+                        ws_error,
                         exc_info=True,
                     )
                     # Don't raise the exception - the verification succeeded even if WebSocket failed
 
         except Exception as e:
             logger.error(
-                f"WebSocket verification failed for session {session_id}: {e}",
+                "WebSocket verification failed for session %s: %s",
+                session_id,
+                e,
                 exc_info=True,
             )
             await event_tracker.error(str(e))
 
-    async def get_verification_status(
-        self, verification_id: str, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def get_verification_status(self, verification_id: str, db: AsyncSession) -> dict[str, Any]:
         """
         Get the status and result of a verification request.
 
@@ -190,7 +184,7 @@ class VerificationService:
             Status information and verification result if completed
         """
         crud = VerificationResultCRUD(db)
-        result = await crud.get_verification_result_by_uuid(verification_id)
+        result = await crud.get_verification_result_by_id(db=db, result_id=verification_id)
 
         if not result:
             return None
@@ -221,7 +215,7 @@ class VerificationService:
                 await self.coordinator.close()
                 logger.debug("Closed workflow coordinator")
         except Exception as e:
-            logger.error(f"Error closing workflow coordinator: {e}")
+            logger.error("Error closing workflow coordinator: %s", e)
 
         logger.info("Verification service closed successfully")
 

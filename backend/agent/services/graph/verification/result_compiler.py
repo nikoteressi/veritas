@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any
 
 from agent.models.graph import FactGraph, VerificationStatus
+
 from ..graph_config import ClusterVerificationResult
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,7 @@ class ResultCompiler:
     ) -> dict[str, Any]:
         """Compile overall verification results."""
         # Count total facts processed
-        total_facts = sum(
-            len(result.individual_results) for result in successful_results
-        )
+        total_facts = sum(len(result.individual_results) for result in successful_results)
         total_facts += len(individual_results)
 
         # Count verdicts
@@ -59,14 +58,10 @@ class ResultCompiler:
                 if confidence > 0:
                     all_confidences.append(confidence)
 
-        avg_confidence = (
-            sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
-        )
+        avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
 
         # Count contradictions
-        total_contradictions = sum(
-            len(result.contradictions_found) for result in successful_results
-        )
+        total_contradictions = sum(len(result.contradictions_found) for result in successful_results)
 
         return {
             "verification_summary": {
@@ -125,9 +120,7 @@ class ResultCompiler:
             "ERROR": VerificationStatus.FAILED,
         }
 
-        node.verification_status = status_mapping.get(
-            verdict, VerificationStatus.PENDING
-        )
+        node.verification_status = status_mapping.get(verdict, VerificationStatus.PENDING)
         node.confidence_score = confidence
 
         # Update metadata
@@ -143,9 +136,7 @@ class ResultCompiler:
             }
         )
 
-    def format_cluster_summary(
-        self, result: ClusterVerificationResult
-    ) -> dict[str, Any]:
+    def format_cluster_summary(self, result: ClusterVerificationResult) -> dict[str, Any]:
         """Format a cluster result into a summary."""
         return {
             "cluster_id": result.cluster_id,
@@ -158,9 +149,7 @@ class ResultCompiler:
             "evidence_sources": len(result.supporting_evidence),
         }
 
-    def create_detailed_report(
-        self, overall_results: dict[str, Any], include_evidence: bool = False
-    ) -> dict[str, Any]:
+    def create_detailed_report(self, overall_results: dict[str, Any], include_evidence: bool = False) -> dict[str, Any]:
         """Create a detailed verification report."""
         summary = overall_results.get("verification_summary", {})
 
@@ -176,9 +165,7 @@ class ResultCompiler:
             "issues_detected": {
                 "contradictions": summary.get("contradictions_found", 0),
                 "failed_verifications": summary.get("failed_clusters", 0),
-                "low_confidence_facts": self._count_low_confidence_facts(
-                    overall_results
-                ),
+                "low_confidence_facts": self._count_low_confidence_facts(overall_results),
             },
         }
 
@@ -228,9 +215,7 @@ class ResultCompiler:
         # Check cluster results
         for cluster_result in overall_results.get("cluster_results", []):
             if isinstance(cluster_result, dict):
-                for fact_result in cluster_result.get(
-                    "individual_results", {}
-                ).values():
+                for fact_result in cluster_result.get("individual_results", {}).values():
                     if fact_result.get("confidence", 0.0) < threshold:
                         low_confidence_count += 1
 
@@ -241,9 +226,7 @@ class ResultCompiler:
 
         return low_confidence_count
 
-    def _create_evidence_summary(
-        self, overall_results: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _create_evidence_summary(self, overall_results: dict[str, Any]) -> dict[str, Any]:
         """Create summary of evidence used in verification."""
         all_sources = set()
         evidence_count = 0

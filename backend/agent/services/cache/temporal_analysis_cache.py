@@ -70,9 +70,7 @@ class TemporalAnalysisCache:
 
         logger.info("Temporal analysis cache initialized")
 
-    def _generate_cache_key(
-        self, query: str, time_window: str, analysis_type: str = "temporal"
-    ) -> str:
+    def _generate_cache_key(self, query: str, time_window: str, analysis_type: str = "temporal") -> str:
         """Generate cache key for temporal analysis."""
         combined = f"{query}|{time_window}|{analysis_type}"
         text_hash = hashlib.md5(combined.encode("utf-8")).hexdigest()
@@ -194,9 +192,7 @@ class TemporalAnalysisCache:
             activity_boost = min(recent_activity / 5.0, 0.3)  # Max 30% boost
 
             # Combine scores
-            trend_score = (
-                frequency_score * 0.4 + consistency_score * 0.4 + activity_boost * 0.2
-            )
+            trend_score = frequency_score * 0.4 + consistency_score * 0.4 + activity_boost * 0.2
             return max(min(trend_score, 1.0), 0.0)
 
         except Exception as e:
@@ -251,8 +247,7 @@ class TemporalAnalysisCache:
         temporal_factor = (
             self.recency_weight * recency_score
             + self.trend_weight * trend_score
-            + self.content_weight
-            * 1.0  # Content relevance is already factored in base_relevance
+            + self.content_weight * 1.0  # Content relevance is already factored in base_relevance
         )
 
         # Apply temporal adjustment
@@ -362,7 +357,7 @@ class TemporalAnalysisCache:
             # Half-life decay
             if half_life_days <= 0:
                 return 0.5  # Default value for invalid half-life
-            
+
             decay_factor = 0.5 ** (age_days / half_life_days)
             return max(min(decay_factor, 1.0), 0.0)
 
@@ -370,9 +365,7 @@ class TemporalAnalysisCache:
             logger.error(f"Failed to calculate time decay: {e}")
             return 0.5
 
-    def update_weights(
-        self, recency_weight: float, trend_weight: float, content_weight: float
-    ):
+    def update_weights(self, recency_weight: float, trend_weight: float, content_weight: float):
         """Update temporal analysis weights."""
         total_weight = recency_weight + trend_weight + content_weight
         if total_weight > 0:

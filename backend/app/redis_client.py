@@ -44,9 +44,7 @@ class RedisClient:
         """Initialize the async Redis connection pool."""
         if self._async_pool is None:
             try:
-                logger.info(
-                    "Initializing async Redis connection pool at %s", settings.redis_url
-                )
+                logger.info("Initializing async Redis connection pool at %s", settings.redis_url)
                 self._async_pool = AsyncConnectionPool.from_url(
                     settings.redis_url,
                     encoding="utf-8",
@@ -65,9 +63,7 @@ class RedisClient:
     def get_async_client(self) -> async_redis.Redis:
         """Get an async Redis client from the connection pool."""
         if self._async_pool is None:
-            raise ConnectionError(
-                "Async Redis connection pool is not initialized. Call init_redis() first."
-            )
+            raise ConnectionError("Async Redis connection pool is not initialized. Call init_redis() first.")
         return async_redis.Redis(connection_pool=self._async_pool)
 
     def get_client(self) -> async_redis.Redis:

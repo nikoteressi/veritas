@@ -223,36 +223,20 @@ class FactGraph:
 
     def get_node_edges(self, node_id: str) -> list[FactEdge]:
         """Get all edges connected to a node."""
-        return [
-            edge
-            for edge in self.edges.values()
-            if edge.source_id == node_id or edge.target_id == node_id
-        ]
+        return [edge for edge in self.edges.values() if edge.source_id == node_id or edge.target_id == node_id]
 
     def get_node_clusters(self, node_id: str) -> list[FactCluster]:
         """Get all clusters containing a node."""
         cluster_ids = self.node_to_clusters.get(node_id, set())
-        return [
-            self.clusters[cluster_id]
-            for cluster_id in cluster_ids
-            if cluster_id in self.clusters
-        ]
+        return [self.clusters[cluster_id] for cluster_id in cluster_ids if cluster_id in self.clusters]
 
     def get_edges_by_type(self, relationship_type: RelationshipType) -> list[FactEdge]:
         """Get all edges of a specific relationship type."""
-        return [
-            edge
-            for edge in self.edges.values()
-            if edge.relationship_type == relationship_type
-        ]
+        return [edge for edge in self.edges.values() if edge.relationship_type == relationship_type]
 
     def get_clusters_by_type(self, cluster_type: ClusterType) -> list[FactCluster]:
         """Get all clusters of a specific type."""
-        return [
-            cluster
-            for cluster in self.clusters.values()
-            if cluster.cluster_type == cluster_type
-        ]
+        return [cluster for cluster in self.clusters.values() if cluster.cluster_type == cluster_type]
 
     def remove_node(self, node_id: str):
         """Remove a node and all its edges from the graph."""
@@ -261,9 +245,7 @@ class FactGraph:
 
         # Remove all edges connected to this node
         edges_to_remove = [
-            edge_id
-            for edge_id, edge in self.edges.items()
-            if edge.source_id == node_id or edge.target_id == node_id
+            edge_id for edge_id, edge in self.edges.items() if edge.source_id == node_id or edge.target_id == node_id
         ]
         for edge_id in edges_to_remove:
             del self.edges[edge_id]
@@ -306,16 +288,9 @@ class FactGraph:
             "node_count": len(self.nodes),
             "edge_count": len(self.edges),
             "cluster_count": len(self.clusters),
-            "avg_cluster_size": (
-                sum(len(c.nodes) for c in self.clusters.values())
-                / max(len(self.clusters), 1)
-            ),
-            "relationship_types": {
-                rt.value: len(self.get_edges_by_type(rt)) for rt in RelationshipType
-            },
-            "cluster_types": {
-                ct.value: len(self.get_clusters_by_type(ct)) for ct in ClusterType
-            },
+            "avg_cluster_size": (sum(len(c.nodes) for c in self.clusters.values()) / max(len(self.clusters), 1)),
+            "relationship_types": {rt.value: len(self.get_edges_by_type(rt)) for rt in RelationshipType},
+            "cluster_types": {ct.value: len(self.get_clusters_by_type(ct)) for ct in ClusterType},
             "created_at": self.created_at.isoformat(),
         }
 

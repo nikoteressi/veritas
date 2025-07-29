@@ -9,6 +9,8 @@ import logging
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.exceptions import AgentError
+
 from ...llm import llm_manager
 from ...tools import AVAILABLE_TOOLS
 
@@ -57,14 +59,12 @@ class AgentManager:
 
         except Exception as e:
             logger.error("Failed to initialize agent: %s", e)
-            raise
+            raise AgentError(f"Failed to initialize agent: {e}") from e
 
     def get_agent_executor(self) -> AgentExecutor:
         """Get the initialized agent executor."""
         if not self._initialized or self.agent_executor is None:
-            raise RuntimeError(
-                "AgentManager not initialized. Call create_agent_manager() first."
-            )
+            raise RuntimeError("AgentManager not initialized. Call create_agent_manager() first.")
         return self.agent_executor
 
     def is_agent_ready(self) -> bool:
@@ -88,7 +88,7 @@ async def create_agent_manager() -> AgentManager:
         return manager
     except Exception as e:
         logger.error("Failed to create AgentManager: %s", e)
-        raise
+        raise AgentError(f"Failed to create AgentManager: {e}") from e
 
 
 def get_agent_manager_from_app(app) -> AgentManager:
@@ -105,13 +105,10 @@ def get_agent_manager_from_app(app) -> AgentManager:
         RuntimeError: If AgentManager is not initialized in app state
     """
     if not hasattr(app.state, "agent_manager"):
-        raise RuntimeError(
-            "AgentManager not found in app state. Ensure the app was started properly."
-        )
+        raise RuntimeError("AgentManager not found in app state. Ensure the app was started properly.")
 
     agent_manager = app.state.agent_manager
     if not agent_manager.is_agent_ready():
-        raise RuntimeError(
-            "AgentManager is not ready. Initialization may have failed.")
+        raise RuntimeError("AgentManager is not ready. Initialization may have failed.")
 
     return agent_manager

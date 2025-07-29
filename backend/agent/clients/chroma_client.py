@@ -12,6 +12,7 @@ from chromadb.api.types import CollectionMetadata, EmbeddingFunction
 
 from agent.ollama_embeddings import create_ollama_embedding_function
 from app.config import settings
+from app.exceptions import VectorStoreError
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,7 @@ class OllamaChromaClient:
 
         try:
             logger.info(
-                "Initializing ChromaDB client for server at %s:%s", self.host, self.port
-            )
+                "Initializing ChromaDB client for server at %s:%s", self.host, self.port)
 
             # Create Ollama embedding function first
             self.embedding_function = create_ollama_embedding_function()
@@ -58,30 +58,10 @@ class OllamaChromaClient:
             self._initialized = True
             logger.info("ChromaDB client initialized successfully")
 
-            # chroma_settings = Settings(
-            #     anonymized_telemetry=False,
-            #     allow_reset=True,
-            #     # Use local implementations only
-            #     chroma_api_impl="chromadb.api.segment.SegmentAPI",
-            #     chroma_sysdb_impl="chromadb.db.impl.sqlite.SqliteDB",
-            #     chroma_producer_impl="chromadb.db.impl.sqlite.SqliteDB",
-            #     chroma_consumer_impl="chromadb.db.impl.sqlite.SqliteDB",
-            #     chroma_segment_manager_impl="chromadb.segment.impl.manager.local.LocalSegmentManager"
-            # )
-
-            # Create persistent client
-            # self.client = chromadb.PersistentClient(
-            #     path=self.persist_directory,
-            #     settings=chroma_settings
-            # )
-
-            # self._initialized = True
-            # logger.info("ChromaDB client initialized successfully")
-
         except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB client: {e}")
             self._initialized = False
-            raise
+            raise VectorStoreError(
+                f"Failed to initialize ChromaDB client: {e}") from e
 
     def get_collection(self, name: str):
         """
@@ -121,9 +101,7 @@ class OllamaChromaClient:
             embedding_function=self.embedding_function,
         )
 
-    def get_or_create_collection(
-        self, name: str, metadata: CollectionMetadata | None = None
-    ):
+    def get_or_create_collection(self, name: str, metadata: CollectionMetadata | None = None):
         """
         Get or create a collection with Ollama embedding function.
 

@@ -11,15 +11,13 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from app.config import settings
-
 from agent.models.graph import FactCluster, FactGraph, FactNode
 from agent.models.verification_context import VerificationContext
-from agent.ollama_embeddings import OllamaEmbeddingFunction
-from agent.prompt_manager import PromptManager
+from agent.llm.embeddings import OllamaEmbeddingFunction
+from agent.prompts import PromptManager
+from app.config import settings
 
 from ..graph_config import ClusterVerificationResult, VerificationConfig
-
 from .cluster_analyzer import ClusterAnalyzer
 from .evidence_gatherer import EnhancedEvidenceGatherer
 from .response_parser import ResponseParser
@@ -57,11 +55,8 @@ class EnhancedGraphVerificationEngine:
         self.logger = logging.getLogger(__name__)
 
         # Initialize enhanced verification modules
-        self.evidence_gatherer = EnhancedEvidenceGatherer(
-            search_tool, self.config)
-        self.source_manager = EnhancedSourceManager(
-            max_concurrent_scrapes=self.config.max_concurrent_scrapes
-        )
+        self.evidence_gatherer = EnhancedEvidenceGatherer(search_tool, self.config)
+        self.source_manager = EnhancedSourceManager(max_concurrent_scrapes=self.config.max_concurrent_scrapes)
         self.verification_processor = EnhancedVerificationProcessor()
         self.cluster_analyzer = ClusterAnalyzer()
         self.result_compiler = ResultCompiler()
@@ -69,10 +64,7 @@ class EnhancedGraphVerificationEngine:
 
         # Initialize cache manager
         self.cache_manager = CacheManager(
-            max_size=(
-                self.config.cache_size if hasattr(
-                    self.config, "cache_size") else 1000
-            ),
+            max_size=(self.config.cache_size if hasattr(self.config, "cache_size") else 1000),
             ttl_seconds=3600,
         )
 
@@ -89,13 +81,9 @@ class EnhancedGraphVerificationEngine:
 
         # Memory optimization: trigger garbage collection after initialization
         gc.collect()
-        self.logger.debug(
-            "Memory cleanup completed after GraphVerificationEngine initialization"
-        )
+        self.logger.debug("Memory cleanup completed after GraphVerificationEngine initialization")
 
-    async def verify_graph(
-        self, graph: FactGraph, context: VerificationContext
-    ) -> dict[str, Any]:
+    async def verify_graph(self, graph: FactGraph, context: VerificationContext) -> dict[str, Any]:
         """
         Verify all clusters in a fact graph with enhanced performance monitoring.
 
@@ -107,10 +95,7 @@ class EnhancedGraphVerificationEngine:
             Dict containing overall verification results with performance metrics
         """
         start_time = datetime.now()
-        self.logger.info(
-            "Starting enhanced graph verification with %d clusters", len(
-                graph.clusters)
-        )
+        self.logger.info("Starting enhanced graph verification with %d clusters", len(graph.clusters))
 
         # Update performance metrics
         self.performance_metrics["total_verifications"] += 1
@@ -124,10 +109,7 @@ class EnhancedGraphVerificationEngine:
             async with semaphore:
                 return await self.verify_cluster(cluster, graph, context)
 
-        cluster_tasks = [
-            verify_cluster_with_semaphore(cluster)
-            for cluster in graph.clusters.values()
-        ]
+        cluster_tasks = [verify_cluster_with_semaphore(cluster) for cluster in graph.clusters.values()]
 
         cluster_results = await asyncio.gather(*cluster_tasks, return_exceptions=True)
 
@@ -138,8 +120,7 @@ class EnhancedGraphVerificationEngine:
         for i, result in enumerate(cluster_results):
             if isinstance(result, Exception):
                 cluster_id = list(graph.clusters.keys())[i]
-                self.logger.error(
-                    "Failed to verify cluster %s: %s", cluster_id, result)
+                self.logger.error("Failed to verify cluster %s: %s", cluster_id, result)
                 failed_clusters.append(cluster_id)
                 self.performance_metrics["error_count"] += 1
             else:
@@ -151,13 +132,9 @@ class EnhancedGraphVerificationEngine:
 
         if individual_nodes:
             individual_tasks = [
-                self.verification_processor.verify_individual_node(
-                    node, context)
-                for node in individual_nodes
+                self.verification_processor.verify_individual_node(node, context) for node in individual_nodes
             ]
-            individual_results = await asyncio.gather(
-                *individual_tasks, return_exceptions=True
-            )
+            individual_results = await asyncio.gather(*individual_tasks, return_exceptions=True)
             # Filter out exceptions and count errors
             filtered_results = []
             for result in individual_results:
@@ -179,13 +156,9 @@ class EnhancedGraphVerificationEngine:
         overall_result["performance_metrics"] = await self.get_performance_metrics()
 
         # Update graph with verification results
-        await self.result_compiler.update_graph_with_results(
-            graph, successful_results, individual_results
-        )
+        await self.result_compiler.update_graph_with_results(graph, successful_results, individual_results)
 
-        self.logger.info(
-            "Enhanced graph verification completed in %.2fs", verification_time
-        )
+        self.logger.info("Enhanced graph verification completed in %.2fs", verification_time)
         return overall_result
 
     async def verify_cluster(
@@ -211,9 +184,7 @@ class EnhancedGraphVerificationEngine:
 
         try:
             # Step 1: Gather evidence for the cluster
-            evidence = await self.evidence_gatherer.gather_cluster_evidence(
-                cluster, context
-            )
+            evidence = await self.evidence_gatherer.gather_cluster_evidence(cluster, context)
 
             # Step 1.5: Extract and scrape credible sources from evidence
             credible_urls = set()
@@ -231,9 +202,7 @@ class EnhancedGraphVerificationEngine:
                 )
 
                 # Scrape the credible sources
-                scraped_content = await self.source_manager.scrape_sources_batch(
-                    credible_urls_list
-                )
+                scraped_content = await self.source_manager.scrape_sources_batch(credible_urls_list)
 
                 # Log summary instead of full content to prevent BlockingIOError
                 content_summary = {
@@ -244,8 +213,7 @@ class EnhancedGraphVerificationEngine:
                     )
                     for url, content in scraped_content.items()
                 }
-                self.logger.info(
-                    "Scraped content summary: %s", content_summary)
+                self.logger.info("Scraped content summary: %s", content_summary)
 
                 self.logger.info(
                     "Successfully scraped %d sources for cluster %s",
@@ -263,34 +231,24 @@ class EnhancedGraphVerificationEngine:
                     if "query" in evidence_item:
                         cluster_queries.append(evidence_item["query"])
 
-                enriched_evidence = (
-                    await self.source_manager.filter_evidence_for_cluster(
-                        cluster_queries, scraped_content
-                    )
+                enriched_evidence = await self.source_manager.filter_evidence_for_cluster(
+                    cluster_queries, scraped_content
                 )
 
                 # Log summary of enriched evidence to prevent BlockingIOError
                 evidence_summary = f"Enriched evidence: {len(enriched_evidence)} items"
                 if enriched_evidence:
-                    first_keys = (
-                        list(enriched_evidence[0].keys())
-                        if enriched_evidence[0]
-                        else "empty"
-                    )
+                    first_keys = list(enriched_evidence[0].keys()) if enriched_evidence[0] else "empty"
                     evidence_summary += f", first item keys: {first_keys}"
                 self.logger.info(evidence_summary)
 
                 # Combine original evidence with scraped content
                 evidence.extend(enriched_evidence)
             else:
-                self.logger.warning(
-                    "No credible sources found for cluster %s", cluster.id
-                )
+                self.logger.warning("No credible sources found for cluster %s", cluster.id)
 
             # Step 2: Verify individual facts within cluster context
-            individual_results = await self.verification_processor.verify_cluster_facts(
-                cluster, evidence, context
-            )
+            individual_results = await self.verification_processor.verify_cluster_facts(cluster, evidence, context)
 
             # Log summary of individual results to prevent BlockingIOError
             results_summary = f"Individual results: {len(individual_results)} items"
@@ -307,25 +265,19 @@ class EnhancedGraphVerificationEngine:
             # Step 3: Cross-verify facts against each other
             cross_verification_results = []
             if self.config.enable_cross_verification:
-                cross_verification_results = (
-                    await self.cluster_analyzer.cross_verify_cluster_facts(
-                        cluster, individual_results, evidence
-                    )
+                cross_verification_results = await self.cluster_analyzer.cross_verify_cluster_facts(
+                    cluster, individual_results, evidence
                 )
 
             # Log summary of cross-verification results to prevent BlockingIOError
-            cross_summary = (
-                f"Cross-verification results: {len(cross_verification_results)} items"
-            )
+            cross_summary = f"Cross-verification results: {len(cross_verification_results)} items"
             self.logger.info(cross_summary)
 
             # Step 4: Detect contradictions
             contradictions = []
             if self.config.enable_contradiction_detection:
-                contradictions = (
-                    await self.cluster_analyzer.detect_cluster_contradictions(
-                        cluster, individual_results, graph
-                    )
+                contradictions = await self.cluster_analyzer.detect_cluster_contradictions(
+                    cluster, individual_results, graph
                 )
 
             # Log summary of contradictions to prevent BlockingIOError
@@ -387,8 +339,7 @@ class EnhancedGraphVerificationEngine:
                 cross_verification_results=[],
                 contradictions_found=[],
                 supporting_evidence=[],
-                verification_time=(
-                    datetime.now() - start_time).total_seconds(),
+                verification_time=(datetime.now() - start_time).total_seconds(),
                 metadata={"error": str(e), "engine_version": "modular_v1.0"},
             )
 
@@ -402,19 +353,14 @@ class EnhancedGraphVerificationEngine:
         while using the new modular architecture.
         """
         try:
-            self.logger.info(
-                "Starting modular batch verification for %d clusters", len(
-                    clusters)
-            )
+            self.logger.info("Starting modular batch verification for %d clusters", len(clusters))
 
             # Step 1: Generate search queries for all clusters
             all_search_queries = []
             cluster_queries_map = {}
 
             for cluster in clusters:
-                search_queries = (
-                    await self.evidence_gatherer.create_cluster_search_queries(cluster)
-                )
+                search_queries = await self.evidence_gatherer.create_cluster_search_queries(cluster)
                 cluster_queries_map[cluster.id] = search_queries
                 all_search_queries.extend(search_queries)
 
@@ -424,34 +370,22 @@ class EnhancedGraphVerificationEngine:
             )
 
             # Step 2: Execute batch search
-            search_results = await self.evidence_gatherer.execute_searches_batch(
-                all_search_queries
-            )
+            search_results = await self.evidence_gatherer.execute_searches_batch(all_search_queries)
 
             # Step 3: Select credible sources
             all_claims = []
             for cluster in clusters:
                 all_claims.extend([node.claim for node in cluster.nodes])
 
-            combined_claim = (
-                f"Multiple claims verification: {'; '.join(all_claims[:5])}"
-            )
-            credible_urls = await self.evidence_gatherer.select_credible_sources_batch(
-                combined_claim, search_results
-            )
+            combined_claim = f"Multiple claims verification: {'; '.join(all_claims[:5])}"
+            credible_urls = await self.evidence_gatherer.select_credible_sources_batch(combined_claim, search_results)
 
-            self.logger.info(
-                "Selected %s credible sources for batch scraping", len(
-                    credible_urls)
-            )
+            self.logger.info("Selected %s credible sources for batch scraping", len(credible_urls))
 
             # Step 4: Scrape sources
-            scraped_content = await self.source_manager.scrape_sources_batch(
-                credible_urls
-            )
+            scraped_content = await self.source_manager.scrape_sources_batch(credible_urls)
 
-            self.logger.info("Successfully scraped %d sources",
-                             len(scraped_content))
+            self.logger.info("Successfully scraped %d sources", len(scraped_content))
 
             # Memory optimization: trigger garbage collection after batch scraping
             gc.collect()
@@ -464,17 +398,13 @@ class EnhancedGraphVerificationEngine:
                 try:
                     # Filter evidence for this cluster
                     cluster_queries = cluster_queries_map.get(cluster.id, [])
-                    cluster_evidence = (
-                        await self.source_manager.filter_evidence_for_cluster(
-                            cluster_queries, scraped_content
-                        )
+                    cluster_evidence = await self.source_manager.filter_evidence_for_cluster(
+                        cluster_queries, scraped_content
                     )
 
                     # Verify cluster facts
-                    cluster_results = (
-                        await self.verification_processor.verify_cluster_facts(
-                            cluster, cluster_evidence, context
-                        )
+                    cluster_results = await self.verification_processor.verify_cluster_facts(
+                        cluster, cluster_evidence, context
                     )
 
                     all_results.update(cluster_results)
@@ -486,8 +416,7 @@ class EnhancedGraphVerificationEngine:
                     )
 
                 except (OSError, ValueError, KeyError, RuntimeError) as e:
-                    self.logger.error(
-                        "Failed to verify cluster %s: %s", cluster.id, e)
+                    self.logger.error("Failed to verify cluster %s: %s", cluster.id, e)
                     # Add error results for all nodes in this cluster
                     for node in cluster.nodes:
                         all_results[node.id] = {
@@ -544,9 +473,7 @@ class EnhancedGraphVerificationEngine:
         context: VerificationContext,
     ) -> dict[str, dict[str, Any]]:
         """Legacy method - delegates to verification processor."""
-        return await self.verification_processor.verify_cluster_facts(
-            cluster, evidence, context
-        )
+        return await self.verification_processor.verify_cluster_facts(cluster, evidence, context)
 
     async def _cross_verify_cluster_facts(
         self,
@@ -555,9 +482,7 @@ class EnhancedGraphVerificationEngine:
         evidence: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """Legacy method - delegates to cluster analyzer."""
-        return await self.cluster_analyzer.cross_verify_cluster_facts(
-            cluster, individual_results, evidence
-        )
+        return await self.cluster_analyzer.cross_verify_cluster_facts(cluster, individual_results, evidence)
 
     async def _detect_cluster_contradictions(
         self,
@@ -566,9 +491,7 @@ class EnhancedGraphVerificationEngine:
         graph: FactGraph,
     ) -> list[dict[str, Any]]:
         """Legacy method - delegates to cluster analyzer."""
-        return await self.cluster_analyzer.detect_cluster_contradictions(
-            cluster, individual_results, graph
-        )
+        return await self.cluster_analyzer.detect_cluster_contradictions(cluster, individual_results, graph)
 
     def _compile_cluster_verdict(
         self,
@@ -593,25 +516,19 @@ class EnhancedGraphVerificationEngine:
         # Get metrics from individual components
         evidence_metrics = await self.evidence_gatherer.get_cache_stats()
         source_metrics = await self.source_manager.get_cache_stats()
-        verification_metrics = (
-            await self.verification_processor.get_performance_metrics()
-        )
+        verification_metrics = await self.verification_processor.get_performance_metrics()
 
         # Calculate engine-level metrics
-        avg_verification_time = self.performance_metrics[
-            "total_verification_time"
-        ] / max(1, self.performance_metrics["total_verifications"])
-
-        error_rate = self.performance_metrics["error_count"] / max(
+        avg_verification_time = self.performance_metrics["total_verification_time"] / max(
             1, self.performance_metrics["total_verifications"]
         )
+
+        error_rate = self.performance_metrics["error_count"] / max(1, self.performance_metrics["total_verifications"])
 
         return {
             "engine_metrics": {
                 "total_verifications": self.performance_metrics["total_verifications"],
-                "total_verification_time": self.performance_metrics[
-                    "total_verification_time"
-                ],
+                "total_verification_time": self.performance_metrics["total_verification_time"],
                 "average_verification_time": avg_verification_time,
                 "error_count": self.performance_metrics["error_count"],
                 "error_rate": error_rate,
@@ -647,16 +564,13 @@ class EnhancedGraphVerificationEngine:
         evidence_recommendations = await self.evidence_gatherer.optimize_performance()
         # source_manager doesn't return recommendations
         await self.source_manager.optimize_cache()
-        verification_recommendations = (
-            await self.verification_processor.optimize_performance()
-        )
+        verification_recommendations = await self.verification_processor.optimize_performance()
 
         # Engine-level optimizations
         engine_recommendations = []
 
         # Check if cache needs resizing
-        cache_usage = len(self.cache_manager.cache) / \
-            self.cache_manager.max_size
+        cache_usage = len(self.cache_manager.cache) / self.cache_manager.max_size
         if cache_usage > 0.9:
             engine_recommendations.append("Consider increasing cache size")
         elif cache_usage < 0.1:
@@ -664,14 +578,9 @@ class EnhancedGraphVerificationEngine:
 
         # Check error rate
         if self.performance_metrics["total_verifications"] > 0:
-            error_rate = (
-                self.performance_metrics["error_count"]
-                / self.performance_metrics["total_verifications"]
-            )
+            error_rate = self.performance_metrics["error_count"] / self.performance_metrics["total_verifications"]
             if error_rate > 0.1:
-                engine_recommendations.append(
-                    "High error rate detected - review configuration"
-                )
+                engine_recommendations.append("High error rate detected - review configuration")
 
         all_recommendations = {
             "engine": engine_recommendations,
@@ -704,18 +613,15 @@ class EnhancedGraphVerificationEngine:
         # Close enhanced components
         if hasattr(self, "verification_processor") and self.verification_processor:
             await self.verification_processor.close()
-            logger.info(
-                "EnhancedGraphVerificationEngine: VerificationProcessor closed")
+            logger.info("EnhancedGraphVerificationEngine: VerificationProcessor closed")
 
         if hasattr(self, "source_manager") and self.source_manager:
             await self.source_manager.close()
-            logger.info(
-                "EnhancedGraphVerificationEngine: SourceManager closed")
+            logger.info("EnhancedGraphVerificationEngine: SourceManager closed")
 
         if hasattr(self, "evidence_gatherer") and self.evidence_gatherer:
             await self.evidence_gatherer.close()
-            logger.info(
-                "EnhancedGraphVerificationEngine: EvidenceGatherer closed")
+            logger.info("EnhancedGraphVerificationEngine: EvidenceGatherer closed")
 
         # Clear all caches
         if hasattr(self, "cache_manager") and self.cache_manager:

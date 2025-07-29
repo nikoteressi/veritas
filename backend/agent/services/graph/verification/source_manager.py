@@ -12,12 +12,10 @@ import re
 from collections import Counter
 from typing import Any
 
-from app.config import settings
-
 from ...analysis.adaptive_thresholds import get_adaptive_thresholds
 from ...cache.intelligent_cache import IntelligentCache
-from ...relevance.relevance_orchestrator import get_relevance_manager
 from ...infrastructure.web_scraper import WebScraper
+from ...relevance.relevance_orchestrator import get_relevance_manager
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +29,7 @@ class EnhancedSourceManager:
         Args:
             max_concurrent_scrapes: Maximum number of concurrent scraping operations (default: 3)
         """
-        self.web_scraper = WebScraper(
-            max_concurrent_scrapes=max_concurrent_scrapes)
+        self.web_scraper = WebScraper(max_concurrent_scrapes=max_concurrent_scrapes)
 
         # Use IntelligentCache instead of simple dict
         self.cache = IntelligentCache(max_memory_size=1000)
@@ -101,44 +98,32 @@ class EnhancedSourceManager:
         """Ensure relevance manager is initialized."""
         if not self._relevance_initialized:
             try:
-                logger.info(
-                    "Getting relevance manager singleton for source manager...")
+                logger.info("Getting relevance manager singleton for source manager...")
                 self.relevance_manager = get_relevance_manager()
 
                 # Check if the singleton is already initialized
                 if self.relevance_manager.is_initialized:
-                    logger.info(
-                        "Relevance manager singleton already initialized, using existing instance"
-                    )
+                    logger.info("Relevance manager singleton already initialized, using existing instance")
                     self._relevance_initialized = True
                 else:
                     # Initialize the relevance manager only if not already initialized
-                    logger.info(
-                        "Initializing relevance manager singleton...")
+                    logger.info("Initializing relevance manager singleton...")
                     initialization_success = await self.relevance_manager.initialize()
 
                     if initialization_success:
                         self._relevance_initialized = True
-                        logger.info(
-                            "Relevance manager singleton initialized successfully"
-                        )
+                        logger.info("Relevance manager singleton initialized successfully")
                     else:
-                        logger.warning(
-                            "Relevance manager could not be initialized (Ollama not available)"
-                        )
+                        logger.warning("Relevance manager could not be initialized (Ollama not available)")
                         self.relevance_manager = None
                         self._relevance_initialized = False
 
             except (ConnectionError, TimeoutError) as e:
-                logger.error(
-                    "Failed to initialize relevance manager for source manager: %s", e
-                )
+                logger.error("Failed to initialize relevance manager for source manager: %s", e)
                 self.relevance_manager = None
                 self._relevance_initialized = False
 
-    async def scrape_sources_batch(
-        self, urls: list[str], query_context: str | None = None
-    ) -> dict[str, str]:
+    async def scrape_sources_batch(self, urls: list[str], query_context: str | None = None) -> dict[str, str]:
         """
         Scrape multiple URLs concurrently with intelligent caching.
 
@@ -171,8 +156,7 @@ class EnhancedSourceManager:
                     urls_to_scrape.append(url)
 
             except (ConnectionError, TimeoutError) as e:
-                logger.error(
-                    "Error checking cache for URL %s: %s", url, str(e))
+                logger.error("Error checking cache for URL %s: %s", url, str(e))
                 urls_to_scrape.append(url)
 
         # Second pass: Scrape all non-cached URLs concurrently
@@ -189,9 +173,7 @@ class EnhancedSourceManager:
                         continue
 
                     try:
-                        if scrape_result.get(
-                            "status"
-                        ) == "success" and scrape_result.get("content"):
+                        if scrape_result.get("status") == "success" and scrape_result.get("content"):
                             content = scrape_result["content"]
 
                             # Store in intelligent cache with context
@@ -211,22 +193,14 @@ class EnhancedSourceManager:
                             )
 
                             results[url] = content
-                            logger.debug(
-                                "Successfully scraped and cached: %s", url)
+                            logger.debug("Successfully scraped and cached: %s", url)
                         else:
-                            error_msg = scrape_result.get(
-                                "error_message", "Unknown error"
-                            )
-                            logger.warning(
-                                "Failed to scrape URL %s: %s", url, error_msg
-                            )
+                            error_msg = scrape_result.get("error_message", "Unknown error")
+                            logger.warning("Failed to scrape URL %s: %s", url, error_msg)
                             results[url] = f"Failed to scrape: {error_msg}"
 
                     except (ConnectionError, TimeoutError) as e:
-                        logger.error(
-                            "Error processing scrape result for URL %s: %s", url, str(
-                                e)
-                        )
+                        logger.error("Error processing scrape result for URL %s: %s", url, str(e))
                         results[url] = f"Failed to scrape: {str(e)}"
 
             except (ConnectionError, TimeoutError) as e:
@@ -236,9 +210,7 @@ class EnhancedSourceManager:
                     results[url] = f"Failed to scrape: {str(e)}"
 
         cache_hit_rate = cache_hits / len(urls) if urls else 0
-        successful_scrapes = len(
-            [r for r in results.values() if r and not r.startswith("Failed to scrape")]
-        )
+        successful_scrapes = len([r for r in results.values() if r and not r.startswith("Failed to scrape")])
         logger.info(
             "Batch scraping completed. Cache hit rate: %.2f%%. Successfully scraped %d out of %d URLs",
             cache_hit_rate * 100,
@@ -281,9 +253,7 @@ class EnhancedSourceManager:
             return float(cached_score)
 
         # Enhanced relevance calculation
-        score = await self._calculate_enhanced_relevance(
-            content, query, source_type, query_type
-        )
+        score = await self._calculate_enhanced_relevance(content, query, source_type, query_type)
 
         # Cache the result
         # 30 minutes TTL
@@ -291,9 +261,7 @@ class EnhancedSourceManager:
 
         return score
 
-    async def _calculate_enhanced_relevance(
-        self, content: str, query: str, source_type: str, query_type: str
-    ) -> float:
+    async def _calculate_enhanced_relevance(self, content: str, query: str, source_type: str, query_type: str) -> float:
         """Calculate enhanced relevance score with multiple factors."""
         content_lower = content.lower()
         query_lower = query.lower()
@@ -309,12 +277,10 @@ class EnhancedSourceManager:
         phrase_score = self._calculate_phrase_score(content_lower, query_lower)
 
         # 2. Keyword frequency and density
-        keyword_score = self._calculate_keyword_score(
-            content_words, query_words)
+        keyword_score = self._calculate_keyword_score(content_words, query_words)
 
         # 3. Semantic proximity (word co-occurrence)
-        proximity_score = self._calculate_proximity_score(
-            content_words, query_words)
+        proximity_score = self._calculate_proximity_score(content_words, query_words)
 
         # 4. Content structure analysis
         structure_score = self._calculate_structure_score(content, query_words)
@@ -324,10 +290,7 @@ class EnhancedSourceManager:
 
         # Combine scores with weights
         combined_score = (
-            phrase_score * 0.35
-            + keyword_score * 0.25
-            + proximity_score * 0.20
-            + structure_score * 0.20
+            phrase_score * 0.35 + keyword_score * 0.25 + proximity_score * 0.20 + structure_score * 0.20
         ) * source_weight
 
         # Apply adaptive thresholds
@@ -367,17 +330,13 @@ class EnhancedSourceManager:
         # Check for partial phrase matches
         query_words = query.split()
         if len(query_words) > 1:
-            phrases = [
-                " ".join(query_words[i: i + 2]) for i in range(len(query_words) - 1)
-            ]
+            phrases = [" ".join(query_words[i : i + 2]) for i in range(len(query_words) - 1)]
             matches = sum(1 for phrase in phrases if phrase in content)
             return matches / len(phrases)
 
         return 0.0
 
-    def _calculate_keyword_score(
-        self, content_words: list[str], query_words: list[str]
-    ) -> float:
+    def _calculate_keyword_score(self, content_words: list[str], query_words: list[str]) -> float:
         """Calculate score based on keyword frequency and density."""
         if not query_words or not content_words:
             return 0.0
@@ -396,9 +355,7 @@ class EnhancedSourceManager:
 
         return min(1.0, score / len(query_words))
 
-    def _calculate_proximity_score(
-        self, content_words: list[str], query_words: list[str]
-    ) -> float:
+    def _calculate_proximity_score(self, content_words: list[str], query_words: list[str]) -> float:
         """Calculate score based on word proximity in content."""
         if not query_words or not content_words:
             return 0.0
@@ -419,15 +376,11 @@ class EnhancedSourceManager:
         words_found = list(word_positions.keys())
 
         for i, word1 in enumerate(words_found):
-            for word2 in words_found[i + 1:]:
+            for word2 in words_found[i + 1 :]:
                 word1_positions = word_positions[word1]
                 word2_positions = word_positions[word2]
 
-                min_distance = min(
-                    abs(pos1 - pos2)
-                    for pos1 in word1_positions
-                    for pos2 in word2_positions
-                )
+                min_distance = min(abs(pos1 - pos2) for pos1 in word1_positions for pos2 in word2_positions)
                 distances.append(min_distance)
 
         if distances:
@@ -471,9 +424,7 @@ class EnhancedSourceManager:
         }
         return weights.get(source_type, 1.0)
 
-    def extract_sources_from_search_results(
-        self, search_results: list[dict[str, Any]]
-    ) -> set[str]:
+    def extract_sources_from_search_results(self, search_results: list[dict[str, Any]]) -> set[str]:
         """Extract unique source URLs from search results."""
         sources = set()
 
@@ -521,28 +472,22 @@ class EnhancedSourceManager:
                 try:
                     # Use comprehensive relevance analysis
                     logger.debug(
-                        f"About to call calculate_comprehensive_relevance from source_manager for URL: {url[:50]}")
+                        f"About to call calculate_comprehensive_relevance from source_manager for URL: {url[:50]}"
+                    )
                     logger.debug(f"Query: {' '.join(cluster_queries)[:100]}")
                     logger.debug(f"Content length: {len(content)}")
 
-                    relevance_result = (
-                        await self.relevance_manager.calculate_comprehensive_relevance(
-                            query=" ".join(cluster_queries),
-                            document=content,
-                            metadata=[
-                                {"url": url, "timestamp": "now"}],
-                        )
+                    relevance_result = await self.relevance_manager.calculate_comprehensive_relevance(
+                        query=" ".join(cluster_queries),
+                        document=content,
+                        metadata=[{"url": url, "timestamp": "now"}],
                     )
 
-                    logger.debug(
-                        f"Got relevance_result type: {type(relevance_result)}")
-                    logger.debug(
-                        f"Is relevance_result a coroutine? {asyncio.iscoroutine(relevance_result)}")
+                    logger.debug(f"Got relevance_result type: {type(relevance_result)}")
+                    logger.debug(f"Is relevance_result a coroutine? {asyncio.iscoroutine(relevance_result)}")
                     if asyncio.iscoroutine(relevance_result):
-                        logger.error(
-                            "ERROR: relevance_result is still a coroutine!")
-                        raise RuntimeError(
-                            "relevance_result is a coroutine instead of a result")
+                        logger.error("ERROR: relevance_result is still a coroutine!")
+                        raise RuntimeError("relevance_result is a coroutine instead of a result")
                     # Extract the combined score from the relevance result
                     if relevance_result and "scores" in relevance_result and relevance_result["scores"]:
                         relevance_score = relevance_result["scores"][0]["combined_score"]
@@ -559,17 +504,12 @@ class EnhancedSourceManager:
                         url,
                         e,
                     )
-                    relevance_score = await self._calculate_relevance_fallback(
-                        cluster_queries, content
-                    )
+                    relevance_score = await self._calculate_relevance_fallback(cluster_queries, content)
             else:
                 # Fallback to basic calculation
-                relevance_score = await self._calculate_relevance_fallback(
-                    cluster_queries, content
-                )
+                relevance_score = await self._calculate_relevance_fallback(cluster_queries, content)
 
-            logger.debug("URL: %s - Relevance score: %.4f",
-                         url[:50], relevance_score)
+            logger.debug("URL: %s - Relevance score: %.4f", url[:50], relevance_score)
 
             # Use adaptive threshold
             threshold = await self.adaptive_thresholds.get_adaptive_threshold(
@@ -611,21 +551,15 @@ class EnhancedSourceManager:
         limited_evidence = evidence[:10]
 
         if len(evidence) > 10:
-            logger.info(
-                "Limited evidence to top 10 sources (from %d)", len(evidence))
+            logger.info("Limited evidence to top 10 sources (from %d)", len(evidence))
 
         logger.info("Final evidence count: %d", len(limited_evidence))
         for i, ev in enumerate(limited_evidence):
-            logger.info(
-                "Evidence %d: %s (score: %.4f)", i +
-                1, ev["url"], ev["relevance_score"]
-            )
+            logger.info("Evidence %d: %s (score: %.4f)", i + 1, ev["url"], ev["relevance_score"])
 
         return limited_evidence
 
-    async def _calculate_relevance_fallback(
-        self, queries: list[str], content: str
-    ) -> float:
+    async def _calculate_relevance_fallback(self, queries: list[str], content: str) -> float:
         """Fallback relevance calculation method (improved version of the original)."""
         if not queries or not content:
             return 0.0
@@ -634,19 +568,11 @@ class EnhancedSourceManager:
         content_lower = content.lower()
 
         total_score = 0.0
-        content_words = [
-            word
-            for word in content_lower.split()
-            if word not in self.stop_words and len(word) > 2
-        ]
+        content_words = [word for word in content_lower.split() if word not in self.stop_words and len(word) > 2]
 
         for query in queries:
             query_lower = query.lower()
-            query_words = [
-                word
-                for word in query_lower.split()
-                if word not in self.stop_words and len(word) > 2
-            ]
+            query_words = [word for word in query_lower.split() if word not in self.stop_words and len(word) > 2]
 
             if not query_words:
                 continue
@@ -663,8 +589,7 @@ class EnhancedSourceManager:
                     # Count occurrences
                     word_count = content_lower.count(word)
                     # Calculate term frequency
-                    tf = word_count / \
-                        len(content_words) if content_words else 0
+                    tf = word_count / len(content_words) if content_words else 0
                     # Simple inverse document frequency approximation
                     # Rare words get higher scores
                     idf = 1.0 / (1.0 + word_count * 0.1)
@@ -677,14 +602,9 @@ class EnhancedSourceManager:
             partial_scores = []
             for word in query_words:
                 partial_matches = sum(
-                    1
-                    for content_word in content_words
-                    if word in content_word or content_word in word
+                    1 for content_word in content_words if word in content_word or content_word in word
                 )
-                partial_score = (
-                    partial_matches /
-                    len(content_words) if content_words else 0
-                )
+                partial_score = partial_matches / len(content_words) if content_words else 0
                 # Lower weight for partial matches
                 partial_scores.append(partial_score * 0.5)
 
@@ -704,12 +624,8 @@ class EnhancedSourceManager:
                             proximity_score += 1.0 / (1.0 + distance * 0.01)
 
             # Combine scores with weights
-            avg_word_score = sum(word_scores) / \
-                len(word_scores) if word_scores else 0
-            avg_partial_score = (
-                sum(partial_scores) /
-                len(partial_scores) if partial_scores else 0
-            )
+            avg_word_score = sum(word_scores) / len(word_scores) if word_scores else 0
+            avg_partial_score = sum(partial_scores) / len(partial_scores) if partial_scores else 0
 
             query_score = (
                 phrase_score * 0.4  # Exact phrase: 40%

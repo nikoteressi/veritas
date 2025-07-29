@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any
 
+from app.exceptions import CacheError
 from .intelligent_cache import get_embedding_cache, get_verification_cache
 
 logger = logging.getLogger(__name__)
@@ -54,9 +55,7 @@ class CacheMonitor:
 
             # Keep only last 100 measurements to prevent memory bloat
             if len(self._monitoring_data[cache_name]) > 100:
-                self._monitoring_data[cache_name] = self._monitoring_data[cache_name][
-                    -100:
-                ]
+                self._monitoring_data[cache_name] = self._monitoring_data[cache_name][-100:]
 
         return metrics
 
@@ -88,7 +87,8 @@ class CacheMonitor:
             report += f"  Performance Grade: {performance_grade}\n"
 
             # Recommendations
-            recommendations = self._generate_recommendations(cache_name, cache_stats)
+            recommendations = self._generate_recommendations(
+                cache_name, cache_stats)
             if recommendations:
                 report += "  Recommendations:\n"
                 for rec in recommendations:
@@ -122,9 +122,7 @@ class CacheMonitor:
         else:
             return "F (Critical)"
 
-    def _generate_recommendations(
-        self, cache_name: str, cache_stats: dict[str, Any]
-    ) -> list[str]:
+    def _generate_recommendations(self, cache_name: str, cache_stats: dict[str, Any]) -> list[str]:
         """Generate optimization recommendations for specific cache."""
         recommendations = []
 
@@ -135,43 +133,35 @@ class CacheMonitor:
         # Hit rate recommendations
         if hit_rate < 0.6:
             recommendations.append(
-                "Low hit rate detected. Consider increasing cache size or TTL values."
-            )
+                "Low hit rate detected. Consider increasing cache size or TTL values.")
 
         if hit_rate < 0.4:
             recommendations.append(
-                "Critical hit rate. Review caching strategy and key patterns."
-            )
+                "Critical hit rate. Review caching strategy and key patterns.")
 
         # Cache size recommendations
         if cache_size > 10000:
             recommendations.append(
-                "Large cache size. Consider implementing more aggressive eviction policies."
-            )
+                "Large cache size. Consider implementing more aggressive eviction policies.")
 
         if cache_size < 100 and total_requests > 1000:
             recommendations.append(
-                "Cache size may be too small for request volume. Consider increasing capacity."
-            )
+                "Cache size may be too small for request volume. Consider increasing capacity.")
 
         # Cache-specific recommendations
         if cache_name == "embedding_cache":
             if hit_rate < 0.7:
                 recommendations.append(
-                    "Consider implementing semantic similarity search for embeddings."
-                )
+                    "Consider implementing semantic similarity search for embeddings.")
 
         elif cache_name == "verification_cache":
             if hit_rate < 0.8:
                 recommendations.append(
-                    "Verification results should have high reuse. Review dependency tracking."
-                )
+                    "Verification results should have high reuse. Review dependency tracking.")
 
         return recommendations
 
-    def _generate_system_recommendations(
-        self, metrics: dict[str, dict[str, Any]]
-    ) -> list[str]:
+    def _generate_system_recommendations(self, metrics: dict[str, dict[str, Any]]) -> list[str]:
         """Generate system-wide optimization recommendations."""
         recommendations = []
 
@@ -188,29 +178,23 @@ class CacheMonitor:
 
         if avg_hit_rate < 0.7:
             recommendations.append(
-                "Overall cache performance is below optimal. Consider cache warming strategies."
-            )
+                "Overall cache performance is below optimal. Consider cache warming strategies.")
 
         if avg_hit_rate < 0.5:
             recommendations.append(
-                "Critical: System-wide cache performance is poor. Review caching architecture."
-            )
+                "Critical: System-wide cache performance is poor. Review caching architecture.")
 
         # Memory usage recommendations
-        total_memory = sum(
-            cache_stats.get("memory_usage", 0) for cache_stats in metrics.values()
-        )
+        total_memory = sum(cache_stats.get("memory_usage", 0)
+                           for cache_stats in metrics.values())
 
         if total_memory > 500:  # MB
             recommendations.append(
-                "High memory usage detected. Consider implementing cache compression."
-            )
+                "High memory usage detected. Consider implementing cache compression.")
 
         return recommendations
 
-    async def get_cache_trends(
-        self, cache_name: str, hours: int = 24
-    ) -> dict[str, Any]:
+    async def get_cache_trends(self, cache_name: str, hours: int = 24) -> dict[str, Any]:
         """Get performance trends for a specific cache."""
         if cache_name not in self._monitoring_data:
             return {}
@@ -232,17 +216,9 @@ class CacheMonitor:
         return {
             "data_points": len(recent_data),
             "avg_hit_rate": sum(hit_rates) / len(hit_rates) if hit_rates else 0,
-            "hit_rate_trend": (
-                "improving"
-                if hit_rates[-1] > hit_rates[0]
-                else "declining" if hit_rates else "stable"
-            ),
+            "hit_rate_trend": ("improving" if hit_rates[-1] > hit_rates[0] else "declining" if hit_rates else "stable"),
             "avg_cache_size": sum(cache_sizes) / len(cache_sizes) if cache_sizes else 0,
-            "size_trend": (
-                "growing"
-                if cache_sizes[-1] > cache_sizes[0]
-                else "shrinking" if cache_sizes else "stable"
-            ),
+            "size_trend": ("growing" if cache_sizes[-1] > cache_sizes[0] else "shrinking" if cache_sizes else "stable"),
         }
 
     async def optimize_cache_settings(self, cache_name: str) -> dict[str, Any]:
@@ -256,43 +232,33 @@ class CacheMonitor:
 
         # TTL recommendations
         if trends.get("hit_rate_trend") == "declining":
-            recommendations["ttl"] = (
-                "Consider increasing TTL values to improve hit rates"
-            )
+            recommendations["ttl"] = "Consider increasing TTL values to improve hit rates"
         elif trends.get("avg_hit_rate", 0) > 0.9:
-            recommendations["ttl"] = (
-                "Hit rate is excellent, current TTL settings are optimal"
-            )
+            recommendations["ttl"] = "Hit rate is excellent, current TTL settings are optimal"
 
         # Size recommendations
-        if (
-            trends.get("size_trend") == "growing"
-            and trends.get("avg_hit_rate", 0) < 0.7
-        ):
-            recommendations["size"] = (
-                "Cache is growing but hit rate is low, review eviction policy"
-            )
+        if trends.get("size_trend") == "growing" and trends.get("avg_hit_rate", 0) < 0.7:
+            recommendations["size"] = "Cache is growing but hit rate is low, review eviction policy"
 
         # Strategy recommendations
         avg_hit_rate = trends.get("avg_hit_rate", 0)
         if avg_hit_rate < 0.6:
-            recommendations["strategy"] = (
-                "Consider switching to SIMILARITY strategy for better performance"
-            )
+            recommendations["strategy"] = "Consider switching to SIMILARITY strategy for better performance"
 
         return recommendations
 
     async def start_monitoring(self, interval_seconds: int = 300):
         """Start continuous monitoring with specified interval."""
-        logger.info(f"Starting cache monitoring with {interval_seconds}s interval")
+        logger.info(
+            "Starting cache monitoring with {interval_seconds}s interval")
         self._monitoring_active = True
 
         while self._monitoring_active:
             try:
                 await self.collect_cache_metrics()
-                logger.debug("Cache metrics collected successfully")
+                logger.info("Cache metrics collected successfully")
             except Exception as e:
-                logger.error(f"Error collecting cache metrics: {e}")
+                raise CacheError(f"Critical monitoring failure: {e}") from e
 
             await asyncio.sleep(interval_seconds)
 

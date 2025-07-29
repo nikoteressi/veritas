@@ -12,6 +12,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from app.exceptions import AgentError
+
 from .component_manager import ComponentManager
 
 
@@ -73,10 +75,8 @@ class SystemHealthMonitor:
                 health_status["components"]["relationship"] = await self._check_relationship_health()
 
             # Determine overall status
-            component_statuses = [
-                comp.get("status", "unknown")
-                for comp in health_status["components"].values()
-            ]
+            component_statuses = [comp.get("status", "unknown")
+                                  for comp in health_status["components"].values()]
             if "error" in component_statuses:
                 health_status["overall_status"] = "degraded"
             elif "warning" in component_statuses:
@@ -125,9 +125,7 @@ class SystemHealthMonitor:
 
             if self.component_manager.reputation_system:
                 if hasattr(self.component_manager.reputation_system, "get_reputation_stats"):
-                    stats["reputation_system"] = (
-                        await self.component_manager.reputation_system.get_reputation_stats()
-                    )
+                    stats["reputation_system"] = await self.component_manager.reputation_system.get_reputation_stats()
 
             if self.component_manager.clustering_system:
                 if hasattr(self.component_manager.clustering_system, "get_stats"):

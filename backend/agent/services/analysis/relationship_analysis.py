@@ -19,7 +19,8 @@ from scipy import stats
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from agent.ollama_embeddings import create_ollama_embedding_function
+from agent.llm.embeddings import create_ollama_embedding_function
+from app.exceptions import AnalysisError
 
 warnings.filterwarnings("ignore")
 
@@ -104,20 +105,15 @@ class SemanticAnalyzer:
                 self.logger.info(
                     "Initialized Ollama embeddings for semantic analysis")
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to initialize Ollama embeddings: {e}")
+                raise AnalysisError(
+                    f"Failed to initialize embedding models: {e}") from e
 
-    def analyze_semantic_similarity(
-        self, fact1: dict[str, Any], fact2: dict[str, Any]
-    ) -> float:
+    def analyze_semantic_similarity(self, fact1: dict[str, Any], fact2: dict[str, Any]) -> float:
         """Analyze semantic similarity between two facts."""
         text1 = self._extract_fact_text(fact1)
         text2 = self._extract_fact_text(fact2)
 
-        if (
-            self.config.use_transformer_embeddings
-            and self.ollama_embedding_function is not None
-        ):
+        if self.config.use_transformer_embeddings and self.ollama_embedding_function is not None:
             return self._compute_ollama_similarity(text1, text2)
         else:
             return self._compute_tfidf_similarity(text1, text2)
@@ -170,8 +166,8 @@ class SemanticAnalyzer:
             return 0.0
 
         except Exception as e:
-            self.logger.warning(f"Ollama similarity computation failed: {e}")
-            return self._compute_tfidf_similarity(text1, text2)
+            raise AnalysisError(
+                f"Ollama similarity computation failed: {e}") from e
 
     def _compute_tfidf_similarity(self, text1: str, text2: str) -> float:
         """Compute similarity using TF-IDF vectors."""
@@ -185,12 +181,10 @@ class SemanticAnalyzer:
             return float(similarity_matrix[0, 1])
 
         except Exception as e:
-            self.logger.warning(f"TF-IDF similarity computation failed: {e}")
-            return 0.0
+            raise AnalysisError(
+                f"TF-IDF similarity computation failed: {e}") from e
 
-    def extract_entities_and_concepts(
-        self, fact: dict[str, Any]
-    ) -> dict[str, list[str]]:
+    def extract_entities_and_concepts(self, fact: dict[str, Any]) -> dict[str, list[str]]:
         """Extract entities and concepts from fact text."""
         text = self._extract_fact_text(fact)
 
@@ -212,7 +206,7 @@ class SemanticAnalyzer:
                     concepts.append(chunk.text)
 
             except Exception as e:
-                self.logger.warning(f"Entity extraction failed: {e}")
+                raise AnalysisError(f"Entity extraction failed: {e}") from e
 
         return {"entities": entities, "concepts": concepts}
 
@@ -224,9 +218,7 @@ class TemporalAnalyzer:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-    def analyze_temporal_relationship(
-        self, fact1: dict[str, Any], fact2: dict[str, Any]
-    ) -> dict[str, Any]:
+    def analyze_temporal_relationship(self, fact1: dict[str, Any], fact2: dict[str, Any]) -> dict[str, Any]:
         """Analyze temporal relationship between two facts."""
         timestamp1 = self._extract_timestamp(fact1)
         timestamp2 = self._extract_timestamp(fact2)
@@ -273,11 +265,10 @@ class TemporalAnalyzer:
                     return timestamp_value
                 elif isinstance(timestamp_value, str):
                     try:
-                        return datetime.fromisoformat(
-                            timestamp_value.replace("Z", "+00:00")
-                        )
-                    except ValueError:
-                        continue
+                        return datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                    except Exception as e:
+                        raise AnalysisError(
+                            f"Timestamp extraction failed: {e}") from e
 
         # Try to extract from evidence
         if "evidence" in fact:
@@ -290,11 +281,10 @@ class TemporalAnalyzer:
                                 if isinstance(timestamp_value, datetime):
                                     return timestamp_value
                                 elif isinstance(timestamp_value, str):
-                                    return datetime.fromisoformat(
-                                        timestamp_value.replace("Z", "+00:00")
-                                    )
-                            except (ValueError, TypeError):
-                                continue
+                                    return datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                            except Exception as e:
+                                raise AnalysisError(
+                                    f"Timestamp extraction failed: {e}") from e
 
         return None
 
@@ -323,28 +313,23 @@ class CausalAnalyzer:
         # Perform statistical causal inference if enough data
         if context_facts and len(context_facts) > 10:
             statistical_result = self._perform_statistical_causal_inference(
-                fact1, fact2, context_facts
-            )
+                fact1, fact2, context_facts)
         else:
             statistical_result = {
                 "method": "insufficient_data", "p_value": 1.0}
 
         # Combine evidence
         causal_strength = self._compute_causal_strength(
-            causal_indicators, statistical_result
-        )
+            causal_indicators, statistical_result)
         causal_direction = self._determine_causal_direction(
-            fact1, fact2, causal_indicators
-        )
+            fact1, fact2, causal_indicators)
 
         return {
             "causal_strength": causal_strength,
             "causal_direction": causal_direction,
             "causal_indicators": causal_indicators,
             "statistical_result": statistical_result,
-            "confidence": self._compute_causal_confidence(
-                causal_indicators, statistical_result
-            ),
+            "confidence": self._compute_causal_confidence(causal_indicators, statistical_result),
         }
 
     def _extract_causal_features(self, fact: dict[str, Any]) -> dict[str, Any]:
@@ -372,8 +357,7 @@ class CausalAnalyzer:
             "causal_keyword_count": causal_score,
             "text_length": len(text),
             "has_temporal_markers": any(
-                marker in text.lower()
-                for marker in ["before", "after", "then", "subsequently", "following"]
+                marker in text.lower() for marker in ["before", "after", "then", "subsequently", "following"]
             ),
         }
 
@@ -386,9 +370,7 @@ class CausalAnalyzer:
             text_parts.append(str(fact["summary"]))
         return " ".join(text_parts)
 
-    def _detect_causal_indicators(
-        self, fact1: dict[str, Any], fact2: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _detect_causal_indicators(self, fact1: dict[str, Any], fact2: dict[str, Any]) -> dict[str, Any]:
         """Detect linguistic and structural indicators of causality."""
         text1 = self._extract_fact_text(fact1)
         text2 = self._extract_fact_text(fact2)
@@ -405,17 +387,12 @@ class CausalAnalyzer:
                                  "due to", "caused by", "triggered by"]
 
         indicators = {
-            "linguistic_1_to_2": any(
-                phrase in text1.lower() for phrase in causal_phrases_1_to_2
-            ),
-            "linguistic_2_to_1": any(
-                phrase in text2.lower() for phrase in causal_phrases_2_to_1
-            ),
+            "linguistic_1_to_2": any(phrase in text1.lower() for phrase in causal_phrases_1_to_2),
+            "linguistic_2_to_1": any(phrase in text2.lower() for phrase in causal_phrases_2_to_1),
             "temporal_precedence": False,  # Will be set by temporal analyzer
             "mechanism_described": "mechanism" in (text1 + text2).lower(),
             "correlation_mentioned": any(
-                word in (text1 + text2).lower()
-                for word in ["correlation", "associated", "linked"]
+                word in (text1 + text2).lower() for word in ["correlation", "associated", "linked"]
             ),
         }
 
@@ -454,8 +431,7 @@ class CausalAnalyzer:
 
             if features_array.shape[1] > 0:
                 correlation, p_value = stats.pearsonr(
-                    features_array[:, 0], outcomes_array
-                )
+                    features_array[:, 0], outcomes_array)
                 return {
                     "method": "correlation_test",
                     "correlation": float(correlation),
@@ -464,7 +440,8 @@ class CausalAnalyzer:
                 }
 
         except Exception as e:
-            self.logger.warning(f"Statistical causal inference failed: {e}")
+            raise AnalysisError(
+                f"Statistical causal inference failed: {e}") from e
 
         return {"method": "failed", "p_value": 1.0}
 
@@ -500,9 +477,7 @@ class CausalAnalyzer:
 
         return None
 
-    def _compute_causal_strength(
-        self, indicators: dict[str, Any], statistical_result: dict[str, Any]
-    ) -> float:
+    def _compute_causal_strength(self, indicators: dict[str, Any], statistical_result: dict[str, Any]) -> float:
         """Compute overall causal strength."""
         strength = 0.0
 
@@ -537,9 +512,7 @@ class CausalAnalyzer:
         else:
             return "bidirectional_or_unknown"
 
-    def _compute_causal_confidence(
-        self, indicators: dict[str, Any], statistical_result: dict[str, Any]
-    ) -> float:
+    def _compute_causal_confidence(self, indicators: dict[str, Any], statistical_result: dict[str, Any]) -> float:
         """Compute confidence in causal relationship."""
         confidence = 0.0
 
@@ -565,9 +538,7 @@ class RelationshipAnalysisEngine:
         self.causal_analyzer = CausalAnalyzer(self.config)
         self.logger = logging.getLogger(__name__)
 
-    async def analyze_fact_relationships(
-        self, facts: list[dict[str, Any]]
-    ) -> list[FactRelationship]:
+    async def analyze_fact_relationships(self, facts: list[dict[str, Any]]) -> list[FactRelationship]:
         """Analyze relationships between a collection of facts."""
         relationships = []
 
@@ -597,22 +568,19 @@ class RelationshipAnalysisEngine:
         semantic_similarity = 0.0
         if self.config.enable_semantic_analysis:
             semantic_similarity = self.semantic_analyzer.analyze_semantic_similarity(
-                fact1, fact2
-            )
+                fact1, fact2)
 
         # Temporal analysis
         temporal_result = {}
         if self.config.enable_temporal_analysis:
             temporal_result = self.temporal_analyzer.analyze_temporal_relationship(
-                fact1, fact2
-            )
+                fact1, fact2)
 
         # Causal analysis
         causal_result = {}
         if self.config.enable_causal_inference:
             causal_result = self.causal_analyzer.analyze_causal_relationship(
-                fact1, fact2, context_facts
-            )
+                fact1, fact2, context_facts)
 
         # Determine primary relationship type and strength
         relationship_type, strength, confidence = self._determine_primary_relationship(
@@ -631,8 +599,7 @@ class RelationshipAnalysisEngine:
             strength=strength,
             confidence=confidence,
             evidence=self._collect_relationship_evidence(
-                semantic_similarity, temporal_result, causal_result
-            ),
+                semantic_similarity, temporal_result, causal_result),
             temporal_order=temporal_result.get("relationship"),
             causal_direction=causal_result.get("causal_direction"),
             metadata={
@@ -663,9 +630,7 @@ class RelationshipAnalysisEngine:
         # Semantic relationship
         if semantic_similarity > self.config.semantic_similarity_threshold:
             # Check if facts contradict each other
-            if self._detect_contradiction(
-                semantic_similarity, temporal_result, causal_result
-            ):
+            if self._detect_contradiction(semantic_similarity, temporal_result, causal_result):
                 return RelationshipType.CONTRADICTORY, semantic_similarity, 0.8
             else:
                 return RelationshipType.SUPPORTING, semantic_similarity, 0.7
@@ -714,17 +679,14 @@ class RelationshipAnalysisEngine:
 
         if temporal_result.get("confidence", 0) > 0.5:
             evidence.append(
-                f"Temporal relationship: {temporal_result.get('relationship', 'unknown')}"
-            )
+                f"Temporal relationship: {temporal_result.get('relationship', 'unknown')}")
 
         if causal_result.get("causal_strength", 0) > 0.3:
             evidence.append("Causal indicators detected")
 
         return evidence
 
-    def _filter_relationships(
-        self, relationships: list[FactRelationship]
-    ) -> list[FactRelationship]:
+    def _filter_relationships(self, relationships: list[FactRelationship]) -> list[FactRelationship]:
         """Filter and rank relationships by strength and confidence."""
         # Filter by minimum strength
         filtered = [r for r in relationships if r.strength > 0.3]
@@ -734,9 +696,7 @@ class RelationshipAnalysisEngine:
 
         return filtered
 
-    def build_relationship_graph(
-        self, relationships: list[FactRelationship]
-    ) -> nx.Graph:
+    def build_relationship_graph(self, relationships: list[FactRelationship]) -> nx.Graph:
         """Build a NetworkX graph from relationships."""
         G = nx.Graph()
 

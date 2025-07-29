@@ -20,6 +20,7 @@ import numpy as np
 import redis.asyncio as redis
 
 from app.config import Settings
+from app.exceptions import CacheError
 from app.redis_client import redis_manager
 
 settings = Settings()
@@ -107,20 +108,20 @@ class IntelligentCache:
             await self._get_redis_client()
             self.logger.info("Cache system initialized successfully")
             return True
-        except Exception as e:
-            self.logger.warning(f"Cache initialization warning: {e}")
+        except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
+            self.logger.warning("Cache initialization warning: %s", e)
             # Cache can still work with memory only
             return True
+        except Exception as e:
+            raise CacheError(
+                f"Unexpected error during cache initialization: {e}") from e
 
     async def _get_redis_client(self) -> redis.Redis | None:
         """Get Redis client, initializing if needed."""
         if self.redis_client is None:
             try:
                 # Check if redis_manager is available and initialized
-                if (
-                    hasattr(redis_manager, "_async_pool")
-                    and redis_manager._async_pool is not None
-                ):
+                if hasattr(redis_manager, "_async_pool") and redis_manager._async_pool is not None:
                     self.redis_client = redis_manager.get_async_client()
                 else:
                     # Try to initialize redis_manager
@@ -129,12 +130,14 @@ class IntelligentCache:
                         self.redis_client = redis_manager.get_async_client()
                     else:
                         self.logger.warning(
-                            "Redis is not available, using memory cache only"
-                        )
+                            "Redis is not available, using memory cache only")
                         return None
-            except Exception as e:
-                self.logger.warning(f"Failed to get Redis client: {e}")
+            except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
+                self.logger.warning("Failed to get Redis client: %s", e)
                 return None
+            except Exception as e:
+                raise CacheError(
+                    f"Unexpected error getting Redis client: {e}") from e
         return self.redis_client
 
     def _generate_key(self, prefix: str, data: Any) -> str:
@@ -159,9 +162,7 @@ class IntelligentCache:
         """Deserialize value from storage."""
         return pickle.loads(data)
 
-    async def get(
-        self, key: str, default: Any = None, similarity_search: bool = False
-    ) -> Any:
+    async def get(self, key: str, default: Any = None, similarity_search: bool = False) -> Any:
         """
         Get value from cache with optional similarity search.
 
@@ -195,8 +196,11 @@ class IntelligentCache:
                     self._store_memory(key, value)
                     self.stats["hits"] += 1
                     return value
+            except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
+                self.logger.warning("Redis get error: %s", e)
             except Exception as e:
-                self.logger.warning(f"Redis get error: {e}")
+                raise CacheError(
+                    f"Unexpected error during Redis get operation: {e}") from e
 
         # Try similarity search if enabled
         if similarity_search:
@@ -240,8 +244,8 @@ class IntelligentCache:
 
             return True
         except Exception as e:
-            self.logger.error(f"Cache set error: {e}")
-            return False
+            raise CacheError(
+                f"Failed to set cache entry for key '{key}': {e}") from e
 
     def _store_memory(
         self,
@@ -277,8 +281,11 @@ class IntelligentCache:
                     await redis_client.setex(key, ttl_seconds, serialized)
                 else:
                     await redis_client.set(key, serialized)
+        except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
+            self.logger.warning("Redis set error: %s", e)
         except Exception as e:
-            self.logger.warning(f"Redis set error: {e}")
+            raise CacheError(
+                f"Unexpected error during Redis set operation: {e}") from e
 
     def _evict_memory_entries(self, count: int = None):
         """Evict entries from memory cache using LRU strategy."""
@@ -286,9 +293,8 @@ class IntelligentCache:
             count = max(1, len(self.memory_cache) // 10)  # Evict 10%
 
         # Sort by last accessed time (LRU)
-        sorted_entries = sorted(
-            self.memory_cache.items(), key=lambda x: x[1].last_accessed
-        )
+        sorted_entries = sorted(self.memory_cache.items(),
+                                key=lambda x: x[1].last_accessed)
 
         for i in range(min(count, len(sorted_entries))):
             key = sorted_entries[i][0]
@@ -343,7 +349,7 @@ class IntelligentCache:
             del self.memory_cache[key]
             deleted = True
 
-        # Delete from Redis
+        # Delete from Redis (graceful degradation)
         redis_client = await self._get_redis_client()
         if redis_client is not None:
             try:
@@ -351,7 +357,8 @@ class IntelligentCache:
                 if result > 0:
                     deleted = True
             except Exception as e:
-                self.logger.warning(f"Redis delete error: {e}")
+                raise CacheError(
+                    f"Failed to delete entry from Redis for key '{key}': {e}") from e
 
         return deleted
 
@@ -367,8 +374,7 @@ class IntelligentCache:
             await self.delete(key)
 
         self.logger.debug(
-            f"Invalidated {len(to_delete)} entries dependent on {dependency_key}"
-        )
+            "Invalidated %d entries dependent on %s", len(to_delete), dependency_key)
 
     async def clear(self, pattern: str = None):
         """Clear cache entries matching pattern."""
@@ -405,7 +411,7 @@ class IntelligentCache:
             "redis_available": self.redis_client is not None,
         }
 
-        # Add Redis-specific stats if available
+        # Add Redis-specific stats if available (graceful degradation)
         redis_client = await self._get_redis_client()
         if redis_client is not None:
             try:
@@ -415,12 +421,12 @@ class IntelligentCache:
                     "used_memory": redis_info.get("used_memory_human", "N/A"),
                     "keyspace_hits": redis_info.get("keyspace_hits", 0),
                     "keyspace_misses": redis_info.get("keyspace_misses", 0),
-                    "total_commands_processed": redis_info.get(
-                        "total_commands_processed", 0
-                    ),
+                    "total_commands_processed": redis_info.get("total_commands_processed", 0),
                 }
             except Exception as e:
                 stats["redis_error"] = str(e)
+                raise CacheError(
+                    f"Failed to get Redis stats: {e}") from e
 
         return stats
 
@@ -430,7 +436,7 @@ class IntelligentCache:
             self.memory_cache[key].last_accessed = datetime.now()
             return True
 
-        # Check if exists in Redis and update access time
+        # Check if exists in Redis and update access time (graceful degradation)
         redis_client = await self._get_redis_client()
         if redis_client is not None:
             try:
@@ -442,7 +448,8 @@ class IntelligentCache:
                         await redis_client.expire(key, ttl)
                     return True
             except Exception as e:
-                self.logger.warning(f"Redis touch error for key {key}: {e}")
+                raise CacheError(
+                    f"Failed to touch entry in Redis for key '{key}': {e}") from e
 
         return False
 
@@ -465,20 +472,19 @@ class IntelligentCache:
                     # Get memory usage info
                     info = await redis_client.info("memory")
                     self.logger.debug(
-                        f"Redis memory usage: {info.get('used_memory_human', 'unknown')}"
-                    )
+                        "Redis memory usage: %s", info.get('used_memory_human', 'unknown'))
                 except Exception as e:
-                    self.logger.warning(f"Redis optimize error: {e}")
+                    raise CacheError(
+                        f"Failed to get Redis memory info: {e}") from e
 
             self.logger.info(
-                f"Removed {len(expired_keys)} expired entries during optimization"
-            )
+                f"Removed {len(expired_keys)} expired entries during optimization")
 
             # Update stats
             self.stats["memory_usage"] = len(self.memory_cache)
 
         except Exception as e:
-            self.logger.error(f"Cache optimization error: {e}")
+            raise CacheError(f"Failed to optimize cache: {e}") from e
 
     async def close(self):
         """Close cache connections and cleanup resources."""
@@ -486,17 +492,18 @@ class IntelligentCache:
             # Clear memory cache
             self.memory_cache.clear()
 
-            # Close Redis connection if exists
+            # Close Redis connection if exists (graceful degradation)
             if self.redis_client is not None:
                 try:
                     await self.redis_client.close()
                     self.redis_client = None
                 except Exception as e:
-                    self.logger.warning(f"Error closing Redis connection: {e}")
+                    raise CacheError(
+                        f"Error closing Redis connection: {e}") from e
 
             self.logger.info("Cache closed successfully")
         except Exception as e:
-            self.logger.error(f"Error closing cache: {e}")
+            raise CacheError(f"Failed to close cache properly: {e}") from e
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -518,9 +525,7 @@ class EmbeddingCache(IntelligentCache):
         self.embedding_index: dict[str, np.ndarray] = {}
         self.similarity_threshold = 0.90  # Higher threshold for embeddings
 
-    async def get_embedding(
-        self, text: str, model_name: str = "default"
-    ) -> np.ndarray | None:
+    async def get_embedding(self, text: str, model_name: str = "default") -> np.ndarray | None:
         """Get embedding from cache with semantic similarity search."""
         key = self._generate_key(f"embedding:{model_name}", text)
 
@@ -582,10 +587,7 @@ class EmbeddingCache(IntelligentCache):
             key_similarity = self._calculate_string_similarity(
                 target_key, cached_key)
 
-            if (
-                key_similarity > self.similarity_threshold
-                and key_similarity > best_similarity
-            ):
+            if key_similarity > self.similarity_threshold and key_similarity > best_similarity:
                 best_similarity = key_similarity
                 best_embedding = cached_embedding
 
@@ -600,9 +602,7 @@ class VerificationCache(IntelligentCache):
     def __init__(self, redis_client: redis.Redis = None):
         super().__init__(redis_client, max_memory_size=2000)
 
-    async def get_verification_result(
-        self, claim: str, sources: list[str] = None
-    ) -> dict[str, Any] | None:
+    async def get_verification_result(self, claim: str, sources: list[str] = None) -> dict[str, Any] | None:
         """Get verification result from cache."""
         # Create key from claim and sources
         cache_data = {"claim": claim, "sources": sorted(
@@ -624,9 +624,8 @@ class VerificationCache(IntelligentCache):
         key = self._generate_key("verification", cache_data)
 
         # Add dependencies on sources
-        dependencies = [
-            self._generate_key("source", source) for source in (sources or [])
-        ]
+        dependencies = [self._generate_key(
+            "source", source) for source in (sources or [])]
 
         await self.set(key, result, ttl_seconds, CacheLevel.REDIS, dependencies)
 
