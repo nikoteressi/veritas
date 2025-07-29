@@ -13,8 +13,8 @@ from app.crud import VerificationResultCRUD
 from app.exceptions import AgentError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...models import VerificationResult
-from ...vector_store import vector_store
+from agent.models.verification_result import VerificationResult
+from agent.clients.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ class StorageService:
 
         result_data = {
             "user_nickname": user_nickname,
+            "reputation_data": reputation_data,
             "verdict": verdict_result.get("verdict"),
             "justification": verdict_result.get("reasoning"),
             "identified_claims": json.dumps(claims),
@@ -71,8 +72,8 @@ class StorageService:
             logger.info("Stored verification result in vector database.")
 
         except Exception as e:
-            logger.error(f"Failed to store in vector DB: {e}", exc_info=True)
-            raise AgentError(f"Vector database storage failed: {str(e)}") from e
+            raise AgentError(
+                f"Vector database storage failed: {str(e)}") from e
 
 
 # Singleton instance

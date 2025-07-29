@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+# from typing import Optional  # Removed legacy typing imports
 Revision ID: a749f8c0e1c6
 Revises:
 Create Date: 2025-07-10 00:28:28.091644

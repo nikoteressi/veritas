@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+# from typing import dict, list  # Removed legacy typing imports
 
 from langchain.tools import BaseTool
 
@@ -13,7 +13,7 @@ class ToolRegistry:
     """Registry for managing agent tools."""
 
     def __init__(self):
-        self._tools: Dict[str, BaseTool] = {}
+        self._tools: dict[str, BaseTool] = {}
         self._register_default_tools()
 
     def _register_default_tools(self):
@@ -28,12 +28,12 @@ class ToolRegistry:
         """Get a tool by name."""
         return self._tools.get(name)
 
-    def get_all_tools(self) -> List[BaseTool]:
+    def get_all_tools(self) -> list[BaseTool]:
         """Get all registered tools."""
         return list(self._tools.values())
 
-    def list_tool_names(self) -> List[str]:
-        """List all tool names."""
+    def list_tool_names(self) -> list[str]:
+        """list all tool names."""
         return list(self._tools.keys())
 
 

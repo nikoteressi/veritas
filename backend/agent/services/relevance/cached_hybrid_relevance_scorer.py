@@ -11,7 +11,7 @@ import hashlib
 import logging
 import time
 import traceback
-from typing import Any, Optional
+from typing import Any
 
 from app.config import settings
 from app.exceptions import ValidationError
@@ -35,7 +35,7 @@ class CachedHybridRelevanceScorer:
         bm25_weight: float = 0.3,
         semantic_weight: float = 0.7,
         min_score_threshold: float = 0.1,
-        shared_embeddings: Optional["EnhancedOllamaEmbeddings"] = None,
+        shared_embeddings: "EnhancedOllamaEmbeddings" | None = None,
     ):
         """
         Initialize hybrid relevance scorer.
@@ -325,12 +325,12 @@ class CachedHybridRelevanceScorer:
 
         Args:
             query: Search query
-            documents: List of documents to score
+            documents: list of documents to score
             use_cache: Whether to use caching
             return_explanations: Whether to return explanations
 
         Returns:
-            List of scores or (score, explanation) tuples
+            list of scores or (score, explanation) tuples
         """
         # Prepare corpus if not already done
         if self.bm25_scorer is None:
@@ -386,12 +386,12 @@ class CachedHybridRelevanceScorer:
 
         Args:
             query: Search query
-            documents: List of documents to rank
+            documents: list of documents to rank
             max_results: Maximum number of results
             min_score: Minimum score threshold
 
         Returns:
-            List of (document, score) tuples sorted by relevance
+            list of (document, score) tuples sorted by relevance
         """
         scores = await self.score_documents(query, documents)
 

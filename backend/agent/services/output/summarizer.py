@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import time
 
-from ...llm import OllamaLLMManager
-from ...models.summarization_result import SummarizationResult
-from ...models.verification_context import VerificationContext
-from ...prompt_manager import PromptManager
+from agent.llm.manager import OllamaLLMManager
+from agent.models.summarization_result import SummarizationResult
+from agent.models.verification_context import VerificationContext
+from agent.prompts.manager import PromptManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +29,19 @@ class SummarizerService:
         start_time = time.time()
 
         if not context.fact_check_result:
-            raise ValueError("Fact check result is required for summarization.")
+            raise ValueError(
+                "Fact check result is required for summarization.")
 
         # Get temporal analysis using the new typed method
         temporal_analysis = context.temporal_analysis_result
 
         # Prepare prompt for LLM
-        prompt_template = self.prompt_manager.get_prompt_template("summarization")
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "summarization")
         prompt = await prompt_template.aformat(
             temporal_analysis=temporal_analysis,
-            research_results=context.fact_check_result.model_dump_json(indent=2),
+            research_results=context.fact_check_result.model_dump_json(
+                indent=2),
         )
 
         # Generate summary text
@@ -49,13 +52,15 @@ class SummarizerService:
         claims_analyzed = len(context.fact_check_result.claim_results)
 
         # Create fact check summary
-        fact_check_summary = self._create_fact_check_summary(context.fact_check_result)
+        fact_check_summary = self._create_fact_check_summary(
+            context.fact_check_result)
 
         # Extract key points (simple implementation - can be enhanced)
         key_points = self._extract_key_points(summary_text)
 
         # Calculate confidence based on fact check results
-        confidence_score = self._calculate_confidence(context.fact_check_result)
+        confidence_score = self._calculate_confidence(
+            context.fact_check_result)
 
         # Check if temporal context was included
         temporal_context_included = temporal_analysis is not None
@@ -80,9 +85,12 @@ class SummarizerService:
             return "No claims were analyzed."
 
         # Count assessments
-        assessments = [claim.assessment for claim in fact_check_result.claim_results]
-        true_count = assessments.count("true") + assessments.count("likely_true")
-        false_count = assessments.count("false") + assessments.count("likely_false")
+        assessments = [
+            claim.assessment for claim in fact_check_result.claim_results]
+        true_count = assessments.count(
+            "true") + assessments.count("likely_true")
+        false_count = assessments.count(
+            "false") + assessments.count("likely_false")
         unverified_count = assessments.count("unverified")
 
         return f"Analyzed {total_claims} claims: {true_count} true/likely true, {false_count} false/likely false, {unverified_count} unverified."
@@ -100,11 +108,14 @@ class SummarizerService:
             return 0.5  # Neutral confidence if no claims
 
         # Average confidence from all claim results
-        total_confidence = sum(claim.confidence for claim in fact_check_result.claim_results)
-        avg_confidence = total_confidence / len(fact_check_result.claim_results)
+        total_confidence = sum(
+            claim.confidence for claim in fact_check_result.claim_results)
+        avg_confidence = total_confidence / \
+            len(fact_check_result.claim_results)
 
         # Factor in number of sources
-        source_factor = min(len(fact_check_result.examined_sources) / 5.0, 1.0)  # Max boost at 5+ sources
+        # Max boost at 5+ sources
+        source_factor = min(len(fact_check_result.examined_sources) / 5.0, 1.0)
 
         # Combine factors
         final_confidence = (avg_confidence * 0.8) + (source_factor * 0.2)

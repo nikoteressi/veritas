@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import logging
 
-from agent.models.verification_context import VerificationContext
 from langchain_core.output_parsers import PydanticOutputParser
 
-from ...llm import OllamaLLMManager
-from ...models.post_analysis_result import PostAnalysisResult
-from ...prompt_manager import PromptManager
+from agent.llm.manager import OllamaLLMManager
+from agent.prompts.manager import PromptManager
+from agent.models.post_analysis_result import PostAnalysisResult
+from agent.models.verification_context import VerificationContext
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,8 @@ class PostAnalyzerService:
         if not context.screenshot_data:
             raise ValueError("Screenshot data is required for post analysis.")
 
-        output_parser = PydanticOutputParser(pydantic_object=PostAnalysisResult)
+        output_parser = PydanticOutputParser(
+            pydantic_object=PostAnalysisResult)
 
         # Get temporal analysis using the new typed method
         temporal_analysis = context.get_temporal_analysis()
@@ -62,7 +63,8 @@ class PostAnalyzerService:
             temporal_analysis if temporal_analysis is not None else "No temporal analysis available"
         )
 
-        prompt_template = self.prompt_manager.get_prompt_template("post_analysis")
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "post_analysis")
         prompt = await prompt_template.aformat(
             screenshot_data=context.screenshot_data,
             temporal_analysis=safe_temporal_analysis,

@@ -108,12 +108,6 @@ class EnhancedOllamaEmbeddings:
         try:
             embedding = await self.ollama.embed_query(text)
 
-            # if asyncio.iscoroutine(result):
-            #     embedding = await result
-            # else:
-            #     embedding = result
-
-            # Ensure embedding is a list of floats
             if not isinstance(embedding, list):
                 if hasattr(embedding, "tolist"):
                     embedding = embedding.tolist()
@@ -128,13 +122,6 @@ class EnhancedOllamaEmbeddings:
 
             processing_time = time.time() - start_time
             self.metrics["total_processing_time"] += processing_time
-
-            # Final safety check - ensure we're not returning a coroutine
-            if asyncio.iscoroutine(embedding):
-                logger.error(
-                    "CRITICAL: embed_text is about to return a coroutine!")
-                raise RuntimeError(
-                    "embed_text should never return a coroutine")
 
             return embedding
 

@@ -8,7 +8,7 @@ and ensures all collections use Ollama embeddings.
 import logging
 
 import chromadb
-from agent.ollama_embeddings import create_ollama_embedding_function
+from agent.llm.embeddings import create_ollama_embedding_function
 from app.config import settings
 from app.exceptions import VectorStoreError
 from chromadb.api.types import CollectionMetadata, EmbeddingFunction
