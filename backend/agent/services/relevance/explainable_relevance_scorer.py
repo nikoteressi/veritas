@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from ..relevance.cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
+from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
 from ..cache.temporal_analysis_cache import TemporalAnalysisCache
 

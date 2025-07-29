@@ -1,38 +1,15 @@
-"""
-Summarizer service module for generating comprehensive summaries of verification processes.
-
-This module provides functionality to analyze verification contexts and produce structured
-summaries that include fact checking results, temporal analysis, confidence scores,
-and key points extracted from the verification process.
-"""
-import time
 import logging
-
-from agent.models.summarization_result import SummarizationResult
-from agent.models.verification_context import VerificationContext
+import time
 
 from ...llm import OllamaLLMManager
+from ...models.summarization_result import SummarizationResult
+from ...models.verification_context import VerificationContext
 from ...prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 
 
 class SummarizerService:
-    """
-    Service class responsible for generating comprehensive summaries of verification processes.
-
-    This class analyzes verification contexts and produces structured summaries that include:
-    - Fact checking results and summaries
-    - Temporal analysis integration
-    - Confidence scoring
-    - Key points extraction
-    - Source tracking
-    - Processing metadata
-
-    The service uses LLM capabilities for generating natural language summaries
-    while maintaining structured data for downstream analysis.
-    """
-
     def __init__(self, llm_manager: OllamaLLMManager, prompt_manager: PromptManager):
         self.llm_manager = llm_manager
         self.prompt_manager = prompt_manager

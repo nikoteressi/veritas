@@ -16,7 +16,7 @@ from app.config import settings
 
 from ...analysis.adaptive_thresholds import get_adaptive_thresholds
 from ...cache.intelligent_cache import IntelligentCache
-from ...relevance.relevance_integration import get_relevance_manager
+from ...relevance.relevance_orchestrator import get_relevance_manager
 from ...infrastructure.web_scraper import WebScraper
 
 logger = logging.getLogger(__name__)
@@ -102,22 +102,32 @@ class EnhancedSourceManager:
         if not self._relevance_initialized:
             try:
                 logger.info(
-                    "Initializing relevance manager for source manager...")
-                self.relevance_manager = await get_relevance_manager(
-                    ollama_host=settings.ollama_base_url
-                )
+                    "Getting relevance manager singleton for source manager...")
+                self.relevance_manager = get_relevance_manager()
 
-                if self.relevance_manager._initialized:
-                    self._relevance_initialized = True
+                # Check if the singleton is already initialized
+                if self.relevance_manager.is_initialized:
                     logger.info(
-                        "Relevance manager initialized successfully for source manager"
+                        "Relevance manager singleton already initialized, using existing instance"
                     )
+                    self._relevance_initialized = True
                 else:
-                    logger.warning(
-                        "Relevance manager could not be initialized (Ollama not available)"
-                    )
-                    self.relevance_manager = None
-                    self._relevance_initialized = False
+                    # Initialize the relevance manager only if not already initialized
+                    logger.info(
+                        "Initializing relevance manager singleton...")
+                    initialization_success = await self.relevance_manager.initialize()
+
+                    if initialization_success:
+                        self._relevance_initialized = True
+                        logger.info(
+                            "Relevance manager singleton initialized successfully"
+                        )
+                    else:
+                        logger.warning(
+                            "Relevance manager could not be initialized (Ollama not available)"
+                        )
+                        self.relevance_manager = None
+                        self._relevance_initialized = False
 
             except (ConnectionError, TimeoutError) as e:
                 logger.error(
@@ -518,8 +528,8 @@ class EnhancedSourceManager:
                     relevance_result = (
                         await self.relevance_manager.calculate_comprehensive_relevance(
                             query=" ".join(cluster_queries),
-                            documents=[content],
-                            document_metadata=[
+                            document=content,
+                            metadata=[
                                 {"url": url, "timestamp": "now"}],
                         )
                     )

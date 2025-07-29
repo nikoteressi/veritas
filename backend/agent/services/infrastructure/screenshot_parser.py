@@ -6,11 +6,10 @@ import logging
 
 from langchain_core.output_parsers import PydanticOutputParser
 
+from agent.llm import llm_manager
+from agent.models.screenshot_data import ScreenshotData
+from agent.prompt_manager import prompt_manager
 from app.exceptions import ScreenshotParsingError
-
-from ...llm import llm_manager
-from ...models.screenshot_data import ScreenshotData
-from ...prompt_manager import prompt_manager
 
 logger = logging.getLogger(__name__)
 

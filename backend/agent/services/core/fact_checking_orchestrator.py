@@ -14,7 +14,7 @@ from typing import Any
 
 from .component_manager import ComponentManager
 from .system_health_monitor import SystemHealthMonitor
-from ..graph.verification.verification_processor import VerificationProcessor
+from ..processing.verification_processor import VerificationProcessor
 
 
 class FactCheckingOrchestrator:
