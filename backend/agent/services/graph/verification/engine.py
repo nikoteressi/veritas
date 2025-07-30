@@ -206,14 +206,20 @@ class EnhancedGraphVerificationEngine:
                 scraped_content = await self.source_manager.scrape_sources_batch(credible_urls_list)
 
                 # Log summary instead of full content to prevent BlockingIOError
-                content_summary = {
-                    url: (
+                content_summary = {}
+                for url, scraped_info in scraped_content.items():
+                    content = scraped_info.get("content", "")
+                    publication_date = scraped_info.get("publication_date")
+                    
+                    summary = (
                         f"Content length: {len(content)} chars, Preview: {content[:100]}..."
                         if len(content) > 100
                         else content
                     )
-                    for url, content in scraped_content.items()
-                }
+                    if publication_date:
+                        summary += f" [Published: {publication_date}]"
+                    
+                    content_summary[url] = summary
                 self.logger.info("Scraped content summary: %s", content_summary)
 
                 self.logger.info(

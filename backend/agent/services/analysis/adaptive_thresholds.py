@@ -1,7 +1,8 @@
 """
 Adaptive thresholds for dynamic relevance scoring calibration.
 
-Automatically adjusts relevance thresholds based on query patterns, source types, and performance metrics.
+Automatically adjusts relevance thresholds based on query patterns, source types,
+and performance metrics.
 """
 from __future__ import annotations
 
@@ -70,7 +71,8 @@ class AdaptiveThresholds:
 
         # Calculate final threshold
         adaptive_threshold = (
-            base_threshold + query_adjustment + source_adjustment + performance_adjustment + context_adjustment
+            base_threshold + query_adjustment + source_adjustment +
+            performance_adjustment + context_adjustment
         )
 
         # Ensure threshold is within reasonable bounds
@@ -84,7 +86,12 @@ class AdaptiveThresholds:
             dependencies=["performance_data", f"query_type:{query_type}"],
         )
 
-        logger.debug(f"Adaptive threshold for {query_type}/{source_type}: {adaptive_threshold:.4f}")
+        logger.debug(
+            "Adaptive threshold for %s/%s: %.4f (base: %.4f, adjustments: "
+            "query=%.4f, source=%.4f, performance=%.4f, context=%.4f)",
+            query_type, source_type, adaptive_threshold, base_threshold,
+            query_adjustment, source_adjustment, performance_adjustment, context_adjustment)
+
         return adaptive_threshold
 
     def _get_query_type_adjustment(self, query_type: str) -> float:
@@ -132,7 +139,8 @@ class AdaptiveThresholds:
 
         avg_precision = statistics.mean(recent_precision)
         avg_recall = statistics.mean(recent_recall)
-        avg_retention = statistics.mean(recent_retention) if recent_retention else 0.5
+        avg_retention = statistics.mean(
+            recent_retention) if recent_retention else 0.5
 
         # If precision is low, lower threshold (be more inclusive)
         if avg_precision < 0.5:
@@ -158,11 +166,13 @@ class AdaptiveThresholds:
         else:
             retention_adjustment = 0.0
 
-        total_adjustment = precision_adjustment + recall_adjustment + retention_adjustment
+        total_adjustment = precision_adjustment + \
+            recall_adjustment + retention_adjustment
 
         logger.debug(
-            f"Performance adjustment: {total_adjustment:.4f} (P:{avg_precision:.3f}, R:{avg_recall:.3f}, Ret:{avg_retention:.3f})"
-        )
+            "Performance adjustment: %.4f (P:%.3f, R:%.3f, Ret:%.3f)",
+            total_adjustment, avg_precision, avg_recall, avg_retention)
+
         return total_adjustment
 
     def _get_context_adjustment(self, context: dict[str, Any] | None) -> float:
@@ -210,7 +220,8 @@ class AdaptiveThresholds:
         self._calibration_data["precision_scores"].append(precision)
         self._calibration_data["recall_scores"].append(recall)
         self._calibration_data["f1_scores"].append(f1_score)
-        self._calibration_data["source_retention_rates"].append(source_retention_rate)
+        self._calibration_data["source_retention_rates"].append(
+            source_retention_rate)
 
         # Keep only last 1000 measurements to prevent memory bloat
         for metric_list in self._calibration_data.values():
@@ -238,15 +249,16 @@ class AdaptiveThresholds:
         await self.cache.invalidate_dependencies("performance_data")
 
         logger.debug(
-            f"Recorded performance: P={precision:.3f}, R={recall:.3f}, F1={f1_score:.3f}, Retention={source_retention_rate:.3f}"
-        )
+            "Recorded performance: P=%.3f, R=%.3f, F1=%.3f, Retention=%.3f",
+            precision, recall, f1_score, source_retention_rate)
 
     async def get_threshold_recommendations(self) -> dict[str, Any]:
         """Get recommendations for threshold optimization."""
         if not self._calibration_data["precision_scores"]:
             return {"error": "Insufficient performance data"}
 
-        recent_data = {key: values[-50:] for key, values in self._calibration_data.items()}
+        recent_data = {key: values[-50:]
+                       for key, values in self._calibration_data.items()}
 
         recommendations = {}
 
@@ -254,16 +266,19 @@ class AdaptiveThresholds:
         avg_precision = statistics.mean(recent_data["precision_scores"])
         if avg_precision < 0.5:
             recommendations["precision"] = (
-                "Low precision detected. Consider raising thresholds or improving scoring algorithm."
+                "Low precision detected. Consider raising thresholds or improving scoring."
             )
         elif avg_precision > 0.9:
-            recommendations["precision"] = "Excellent precision. Current thresholds are working well."
+            recommendations["precision"] = (
+                "Excellent precision. Current thresholds are working well."
+            )
 
         # Analyze recall
         avg_recall = statistics.mean(recent_data["recall_scores"])
         if avg_recall < 0.4:
             recommendations["recall"] = (
-                "Low recall detected. Consider lowering thresholds to capture more relevant sources."
+                "Low recall detected. Consider lowering thresholds to capture more relevant "
+                "sources."
             )
         elif avg_recall > 0.8:
             recommendations["recall"] = "Excellent recall. Good balance between inclusivity and selectivity."
@@ -272,7 +287,7 @@ class AdaptiveThresholds:
         avg_retention = statistics.mean(recent_data["source_retention_rates"])
         if avg_retention < 0.3:
             recommendations["retention"] = (
-                "Critical: Too many sources being filtered out. Significantly lower thresholds needed."
+                "Critical: Too many sources filtered out. Significantly lower thresholds needed."
             )
         elif avg_retention > 0.8:
             recommendations["retention"] = (
@@ -284,9 +299,13 @@ class AdaptiveThresholds:
         if f1_scores:
             avg_f1 = statistics.mean(f1_scores)
             if avg_f1 < 0.5:
-                recommendations["overall"] = "Poor overall performance. Review entire relevance scoring system."
+                recommendations["overall"] = (
+                    "Poor overall performance. Review entire relevance scoring system."
+                )
             elif avg_f1 > 0.7:
-                recommendations["overall"] = "Good overall performance. Fine-tune for specific use cases."
+                recommendations["overall"] = (
+                    "Good overall performance. Fine-tune for specific use cases."
+                )
 
         return recommendations
 
@@ -312,8 +331,10 @@ class AdaptiveThresholds:
                 predicted_sources = await self._simulate_scoring(query_data, threshold)
 
                 if predicted_sources and expected_sources:
-                    precision = len(set(predicted_sources) & set(expected_sources)) / len(predicted_sources)
-                    recall = len(set(predicted_sources) & set(expected_sources)) / len(expected_sources)
+                    precision = len(set(predicted_sources) & set(
+                        expected_sources)) / len(predicted_sources)
+                    recall = len(set(predicted_sources) & set(
+                        expected_sources)) / len(expected_sources)
 
                     total_precision += precision
                     total_recall += recall
@@ -323,7 +344,8 @@ class AdaptiveThresholds:
                 avg_precision = total_precision / valid_tests
                 avg_recall = total_recall / valid_tests
                 f1_score = (
-                    2 * (avg_precision * avg_recall) / (avg_precision + avg_recall)
+                    2 * (avg_precision * avg_recall) /
+                    (avg_precision + avg_recall)
                     if (avg_precision + avg_recall) > 0
                     else 0
                 )
@@ -338,7 +360,8 @@ class AdaptiveThresholds:
                     }
 
         logger.info(
-            f"Calibration complete. Best threshold: {best_thresholds.get('relevance_threshold', 0.05):.3f} (F1: {best_f1_score:.3f})"
+            "Calibration complete. Best threshold: {:.3f} (F1: {:.3f})".format(
+                best_thresholds.get('relevance_threshold', 0.05), best_f1_score)
         )
         return best_thresholds
 
@@ -353,21 +376,26 @@ class AdaptiveThresholds:
         cutoff_date = datetime.now() - timedelta(days=days)
 
         recent_records = [
-            record for record in self._performance_history if datetime.fromisoformat(record["timestamp"]) > cutoff_date
+            record for record in self._performance_history
+            if datetime.fromisoformat(record["timestamp"]) > cutoff_date
         ]
 
         if not recent_records:
             return {"error": "No performance data available for the specified period"}
 
         # Calculate averages
-        avg_precision = statistics.mean([r["precision"] for r in recent_records])
+        avg_precision = statistics.mean(
+            [r["precision"] for r in recent_records])
         avg_recall = statistics.mean([r["recall"] for r in recent_records])
         avg_f1 = statistics.mean([r["f1_score"] for r in recent_records])
-        avg_retention = statistics.mean([r["source_retention_rate"] for r in recent_records])
+        avg_retention = statistics.mean(
+            [r["source_retention_rate"] for r in recent_records])
 
         # Calculate trends
-        precision_trend = self._calculate_trend([r["precision"] for r in recent_records])
-        recall_trend = self._calculate_trend([r["recall"] for r in recent_records])
+        precision_trend = self._calculate_trend(
+            [r["precision"] for r in recent_records])
+        recall_trend = self._calculate_trend(
+            [r["recall"] for r in recent_records])
 
         return {
             "period_days": days,
@@ -388,7 +416,7 @@ class AdaptiveThresholds:
             return "insufficient_data"
 
         first_half = values[: len(values) // 2]
-        second_half = values[len(values) // 2 :]
+        second_half = values[len(values) // 2:]
 
         first_avg = statistics.mean(first_half)
         second_avg = statistics.mean(second_half)

@@ -68,6 +68,9 @@ class VerificationResult(Base):
     reasoning_model_used = Column(String(100))
     tools_used = Column(Text)  # JSON string of tools used
 
+    # Reputation data
+    reputation_data = Column(Text)  # JSON string of reputation information
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
 

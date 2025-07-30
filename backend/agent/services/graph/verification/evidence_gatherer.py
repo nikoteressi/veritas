@@ -238,14 +238,21 @@ class EnhancedEvidenceGatherer:
 
         # Calculate relevance scores for each source
         scored_sources = []
-        for url, content in source_contents.items():
+        for url, scraped_info in source_contents.items():
+            content = scraped_info.get("content", "")
+            publication_date = scraped_info.get("publication_date")
+            
             if content and not content.startswith("Failed to scrape"):
                 relevance_score = await self.source_manager.calculate_relevance(
                     content, combined_claim, source_type, query_type
                 )
 
-                scored_sources.append(
-                    {"url": url, "content": content, "relevance_score": relevance_score})
+                scored_sources.append({
+                    "url": url, 
+                    "content": content, 
+                    "relevance_score": relevance_score,
+                    "publication_date": publication_date
+                })
 
                 self.performance_metrics["relevance_scores"].append(
                     relevance_score)

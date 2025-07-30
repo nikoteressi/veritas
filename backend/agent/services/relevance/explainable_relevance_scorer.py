@@ -404,7 +404,12 @@ class ExplainableRelevanceScorer:
         # Add temporal analysis if date provided
         if content_date:
             temporal_analysis = await self.temporal_analyzer.analyze_temporal_relevance(
-                query, text, content_date, hybrid_score
+                query=query,
+                content=text,
+                content_date=content_date,
+                base_relevance=hybrid_score,
+                time_window="default",
+                use_cache=True
             )
             explanation["temporal_analysis"] = temporal_analysis
             explanation["final_score"] = temporal_analysis["adjusted_relevance"]

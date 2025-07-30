@@ -71,22 +71,31 @@ class RelevanceOrchestrator:
 
         try:
             # Get hybrid relevance score
-            hybrid_result = await self.embeddings_coordinator.calculate_hybrid_relevance(query, document, metadata)
+            hybrid_result = await self.embeddings_coordinator.calculate_hybrid_relevance(
+                query, document, metadata)
 
             # Get temporal analysis
-            temporal_result = await self.embeddings_coordinator.analyze_temporal_relevance(query, document, metadata)
+            temporal_result = await self.embeddings_coordinator.analyze_temporal_relevance(
+                query, document, metadata)
 
             # Get explainable score for transparency
-            explainable_result = await self.embeddings_coordinator.get_explainable_score(query, document, metadata)
+            explainable_result = await self.embeddings_coordinator.get_explainable_score(
+                query, document, metadata)
 
-            # Get adaptive threshold
-            threshold = await self.embeddings_coordinator.get_adaptive_threshold(f"{query}:{document[:100]}")
+            # Get adaptive threshold - use factual for fact verification queries
+            threshold_context = {
+                "query": query,
+                "document_preview": document[:100],
+                "query_type": metadata.get("query_type", "factual") if metadata else "factual",
+                "source_type": metadata.get("source_type", "web") if metadata else "web"
+            }
+            threshold = await self.embeddings_coordinator.get_adaptive_threshold(threshold_context)
 
             # Combine results
             comprehensive_score = {
                 "hybrid_score": hybrid_result.get("score", 0.0),
-                "temporal_score": temporal_result.get("score", 0.0),
-                "explainable_score": explainable_result.get("score", 0.0),
+                "temporal_score": temporal_result.get("adjusted_relevance", 0.0),
+                "explainable_score": explainable_result.get("final_score", 0.0),
                 "adaptive_threshold": threshold,
                 "metadata": {
                     "hybrid_details": hybrid_result,
@@ -202,12 +211,14 @@ class RelevanceOrchestrator:
         try:
             # Optimize embeddings performance
             if self.embeddings_coordinator:
-                embeddings_optimization = await self.embeddings_coordinator.optimize_embeddings_performance()
+                embeddings_optimization = await self.embeddings_coordinator\
+                    .optimize_embeddings_performance()
                 optimization_results["embeddings"] = embeddings_optimization
 
             # Optimize cache settings
             if self.cache_monitor:
-                cache_optimization = await self.cache_monitor.optimize_cache_settings("embedding_cache")
+                cache_optimization = await self.cache_monitor.optimize_cache_settings(
+                    "embedding_cache")
                 optimization_results["cache"] = cache_optimization
 
             logger.info("Performance optimization completed")

@@ -106,7 +106,7 @@ class EnhancedOllamaEmbeddings:
         # Generate new embedding
         self.metrics["cache_misses"] += 1
         try:
-            embedding = await self.ollama.embed_query(text)
+            embedding = self.ollama.embed_query(text)
 
             if not isinstance(embedding, list):
                 if hasattr(embedding, "tolist"):

@@ -77,14 +77,18 @@ class TemporalAnalysisCache:
         text_hash = hashlib.md5(combined.encode("utf-8")).hexdigest()
         return f"temporal:{analysis_type}:{text_hash}"
 
-    def _parse_date(self, date_str: str) -> datetime | None:
-        """Parse date string to datetime object."""
+    def _parse_date(self, date_str: str | datetime) -> datetime | None:
+        """Parse date string to datetime object, ensuring timezone consistency."""
         try:
             if isinstance(date_str, datetime):
-                return date_str
+                # Convert to naive datetime if it has timezone info
+                return date_str.replace(tzinfo=None) if date_str.tzinfo else date_str
 
-            # Try common date formats
-            return date_parser.parse(date_str)
+            # Parse the date string
+            parsed = date_parser.parse(date_str)
+            
+            # Convert to naive datetime for consistency with datetime.now()
+            return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
 
         except Exception as e:
             logger.debug(f"Failed to parse date '{date_str}': {e}")

@@ -90,7 +90,38 @@ class RelevanceEmbeddingsCoordinator:
             return {"error": "Coordinator not initialized"}
 
         try:
-            return await self.hybrid_scorer.calculate_hybrid_score(query, document, metadata)
+            # Call hybrid scorer with explain=True to get detailed results
+            result = await self.hybrid_scorer.calculate_hybrid_score(query, document, use_cache=True, explain=True)
+            
+            # Handle the tuple return (score, details)
+            if isinstance(result, tuple) and len(result) == 2:
+                score, details = result
+                return {
+                    "score": score,
+                    "details": details,
+                    "method": "hybrid_scoring"
+                }
+            # Handle float return (fallback for compatibility)
+            elif isinstance(result, (int, float)):
+                return {
+                    "score": float(result),
+                    "details": {},
+                    "method": "hybrid_scoring"
+                }
+            # Handle dict return (if already in correct format)
+            elif isinstance(result, dict):
+                if "score" not in result:
+                    # If it's a dict but missing score key, try to extract it
+                    result["score"] = result.get("hybrid_score", 0.0)
+                return result
+            else:
+                logger.warning(f"Unexpected result type from hybrid scorer: {type(result)}")
+                return {
+                    "score": 0.0,
+                    "details": {},
+                    "method": "hybrid_scoring",
+                    "error": f"Unexpected result type: {type(result)}"
+                }
         except Exception as e:
             raise ValidationError(
                 f"Failed to calculate hybrid relevance: {e}") from e
@@ -104,7 +135,9 @@ class RelevanceEmbeddingsCoordinator:
             return {"error": "Coordinator not initialized"}
 
         try:
-            return await self.explainable_scorer.explain_relevance(query, document, metadata)
+            # Extract content_date from metadata if available
+            content_date = metadata.get("date") if metadata else None
+            return await self.explainable_scorer.explain_relevance(query, document, content_date)
         except Exception as e:
             raise ValidationError(
                 f"Failed to get explainable score: {e}") from e
@@ -122,16 +155,26 @@ class RelevanceEmbeddingsCoordinator:
             content_date = metadata.get("date") if metadata else None
             # Calculate base relevance score (simplified for now)
             base_relevance = 0.5
-            return await self.temporal_cache.analyze_temporal_relevance(
+
+            logger.info(
+                f"Calling temporal_cache.analyze_temporal_relevance with query={query[:50]}..., content_date={content_date}, base_relevance={base_relevance}")
+
+            result = await self.temporal_cache.analyze_temporal_relevance(
                 query=query,
                 content=document,
                 content_date=content_date,
                 base_relevance=base_relevance,
-                time_window=None,
+                time_window="default",
                 use_cache=True,
             )
 
+            logger.info(
+                f"Temporal analysis result type: {type(result)}, value: {result}")
+
+            return result
+
         except Exception as e:
+            logger.error(f"Failed to analyze temporal relevance: {e}")
             raise ValidationError(
                 f"Failed to analyze temporal relevance: {e}") from e
 

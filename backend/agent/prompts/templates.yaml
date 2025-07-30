@@ -484,7 +484,7 @@ verdict_generation_enhanced:
       - 'verdict': One of 'true', 'partially_true', 'false', or 'ironic'
       - 'confidence_score': A number between 0.0 and 1.0
       - 'reasoning': A 2-3 sentence explanation that synthesizes all analysis results
-      - 'sources': A list of the most important source URLs (up to 5 sources)
+      - 'sources': A list of the most important source URLs
 
 post_analysis:
   - role: "system"

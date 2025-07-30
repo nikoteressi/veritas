@@ -120,13 +120,13 @@ class IntelligentCache:
         if self.redis_client is None:
             try:
                 # Check if redis_manager is available and initialized
-                if hasattr(redis_manager, "_async_pool") and redis_manager._async_pool is not None:
-                    self.redis_client = redis_manager.get_async_client()
+                if hasattr(redis_manager, "_async_pool_binary") and redis_manager._async_pool_binary is not None:
+                    self.redis_client = redis_manager.get_async_client_binary()
                 else:
                     # Try to initialize redis_manager
                     await redis_manager.init_redis()
-                    if redis_manager._async_pool is not None:
-                        self.redis_client = redis_manager.get_async_client()
+                    if redis_manager._async_pool_binary is not None:
+                        self.redis_client = redis_manager.get_async_client_binary()
                     else:
                         self.logger.warning(
                             "Redis is not available, using memory cache only")

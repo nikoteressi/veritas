@@ -154,40 +154,49 @@ class CachedHybridRelevanceScorer:
     def calculate_bm25_score(self, query: str, text: str) -> float:
         """Calculate BM25 relevance score."""
         try:
-            if self.bm25_scorer is None:
-                logger.warning(
-                    "BM25 scorer not initialized. Call prepare_corpus first.")
+            query_tokens = self._preprocess_text(query).split()
+
+            # Filter out empty query tokens
+            if not query_tokens:
+                logger.debug("Empty query tokens, returning 0.0")
                 return 0.0
 
-            query_tokens = self._preprocess_text(query).split()
-            text_tokens = self._preprocess_text(text).split()
+            # Require BM25 scorer to be properly initialized with corpus
+            if self.bm25_scorer is None or not self.bm25_corpus:
+                logger.error(
+                    "BM25 scorer not initialized or corpus not prepared. Call prepare_corpus first.")
+                return 0.0
 
-            # Get BM25 score
-            scores = self.bm25_scorer.get_scores(query_tokens)
+            try:
+                preprocessed_text = self._preprocess_text(text)
+                text_tokens = preprocessed_text.split()
 
-            # Find the score for this specific text
-            if self.bm25_corpus:
-                try:
-                    preprocessed_text = self._preprocess_text(text)
-                    text_index = self.bm25_corpus.index(preprocessed_text)
-                    score = float(scores[text_index]) if text_index < len(
+                # Filter out empty text tokens
+                if not text_tokens:
+                    logger.debug("Empty text tokens, returning 0.0")
+                    return 0.0
+
+                # Find the document index in the corpus
+                doc_index = -1
+                for i, corpus_doc in enumerate(self.bm25_corpus):
+                    if corpus_doc == preprocessed_text:
+                        doc_index = i
+                        break
+
+                if doc_index >= 0:
+                    # Document found in corpus, get its score
+                    scores = self.bm25_scorer.get_scores(query_tokens)
+                    score = float(scores[doc_index]) if doc_index < len(
                         scores) else 0.0
-                except ValueError:
-                    # Text not in corpus, calculate directly by adding to corpus temporarily
-                    temp_corpus = self.bm25_corpus + \
-                        [self._preprocess_text(text)]
-                    temp_tokenized = [doc.split() for doc in temp_corpus]
-                    temp_bm25 = BM25Okapi(temp_tokenized)
-                    temp_scores = temp_bm25.get_scores(query_tokens)
-                    score = float(
-                        temp_scores[-1]) if len(temp_scores) > 0 else 0.0
-            else:
-                # No corpus available, create temporary one
-                temp_corpus = [self._preprocess_text(text)]
-                temp_tokenized = [doc.split() for doc in temp_corpus]
-                temp_bm25 = BM25Okapi(temp_tokenized)
-                temp_scores = temp_bm25.get_scores(query_tokens)
-                score = float(temp_scores[0]) if len(temp_scores) > 0 else 0.0
+                else:
+                    # Document not in corpus, cannot score properly
+                    logger.warning(
+                        "Document not found in BM25 corpus. Corpus may need to be updated.")
+                    return 0.0
+
+            except Exception as e:
+                logger.error("Error using BM25 scorer: %s", e)
+                return 0.0
 
             # Normalize score (BM25 scores can be quite high)
             normalized_score = min(score / 10.0, 1.0)
@@ -339,7 +348,7 @@ class CachedHybridRelevanceScorer:
             logger.info("Corpus prepared successfully")
 
         # Score all documents
-        logger.info(f"Creating tasks for {len(documents)} documents")
+        logger.info("Creating tasks for %d documents", len(documents))
 
         # Create tasks one by one and log each
         tasks = []
@@ -348,7 +357,7 @@ class CachedHybridRelevanceScorer:
                 query, doc, use_cache, return_explanations)
             tasks.append(task)
 
-        logger.info(f"Created {len(tasks)} tasks, gathering results...")
+        logger.info("Created %d tasks, gathering results...", len(tasks))
 
         try:
             results = await asyncio.gather(*tasks, return_exceptions=True)

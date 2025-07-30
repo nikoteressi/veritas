@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from datetime import datetime
 from typing import Any
 
 from app.config import settings
@@ -26,6 +27,17 @@ class StorageService:
         """Create a SHA256 hash of the image bytes."""
         return hashlib.sha256(image_bytes).hexdigest()
 
+    def _serialize_for_json(self, obj: Any) -> Any:
+        """Serialize object for JSON, handling datetime objects."""
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {key: self._serialize_for_json(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._serialize_for_json(item) for item in obj]
+        else:
+            return obj
+
     async def save_verification_result(
         self,
         db: AsyncSession,
@@ -43,9 +55,12 @@ class StorageService:
         if not claims:
             raise ValueError("No claims found in extracted information")
 
+        # Serialize reputation data for JSON storage
+        serialized_reputation = self._serialize_for_json(reputation_data)
+
         result_data = {
             "user_nickname": user_nickname,
-            "reputation_data": reputation_data,
+            "reputation_data": json.dumps(serialized_reputation),
             "verdict": verdict_result.get("verdict"),
             "justification": verdict_result.get("reasoning"),
             "identified_claims": json.dumps(claims),
