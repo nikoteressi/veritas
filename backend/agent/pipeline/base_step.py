@@ -45,5 +45,6 @@ class BasePipelineStep(ABC):
             self.logger.info("Completed %s step successfully", self.name)
             return result_context
         except Exception as e:
-            self.logger.error("Failed %s step: %s", self.name, e, exc_info=True)
+            self.logger.error("Failed %s step: %s",
+                              self.name, e, exc_info=True)
             raise AgentError(f"Failed {self.name} step: {e}") from e

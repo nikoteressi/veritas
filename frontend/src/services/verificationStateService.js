@@ -154,6 +154,19 @@ class VerificationStateService {
         // Handle verification started confirmation
         break;
       
+      // New dynamic progress system message types
+      case 'steps_definition':
+        this._emit('steps_definition', data);
+        break;
+      
+      case 'progress_update':
+        this._emit('progress_update', data);
+        break;
+      
+      case 'step_update':
+        this._emit('step_update', data);
+        break;
+      
       default:
         logger.warn('Unhandled WebSocket message in verification state:', messageType, data);
     }
@@ -200,4 +213,4 @@ class VerificationStateService {
 }
 
 // Export singleton instance
-export const verificationStateService = new VerificationStateService(); 
+export const verificationStateService = new VerificationStateService();

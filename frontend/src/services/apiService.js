@@ -23,6 +23,8 @@ export const apiService = {
     // Add session ID if provided for real-time updates
     if (sessionId) {
       formData.append('session_id', sessionId);
+    } else {
+      console.log('No sessionId provided - WebSocket updates will not work');
     }
 
     const makeRequest = async () => {
@@ -35,7 +37,8 @@ export const apiService = {
     };
 
     // Use retry logic for resilience
-    return await retryWithBackoff(makeRequest, 3, 1000);
+    const response = await retryWithBackoff(makeRequest, 3, 1000);
+    return response;
   },
 
   /**
@@ -66,4 +69,4 @@ export const apiService = {
     const response = await axios.get(`${API_BASE_URL.replace('/api/v1', '')}/health`);
     return response.data;
   }
-}; 
+};

@@ -170,6 +170,14 @@ class WebSocketService {
         }
       }
       
+      // Handle new progress system messages
+      if (['steps_definition', 'progress_update', 'step_update'].includes(message.type)) {
+        // Route progress messages to verification state service
+        import('./verificationStateService.js').then(({ verificationStateService }) => {
+          verificationStateService.handleWebSocketMessage(message.type, message.data);
+        });
+      }
+      
       // Emit event to listeners
       this._emit(message.type, message.data);
       
@@ -248,4 +256,4 @@ class WebSocketService {
 }
 
 // Export singleton instance
-export const webSocketService = new WebSocketService(); 
+export const webSocketService = new WebSocketService();

@@ -46,7 +46,8 @@ class WebSocketHandler:
                 try:
                     # Receive message from client
                     data = await websocket.receive_text()
-                    logger.info(f"Received WebSocket message from {session_id}: {data}")
+                    logger.info(
+                        f"Received WebSocket message from {session_id}: {data}")
 
                     # Process the message
                     await self._process_message(session_id, data)
@@ -90,7 +91,7 @@ class WebSocketHandler:
             {
                 "type": "pong",
                 "data": {"timestamp": message.get("timestamp")},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now().isoformat(),
             },
         )
 
@@ -102,7 +103,7 @@ class WebSocketHandler:
             {
                 "type": "status_response",
                 "data": status or {"status": "connected"},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now().isoformat(),
             },
         )
 
@@ -113,7 +114,7 @@ class WebSocketHandler:
             {
                 "type": "echo",
                 "data": message,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now().isoformat(),
             },
         )
 
@@ -124,7 +125,7 @@ class WebSocketHandler:
             {
                 "type": "error",
                 "data": {"message": "Invalid JSON format"},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now().isoformat(),
             },
         )
 

@@ -10,8 +10,10 @@ from typing import Any
 
 from agent.models.verification_context import VerificationContext
 from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
-from app.config import settings
+from app.config import settings, VerificationSteps
 from app.exceptions import AgentError
+from app.services.progress_manager import progress_manager
+from app.models.progress import StepStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.infrastructure.event_emission import EventEmissionService
@@ -87,8 +89,10 @@ class VerificationPipeline:
                 session_id=session_id,
                 filename=filename,
                 db=db,
-                event_service=(EventEmissionService(event_callback) if event_callback else None),
+                event_service=(EventEmissionService(
+                    event_callback) if event_callback else None),
                 result_compiler=ResultCompiler(),
+                progress_manager=progress_manager,
             )
         except Exception as e:
             logger.error("Failed to create verification context: %s", e)
@@ -99,21 +103,55 @@ class VerificationPipeline:
             result_compiler = context.result_compiler
             result_compiler.start_timing()
 
+        # Initialize progress tracking session
+        try:
+            await progress_manager.start_session(session_id)
+            logger.info(f"Started progress tracking for session {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to start progress tracking: {e}")
+            # Continue without progress tracking
+
         # Emit verification started event
         if context.event_service:
             await context.event_service.emit_verification_started()
 
         try:
-            # Execute each step in sequence
-            for step in self.steps:
+            # Execute each step in sequence with progress tracking
+            for i, step in enumerate(self.steps):
+                # Map step name to VerificationSteps enum
+                verification_step = self._map_step_to_enum(step.name)
+
+                if verification_step:
+                    # Update step status to IN_PROGRESS
+                    await progress_manager.update_step_status(
+                        session_id=session_id,
+                        step_id=verification_step.value,
+                        status=StepStatus.IN_PROGRESS,
+                        progress=0.0,
+                        message=f"Starting {step.name}..."
+                    )
+
                 # Execute step safely
                 context = await step.safe_execute(context)
+
+                if verification_step:
+                    # Update step status to COMPLETED
+                    await progress_manager.update_step_status(
+                        session_id=session_id,
+                        step_id=verification_step.value,
+                        status=StepStatus.COMPLETED,
+                        progress=1.0,
+                        message=f"Completed {step.name}"
+                    )
 
             # Compile final result
             final_result = await self._compile_final_result(context)
 
             # Store in vector database
             await storage_service.store_in_vector_db(final_result)
+
+            # Complete progress tracking session
+            await progress_manager.complete_session(session_id)
 
             # Emit verification completed event
             if context.event_service:
@@ -130,7 +168,44 @@ class VerificationPipeline:
 
         except Exception as e:
             logger.error("Pipeline execution failed: %s", e, exc_info=True)
+
+            # Mark current step as failed if we can identify it
+            try:
+                current_step = self._get_current_step_enum()
+                if current_step:
+                    await progress_manager.update_step_status(
+                        session_id=session_id,
+                        step_id=current_step.value,
+                        status=StepStatus.FAILED,
+                        progress=0.0,
+                        message=f"Failed: {str(e)}"
+                    )
+            except Exception:
+                pass  # Don't let progress tracking errors mask the original error
+
             raise AgentError(f"Verification pipeline failed: {e}") from e
+
+    def _map_step_to_enum(self, step_name: str) -> VerificationSteps | None:
+        """Map step name to VerificationSteps enum."""
+        step_mapping = {
+            "Validation": VerificationSteps.VALIDATION,
+            "Screenshot Parsing": VerificationSteps.SCREENSHOT_PARSING,
+            "Temporal Analysis": VerificationSteps.TEMPORAL_ANALYSIS,
+            "Post Analysis": VerificationSteps.POST_ANALYSIS,
+            "Reputation Retrieval": VerificationSteps.REPUTATION_RETRIEVAL,
+            "Fact Checking": VerificationSteps.FACT_CHECKING,
+            "Summarization": VerificationSteps.SUMMARIZATION,
+            "Verdict Generation": VerificationSteps.VERDICT_GENERATION,
+            "Motives Analysis": VerificationSteps.MOTIVES_ANALYSIS,
+            "Reputation Update": VerificationSteps.REPUTATION_UPDATE,
+        }
+        return step_mapping.get(step_name)
+
+    def _get_current_step_enum(self) -> VerificationSteps | None:
+        """Get the current step enum (placeholder for now)."""
+        # This would need to be implemented based on current execution state
+        # For now, return None to avoid errors
+        return None
 
     async def _compile_final_result(self, context: VerificationContext) -> dict[str, Any]:
         """Compile the final verification result."""
@@ -205,7 +280,8 @@ class VerificationPipeline:
                 step_name,
                 e,
             )
-            raise AgentError(f"Failed to remove step from pipeline: {e}") from e
+            raise AgentError(
+                f"Failed to remove step from pipeline: {e}") from e
 
     def reorder_steps(self, new_step_names: list[str]) -> None:
         """

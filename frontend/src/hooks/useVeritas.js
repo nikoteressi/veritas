@@ -39,8 +39,16 @@ export const useVeritas = () => {
   // Handle WebSocket messages and delegate to appropriate handlers
   useEffect(() => {
     if (lastMessage) {
-      // Handle verification-related messages
-      const verificationMessageTypes = ['progress_event', 'verification_result', 'error', 'verification_started'];
+      // Handle verification-related messages (including new progress system)
+      const verificationMessageTypes = [
+        'progress_event', 
+        'verification_result', 
+        'error', 
+        'verification_started',
+        'steps_definition',
+        'progress_update',
+        'step_update'
+      ];
       
       if (verificationMessageTypes.includes(lastMessage.type)) {
         handleWebSocketMessage(lastMessage.type, lastMessage.data);
@@ -77,7 +85,7 @@ export const useVeritas = () => {
   // Callback for handling verification start
   const handleVerificationStart = useCallback(() => {
     startVerification();
-  }, [startVerification]);
+  }, [startVerification, isConnected, sessionId]);
 
   // Submit verification function that can be used by components
   const submitVerification = useCallback(async (file, prompt, sessionId, isWebSocketConnected) => {
@@ -135,4 +143,4 @@ export const useVeritas = () => {
     webSocketService,
     verificationStateService
   };
-}; 
+};

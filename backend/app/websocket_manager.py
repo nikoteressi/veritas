@@ -17,6 +17,12 @@ from redis.asyncio.client import Redis
 from app.json_utils import json_dumps
 from app.redis_client import redis_manager
 from app.schemas import ProgressEvent
+from app.schemas.websocket import (
+    ProgressWebSocketMessage,
+    StepsDefinitionMessage,
+    ProgressUpdateMessage,
+    StepUpdateMessage
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +112,8 @@ class ConnectionManager:
                 json_message = json_dumps(message)
                 await websocket.send_text(json_message)
             except TypeError as e:
-                logger.error(f"Failed to serialize message for {session_id}: {e}\\nMessage: {message}")
+                logger.error(
+                    f"Failed to serialize message for {session_id}: {e}\\nMessage: {message}")
                 # Try to send a fallback error message
                 try:
                     await websocket.send_text(
@@ -126,6 +133,9 @@ class ConnectionManager:
                 logger.error(f"Failed to send message to {session_id}: {e}")
                 # Remove broken connection
                 await self.disconnect(session_id)
+        else:
+            logger.warning(
+                f"No active WebSocket connection found for session {session_id}")
 
     async def broadcast_message(self, message: dict[str, Any]):
         """
@@ -140,7 +150,8 @@ class ConnectionManager:
         try:
             json_message = json_dumps(message)
         except TypeError as e:
-            logger.error(f"Failed to serialize broadcast message: {e}\\nMessage: {message}")
+            logger.error(
+                f"Failed to serialize broadcast message: {e}\\nMessage: {message}")
             return  # Cannot send to anyone
 
         # Send to all connections
@@ -295,6 +306,62 @@ class ConnectionManager:
 
         logger.info(f"Started verification session: {session_id}")
 
+    async def send_message_to_session(self, session_id: str, message: dict[str, Any]):
+        """
+        Send a message to a specific session (alias for send_message for compatibility).
+
+        Args:
+            session_id: Target session ID
+            message: Message to send
+        """
+        await self.send_message(session_id, message)
+
+    async def send_enhanced_progress_message(self, session_id: str, message: ProgressWebSocketMessage):
+        """
+        Send an enhanced progress message to a specific session.
+
+        Args:
+            session_id: Target session ID
+            message: Enhanced progress message
+        """
+        message_dict = {
+            "type": message.type,
+            "data": message.data.dict(),
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+        await self.send_message(session_id, message_dict)
+
+        # Update session state in Redis for enhanced messages
+        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+        if isinstance(message, StepsDefinitionMessage):
+            await self.redis.hset(
+                session_key,
+                mapping={
+                    "steps_defined": "true",
+                    "total_steps": len(message.data.steps),
+                    "last_update": datetime.now(UTC).isoformat(),
+                },
+            )
+        elif isinstance(message, ProgressUpdateMessage):
+            await self.redis.hset(
+                session_key,
+                mapping={
+                    "current_progress": message.data.current_progress,
+                    "current_step_id": message.data.current_step_id,
+                    "last_update": datetime.now(UTC).isoformat(),
+                },
+            )
+        elif isinstance(message, StepUpdateMessage):
+            await self.redis.hset(
+                session_key,
+                mapping={
+                    f"step_{message.data.step_id}_status": message.data.status.value,
+                    f"step_{message.data.step_id}_progress": message.data.progress,
+                    "last_update": datetime.now(UTC).isoformat(),
+                },
+            )
+
     async def get_session_status(self, session_id: str) -> dict[str, Any] | None:
         """
         Get the status of a verification session from Redis.
@@ -371,7 +438,8 @@ class EventProgressTracker:
         """
         await self.connection_manager.send_error(self.session_id, error_message, error_code)
 
-        logger.error(f"Verification failed [{self.session_id}]: {error_message}")
+        logger.error(
+            f"Verification failed [{self.session_id}]: {error_message}")
 
 
 class ProgressTracker:
@@ -394,7 +462,8 @@ class ProgressTracker:
         self.current_progress = progress
         await self.connection_manager.send_progress_update(self.session_id, step, progress, details)
 
-        logger.info(f"Progress update [{self.session_id}]: {step} ({progress}%)")
+        logger.info(
+            f"Progress update [{self.session_id}]: {step} ({progress}%)")
 
     async def complete(self, result: dict[str, Any]):
         """
@@ -417,7 +486,8 @@ class ProgressTracker:
         """
         await self.connection_manager.send_error(self.session_id, error_message, error_code)
 
-        logger.error(f"Verification failed [{self.session_id}]: {error_message}")
+        logger.error(
+            f"Verification failed [{self.session_id}]: {error_message}")
 
 
 # Global connection manager instance

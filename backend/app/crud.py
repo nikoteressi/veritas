@@ -32,7 +32,7 @@ class UserCRUD:
         db.add(user)
         await db.flush()
         await db.refresh(user)
-        logger.info(f"Created new user: {nickname}")
+        logger.info("Created new user: %s", nickname)
         return user
 
     @staticmethod
@@ -50,10 +50,10 @@ class UserCRUD:
 
         if not user:
             # This should not happen, but handle it gracefully
-            logger.error(f"Failed to get or create user: {nickname}")
+            logger.error("Failed to get or create user: %s", nickname)
             raise RuntimeError(f"Could not get or create user: {nickname}")
 
-        logger.debug(f"Retrieved user: {nickname}")
+        logger.debug("Retrieved user: %s", nickname)
         return user
 
     @staticmethod
@@ -73,22 +73,22 @@ class UserCRUD:
             user.ironic_count += 1
 
         user.total_posts_checked += 1
-        user.last_checked_date = datetime.utcnow()
+        user.last_checked_date = datetime.now()
 
         # Check for warning/notification thresholds
         if user.false_count >= 10 and not user.warning_issued:
             user.warning_issued = True
-            logger.warning(f"Warning threshold reached for user: {nickname}")
+            logger.warning("Warning threshold reached for user: %s", nickname)
 
         if user.false_count >= 20 and not user.notification_issued:
             user.notification_issued = True
             logger.warning(
-                f"Notification threshold reached for user: {nickname}")
+                "Notification threshold reached for user: %s", nickname)
 
         await db.flush()
         await db.refresh(user)
 
-        logger.info(f"Updated reputation for {user.nickname}: {verdict}")
+        logger.info("Updated reputation for %s: %s", user.nickname, verdict)
         return user
 
     @staticmethod
@@ -110,7 +110,7 @@ class VerificationResultCRUD:
         await db.refresh(result)
 
         logger.info(
-            f"Created verification result for {result.user_nickname}: {result.verdict}")
+            "Created verification result for %s: %s", result.user_nickname, result.verdict)
         return result
 
     @staticmethod
@@ -127,9 +127,13 @@ class VerificationResultCRUD:
         return result.scalars().all()
 
     @staticmethod
-    async def get_verification_result_by_id(db: AsyncSession, result_id: int) -> VerificationResult | None:
+    async def get_verification_result_by_id(
+        db: AsyncSession, result_id: int
+    ) -> VerificationResult | None:
         """Get a verification result by its ID."""
-        result = await db.execute(select(VerificationResult).filter(VerificationResult.id == result_id))
+        stmt = select(VerificationResult).filter(
+            VerificationResult.id == result_id)
+        result = await db.execute(stmt)
         return result.scalars().first()
 
     @staticmethod
@@ -146,5 +150,7 @@ class VerificationResultCRUD:
         db: AsyncSession,
     ) -> list[VerificationResult]:
         """Get all verification results."""
-        result = await db.execute(select(VerificationResult).order_by(VerificationResult.created_at.desc()))
+        stmt = select(VerificationResult).order_by(
+            VerificationResult.created_at.desc())
+        result = await db.execute(stmt)
         return result.scalars().all()

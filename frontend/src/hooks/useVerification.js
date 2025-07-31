@@ -51,6 +51,8 @@ export const useVerification = () => {
         if (onComplete) {
           onComplete(response.data);
         }
+      } else {
+        console.log('WebSocket connected - waiting for WebSocket messages');
       }
       // If WebSocket is connected, loading state will be handled by WebSocket messages
 
@@ -88,4 +90,4 @@ export const useVerification = () => {
     resetState,
     setIsLoading
   };
-}; 
+};

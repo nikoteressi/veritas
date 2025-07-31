@@ -19,11 +19,13 @@ from app.matplotlib_config import configure_matplotlib
 from app.redis_client import redis_manager
 from app.routers import reputation, verification
 from app.services.verification_service import verification_service
+from app.services.progress_manager import initialize_progress_manager
 
 # --- Telemetry Patch ---
 # This is a workaround for a bug in chromadb 0.5.3. It prevents telemetry errors
 # by replacing the problematic module with a mock before it's ever imported.
-patch.dict("sys.modules", {"chromadb.telemetry.product.posthog": MagicMock()}).start()
+patch.dict("sys.modules", {
+           "chromadb.telemetry.product.posthog": MagicMock()}).start()
 # --- End Telemetry Patch ---
 
 # --- Matplotlib Configuration ---
@@ -33,7 +35,8 @@ configure_matplotlib()
 
 
 # Configure logging
-logging.config.fileConfig(settings.logging_config_file, disable_existing_loggers=False)
+logging.config.fileConfig(settings.logging_config_file,
+                          disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +55,10 @@ async def lifespan(app_instance: FastAPI):
     # Initialize vector store (with lazy loading)
     # The actual initialization will happen on the first request
     logger.info("Vector store scheduled for lazy initialization.")
+
+    # Initialize progress manager with websocket manager
+    initialize_progress_manager()
+    logger.info("Progress manager initialized with WebSocket manager.")
 
     # Initialize AgentManager
     try:
@@ -100,7 +107,8 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_type, handler)
 
 # Include routers
-app.include_router(verification.router, prefix="/api/v1", tags=["Verification"])
+app.include_router(verification.router, prefix="/api/v1",
+                   tags=["Verification"])
 app.include_router(reputation.router, prefix="/api/v1", tags=["Reputation"])
 
 

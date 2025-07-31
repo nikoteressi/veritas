@@ -25,6 +25,7 @@ export const useWebSocketService = () => {
 
         const unsubscribeSessionEstablished = webSocketService.subscribe('session_established', () => {
           const status = webSocketService.getStatus();
+          console.log('WebSocket session established in useWebSocketService:', status);
           setConnectionStatus(status);
         });
 
@@ -48,7 +49,11 @@ export const useWebSocketService = () => {
           'session_established',
           'pong',
           'status_response',
-          'echo'
+          'echo',
+          // Progress system messages
+          'steps_definition',
+          'progress_update',
+          'step_update'
         ];
 
         const messageUnsubscribers = messageTypes.map(type => 
@@ -151,4 +156,4 @@ export const useWebSocketService = () => {
     // WebSocket service instance (for advanced usage)
     webSocketService
   };
-}; 
+};

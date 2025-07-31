@@ -57,7 +57,8 @@ class VerificationService:
         # Generate verification ID
         verification_id = str(uuid4())
 
-        logger.info("Received verification request: %s, prompt: %s...", filename, validated_data["prompt"][:100])
+        logger.info("Received verification request: %s, prompt: %s...",
+                    filename, validated_data["prompt"][:100])
 
         # If session_id provided, start WebSocket session
         if session_id and session_id in connection_manager.active_connections:
@@ -122,7 +123,8 @@ class VerificationService:
         try:
             # Create a new database session for the background task
             async with async_session_factory() as db:
-                logger.info("Starting background verification for session %s", session_id)
+                logger.info(
+                    "Starting background verification for session %s", session_id)
 
                 # Run verification with event callback
                 result = await self.coordinator.execute_verification(
@@ -134,12 +136,14 @@ class VerificationService:
                     filename=filename,
                 )
 
-                logger.info("Background verification completed for session %s, sending result", session_id)
+                logger.info(
+                    "Background verification completed for session %s, sending result", session_id)
 
                 # Explicitly commit the database transaction
                 try:
                     await db.commit()
-                    logger.info("Database transaction committed for session %s", session_id)
+                    logger.info(
+                        "Database transaction committed for session %s", session_id)
                 except Exception as commit_error:
                     logger.error(
                         "Failed to commit database transaction for session %s: %s",
@@ -153,7 +157,8 @@ class VerificationService:
                 # Send final result - handle any WebSocket errors separately after DB commit
                 try:
                     await event_tracker.complete(result)
-                    logger.info("Final result sent successfully for session %s", session_id)
+                    logger.info(
+                        "Final result sent successfully for session %s", session_id)
                 except Exception as ws_error:
                     logger.error(
                         "Failed to send WebSocket result for session %s: %s",

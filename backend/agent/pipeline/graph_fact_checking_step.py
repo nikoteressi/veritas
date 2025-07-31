@@ -9,6 +9,8 @@ from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.tools import searxng_tool
 from app.exceptions import AgentError
+from app.config import VerificationSteps
+from app.models.progress import StepStatus
 
 from ..services.graph.graph_fact_checking import GraphFactCheckingService
 
@@ -26,7 +28,8 @@ class GraphFactCheckingStep(BasePipelineStep):
     def __init__(self):
         super().__init__("Graph Fact Checking")
 
-        self.graph_fact_checking_service = GraphFactCheckingService(search_tool=searxng_tool)
+        self.graph_fact_checking_service = GraphFactCheckingService(
+            search_tool=searxng_tool)
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """
@@ -40,7 +43,8 @@ class GraphFactCheckingStep(BasePipelineStep):
         """
         # Validate that we have the necessary data
         if not context.fact_hierarchy:
-            logger.warning("No fact hierarchy available for graph-based fact checking")
+            logger.warning(
+                "No fact hierarchy available for graph-based fact checking")
             return context
 
         if not context.claims:
@@ -50,13 +54,43 @@ class GraphFactCheckingStep(BasePipelineStep):
         # Extract claims to determine total count for progress tracking
         total_claims = len(context.claims)
 
+        # Send initial progress update
+        if context.progress_manager and context.session_id:
+            await context.progress_manager.update_step_status(
+                session_id=context.session_id,
+                step_id=VerificationSteps.FACT_CHECKING.value,
+                status=StepStatus.IN_PROGRESS,
+                progress=0.1,
+                message=f"Starting graph-based fact checking for {total_claims} claims..."
+            )
+
         # Emit start event
         if context.event_service:
             await context.event_service.emit_fact_checking_started(total_claims)
 
         try:
+            # Send progress update for graph building
+            if context.progress_manager and context.session_id:
+                await context.progress_manager.update_step_status(
+                    session_id=context.session_id,
+                    step_id=VerificationSteps.FACT_CHECKING.value,
+                    status=StepStatus.IN_PROGRESS,
+                    progress=0.3,
+                    message="Building fact graph and analyzing relationships..."
+                )
+
             # Perform graph-based fact checking
             fact_check_result = await self.graph_fact_checking_service.verify_facts(context)
+
+            # Send progress update for verification completion
+            if context.progress_manager and context.session_id:
+                await context.progress_manager.update_step_status(
+                    session_id=context.session_id,
+                    step_id=VerificationSteps.FACT_CHECKING.value,
+                    status=StepStatus.IN_PROGRESS,
+                    progress=0.9,
+                    message="Finalizing fact verification results..."
+                )
 
             # Store the result in context
             context.fact_check_result = fact_check_result
@@ -73,6 +107,16 @@ class GraphFactCheckingStep(BasePipelineStep):
 
         except (ValueError, RuntimeError, AttributeError, TypeError) as e:
             logger.error("Graph fact checking failed: %s", e, exc_info=True)
+
+            # Send error progress update
+            if context.progress_manager and context.session_id:
+                await context.progress_manager.update_step_status(
+                    session_id=context.session_id,
+                    step_id=VerificationSteps.FACT_CHECKING.value,
+                    status=StepStatus.FAILED,
+                    progress=0.0,
+                    message=f"Fact checking failed: {str(e)}"
+                )
 
             # Emit error event if available
             if context.event_service and hasattr(context.event_service, "emit_fact_checking_error"):
@@ -99,7 +143,8 @@ class GraphFactCheckingStep(BasePipelineStep):
                 await self.graph_fact_checking_service.close()
                 logger.info("GraphFactCheckingStep closed successfully")
         except Exception as e:
-            raise AgentError(f"Failed to close GraphFactCheckingStep: {e}") from e
+            raise AgentError(
+                f"Failed to close GraphFactCheckingStep: {e}") from e
 
     async def __aenter__(self):
         """Async context manager entry."""

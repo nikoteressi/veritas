@@ -36,12 +36,18 @@ class VerificationContext(BaseModel):
     image_bytes: bytes = Field(..., description="Image content to analyze")
     user_prompt: str = Field(..., description="User's question/prompt")
     session_id: str = Field(..., description="Session identifier")
-    filename: str | None = Field(None, description="Optional filename for display")
+    filename: str | None = Field(
+        None, description="Optional filename for display")
 
     # Database and services (excluded from serialization)
-    db: AsyncSession | None = Field(None, exclude=True, description="Database session")
-    event_service: EventEmissionService | None = Field(None, exclude=True, description="Event emission service")
-    result_compiler: ResultCompiler | None = Field(None, exclude=True, description="Result compiler service")
+    db: AsyncSession | None = Field(
+        None, exclude=True, description="Database session")
+    event_service: EventEmissionService | None = Field(
+        None, exclude=True, description="Event emission service")
+    result_compiler: ResultCompiler | None = Field(
+        None, exclude=True, description="Result compiler service")
+    progress_manager: Any | None = Field(
+        None, exclude=True, description="Progress manager service")
 
     # Step-specific data
     validated_data: dict[str, Any] | None = None
@@ -51,41 +57,54 @@ class VerificationContext(BaseModel):
         description="The primary topic or domain of the post (e.g., financial, political).",
     )
     fact_hierarchy: FactHierarchy | None = None
-    fact_graph: FactGraph | None = Field(None, description="Graph representation of facts and their relationships")
+    fact_graph: FactGraph | None = Field(
+        None, description="Graph representation of facts and their relationships")
     summary: str | None = None
     claims: list[str] = Field(
         default_factory=list,
         description="A simple list of claims, for components that need it. Will be derived from fact_hierarchy.",
     )
     user_reputation: Any | None = None
-    updated_reputation: Any | None = Field(None, description="Reputation object after update")
+    updated_reputation: Any | None = Field(
+        None, description="Reputation object after update")
     warnings: list[str] = Field(
         default_factory=list,
         description="A list of warnings generated during the verification process.",
     )
-    additional_context: str | None = Field(None, description="Additional context for verification processes")
+    additional_context: str | None = Field(
+        None, description="Additional context for verification processes")
 
     # Typed analysis results
-    temporal_analysis_result: TemporalAnalysisResult | None = Field(None, description="Temporal analysis")
-    motives_analysis_result: MotivesAnalysisResult | None = Field(None, description="Motives analysis")
-    extracted_info_typed: ExtractedInfo | None = Field(None, description="Extracted information")
+    temporal_analysis_result: TemporalAnalysisResult | None = Field(
+        None, description="Temporal analysis")
+    motives_analysis_result: MotivesAnalysisResult | None = Field(
+        None, description="Motives analysis")
+    extracted_info_typed: ExtractedInfo | None = Field(
+        None, description="Extracted information")
 
     # Analysis results
-    analysis_result: ImageAnalysisResult | None = Field(None, description="[DEPRECATED] Old image analysis result")
-    post_analysis_result: PostAnalysisResult = Field(None, description="Post analysis result")
+    analysis_result: ImageAnalysisResult | None = Field(
+        None, description="[DEPRECATED] Old image analysis result")
+    post_analysis_result: PostAnalysisResult = Field(
+        None, description="Post analysis result")
 
     # Fact checking results
-    fact_check_result: FactCheckResult | None = Field(None, description="Fact checking result")
+    fact_check_result: FactCheckResult | None = Field(
+        None, description="Fact checking result")
 
     # Summarization result
-    summarization_result: SummarizationResult | None = Field(None, description="Summarization result")
+    summarization_result: SummarizationResult | None = Field(
+        None, description="Summarization result")
 
     # Final verdict
-    verdict_result: VerdictResult | None = Field(None, description="Final verdict result")
+    verdict_result: VerdictResult | None = Field(
+        None, description="Final verdict result")
 
     # Storage results
-    verification_record: Any | None = Field(None, description="Verification record from database")
-    verification_id: str | None = Field(None, description="ID of the verification record")
+    verification_record: Any | None = Field(
+        None, description="Verification record from database")
+    verification_id: str | None = Field(
+        None, description="ID of the verification record")
 
     class Config:
         """Pydantic configuration."""
@@ -133,7 +152,8 @@ class VerificationContext(BaseModel):
         """Sets the fact hierarchy and derives the simple claims list."""
         self.fact_hierarchy = fact_hierarchy
         if fact_hierarchy and fact_hierarchy.supporting_facts:
-            self.claims = [fact.description for fact in fact_hierarchy.supporting_facts]
+            self.claims = [
+                fact.description for fact in fact_hierarchy.supporting_facts]
         else:
             self.claims = []
 
