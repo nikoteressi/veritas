@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import { useFileUpload } from '../hooks/useFileUpload'
 import { useVerification } from '../hooks/useVerification'
 import { configurationService } from '../services/configurationService'
+import Button from './ui/Button'
 
 function UploadForm({
   onVerificationStart,
@@ -64,113 +65,140 @@ function UploadForm({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-        Upload Social Media Post
-      </h2>
-
+    <div className="max-w-3xl mx-auto">
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <p className="text-red-700 text-sm">{error}</p>
+            <p className="text-red-700 text-sm font-medium">{error}</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* File Upload Area */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Screenshot Image
+      <form onSubmit={handleSubmit} className="space-y-10">
+        {/* Enhanced File Upload Area */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 mb-4">
+            Upload Screenshot
           </label>
           
           {!selectedFile ? (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-2xl p-20 text-center cursor-pointer transition-all duration-300 ${
                 isDragActive
-                  ? 'border-blue-400 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-blue-400 bg-blue-50 scale-[1.02] shadow-lg'
+                  : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50 hover:shadow-md'
               }`}
             >
               <input {...getInputProps()} />
-              <div className="space-y-2">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 48 48"
-                >
-                  <path
-                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <p className="text-gray-600">
-                  {isDragActive
-                    ? 'Drop the image here...'
-                    : 'Drag & drop an image here, or click to select'}
-                </p>
-                <p className="text-sm text-gray-500">
-                  PNG, JPG, GIF up to 10MB
-                </p>
+              <div className="space-y-6">
+                {/* Enhanced Upload Icon */}
+                <div className="mx-auto w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {isDragActive ? 'Drop your image here' : 'Upload an image'}
+                  </p>
+                  <p className="text-lg text-gray-600">
+                    Drag and drop or click to browse
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Supports PNG, JPG, GIF up to 10MB
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="relative">
+            <div className="space-y-6">
+              <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-sm">
                 <img
                   src={previewUrl}
-                  alt="Preview"
-                  className="max-w-full h-48 object-contain mx-auto rounded-lg border"
+                  alt="Uploaded screenshot preview"
+                  className="max-w-full h-80 object-contain mx-auto rounded-lg shadow-md"
                 />
                 <button
                   type="button"
                   onClick={handleClearFile}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2.5 hover:bg-red-600 transition-colors shadow-lg"
+                  aria-label="Remove image"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-              <p className="text-sm text-gray-600 text-center">
-                {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">
+                  {selectedFile.name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Prompt Input */}
-        <div>
-          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Question or Prompt
+        {/* Enhanced Prompt Input */}
+        <div className="space-y-4">
+          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700">
+            What would you like to fact-check?
           </label>
           <textarea
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="What would you like to verify about this post? (e.g., 'Is this claim about climate change accurate?')"
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white"
+            placeholder="Describe what you want to verify about this image. For example: 'Is the claim about the new policy in this post accurate?' or 'Can you fact-check the statistics shown in this screenshot?'"
+            rows={5}
+            className="w-full px-5 py-4 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 bg-white resize-none text-base leading-relaxed"
             disabled={isLoading}
           />
+          <p className="text-sm text-gray-500">
+            Be specific about what claims or information you want us to verify.
+          </p>
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={!selectedFile || !prompt.trim() || isLoading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Verifying...' : 'Verify Post'}
-        </button>
+        {/* Enhanced Start Verification Button */}
+        <div className="flex justify-center pt-4">
+          <Button
+            type="submit"
+            variant="primary"
+            size="xl"
+            disabled={!selectedFile || !prompt.trim() || isLoading}
+            loading={isLoading}
+            className="px-16 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            {isLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </span>
+            ) : (
+              'Start Verification'
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   )

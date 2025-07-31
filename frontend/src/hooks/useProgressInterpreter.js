@@ -80,61 +80,42 @@ export function useProgressInterpreter() {
           break;
         
         case 'SCREENSHOT_PARSING_STARTED':
-          animateProgress(15, 800);
+          animateProgress(25, 800);
           setMessage('Parsing screenshot...');
           setCurrentStep('screenshot_parsing');
           break;
 
         case 'SCREENSHOT_PARSING_COMPLETED':
-          animateProgress(22, 400);
+          animateProgress(35, 400);
           setMessage('Screenshot parsing complete.');
           break;
 
         case 'POST_ANALYSIS_STARTED':
-          animateProgress(35, 800);
-          setMessage('Analyzing post...');
-          setCurrentStep('post_analysis');
+        case 'TEMPORAL_ANALYSIS_STARTED':
+        case 'REPUTATION_RETRIEVAL_STARTED':
+          animateProgress(45, 800);
+          setMessage('Analyzing context...');
+          setCurrentStep('analyzing_context');
           break;
 
         case 'POST_ANALYSIS_COMPLETED':
-          animateProgress(42, 400);
-          setMessage('Post analysis complete.');
-          break;
-        
-        case 'REPUTATION_RETRIEVAL_STARTED':
-          animateProgress(25, 600);
-          setMessage('Retrieving user reputation...');
-          setCurrentStep('reputation_retrieval');
-          break;
-        
-        case 'REPUTATION_RETRIEVAL_COMPLETED':
-          const username = eventData.payload?.username || 'unknown';
-          animateProgress(32, 400);
-          setMessage(`Retrieved reputation for ${username}`);
-          break;
-        
-        case 'TEMPORAL_ANALYSIS_STARTED':
-          animateProgress(35, 700);
-          setMessage('Performing temporal analysis...');
-          setCurrentStep('temporal_analysis');
-          break;
-        
         case 'TEMPORAL_ANALYSIS_COMPLETED':
-          animateProgress(42, 400);
-          setMessage('Temporal analysis complete');
+        case 'REPUTATION_RETRIEVAL_COMPLETED':
+          animateProgress(55, 400);
+          setMessage('Context analysis complete.');
           break;
         
         case 'FACT_CHECKING_STARTED':
           const totalClaims = eventData.payload?.total_claims || 0;
-          animateProgress(45, 500);
+          animateProgress(65, 500);
           setMessage(`Found ${totalClaims} claims to fact-check`);
           setCurrentStep('fact_checking');
           break;
 
         case 'FACT_CHECKING_ITEM_COMPLETED':
           // Smooth granular progress during fact-checking
-          const baseProgress = 45;
-          const factCheckWeight = 35; // 45% to 80%
+          const baseProgress = 65;
+          const factCheckWeight = 20; // 65% to 85%
           const checked = eventData.payload?.checked || 0;
           const total = eventData.payload?.total || 1;
           const itemProgress = (checked / total) * factCheckWeight;
@@ -146,42 +127,23 @@ export function useProgressInterpreter() {
           break;
 
         case 'FACT_CHECKING_COMPLETED':
-          animateProgress(80, 600);
+          animateProgress(85, 600);
           setMessage('Fact-checking complete');
           break;
 
         case 'SUMMARIZATION_STARTED':
-          animateProgress(85, 600);
+        case 'VERDICT_GENERATION_STARTED':
+        case 'MOTIVES_ANALYSIS_STARTED':
+          animateProgress(90, 600);
           setMessage('Summarizing results...');
           setCurrentStep('summarization');
           break;
 
         case 'SUMMARIZATION_COMPLETED':
-          animateProgress(88, 400);
-          setMessage('Summarization complete.');
-          break;
-
-        case 'VERDICT_GENERATION_STARTED':
-          animateProgress(85, 500);
-          setMessage('Generating final verdict...');
-          setCurrentStep('verdict_generation');
-          break;
-
         case 'VERDICT_GENERATION_COMPLETED':
-          const verdict = eventData.payload?.verdict || 'unknown';
-          animateProgress(90, 400);
-          setMessage(`Verdict: ${verdict}`);
-          break;
-
-        case 'MOTIVES_ANALYSIS_STARTED':
-          animateProgress(92, 300);
-          setMessage('Analyzing potential motives...');
-          setCurrentStep('motives_analysis');
-          break;
-
         case 'MOTIVES_ANALYSIS_COMPLETED':
-          animateProgress(95, 300);
-          setMessage('Motives analysis complete');
+          animateProgress(95, 400);
+          setMessage('Summarization complete.');
           break;
 
         case 'REPUTATION_UPDATE_STARTED':
