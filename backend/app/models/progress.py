@@ -5,7 +5,7 @@ This module defines Pydantic models for the new progress tracking system
 that centralizes step management and enables smooth progress animations.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from enum import Enum
@@ -43,13 +43,11 @@ class ProgressStep(BaseModel):
     progress_percentage: float = Field(
         default=0.0, ge=0.0, le=100.0, description="Current step progress")
 
-    @field_validator('weight')
     def validate_weight(self, v):
         if v <= 0:
             raise ValueError('Weight must be positive')
         return v
 
-    @field_validator('estimated_duration')
     def validate_duration(self, v):
         if v < 0:
             raise ValueError('Duration cannot be negative')
@@ -73,7 +71,6 @@ class PipelineConfiguration(BaseModel):
     session_id: str = Field(..., description="Session identifier")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    @field_validator('steps')
     def validate_steps_not_empty(self, v):
         if not v:
             raise ValueError('Steps list cannot be empty')

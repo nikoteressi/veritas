@@ -1,37 +1,32 @@
-FROM node:20-alpine
+FROM node:22-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Устанавливаем утилиты
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init wget && rm -rf /var/lib/apt/lists/*
 
-# Update npm to latest version
+# Обновляем npm
 RUN npm install -g npm@latest
 
-# Copy package files first for better caching
-COPY package*.json ./
+# Копируем package.json И наш новый, правильный package-lock.json
+COPY package.json ./
 
-# Install dependencies with clean npm cache
-RUN npm install && npm cache clean --force
+# 'npm ci' теперь установит ВСЕ, что указано в lock-файле, включая rollup
+RUN npm install
 
-
-# Copy source code
+# Копируем остальной код
 COPY . .
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
+# Создаем пользователя и выдаем права
+RUN addgroup --gid 1001 nodejs && \
+    adduser --uid 1001 --gid 1001 --shell /bin/sh --disabled-password nextjs && \
     chown -R nextjs:nodejs /app
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
-# Start development server with proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -4,7 +4,7 @@ Pydantic schemas for WebSocket communication models.
 
 from datetime import datetime
 from typing import Any, Union, Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 # Import new progress models
 from app.models.progress import StepsDefinitionData, ProgressUpdateData, StepUpdateData
@@ -66,7 +66,6 @@ class ProgressWebSocketMessage(BaseModel):
     data: Union[StepsDefinitionData, ProgressUpdateData, StepUpdateData]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    @field_validator('data')
     def validate_data_type(self, v, values):
         """Ensure data type matches message type"""
         msg_type = values.get('type')

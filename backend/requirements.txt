@@ -1,59 +1,50 @@
-# FastAPI and server dependencies
+# Web framework
 fastapi
 uvicorn[standard]
 python-multipart
 websockets
 
-# Database dependencies
+# Database
 sqlalchemy
 psycopg2-binary
 asyncpg
 alembic
 
-# LangChain and AI dependencies
+# LLM and AI
 langchain
 langchain-community
 langchain-ollama
-langchain-core
 
 # Vector database
 chromadb-client
 
-# HTTP requests and utilities
+# HTTP and utilities
 requests
-pydantic
-
-# Development
 httpx
 
-# Redis dependency
+# Caching
 redis
 
-
+# Web scraping
 crawl4ai
-nest_asyncio
 
-# Graph-based verification dependencies
-numpy<2.0.0
-neo4j
-
-# ML dependencies
+# Machine Learning
 torch-geometric
 spacy
-
-# Bayesian and statistical analysis
 scipy
-pymc
-arviz[all]
 scikit-learn
-
-# Time series and temporal analysis
-python-dateutil
-
-# BM25 and text processing for hybrid relevance scoring
-rank-bm25
-nltk
-
-# Additional ML and NLP dependencies for enhanced relevance
 transformers
 sentence-transformers
+
+# Text processing
+rank-bm25
+nltk
+matplotlib
+
+# Graph database
+neo4j
+
+# Utilities (explicit transitive dependencies)
+pydantic  # Also in FastAPI
+numpy     # Also in ML libraries
+python-dateutil

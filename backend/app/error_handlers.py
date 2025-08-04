@@ -54,7 +54,7 @@ async def veritas_exception_handler(request: Request, exc: VeritasException) -> 
     )
 
 
-async def image_processing_error_handler(exc: ImageProcessingError) -> JSONResponse:
+async def image_processing_error_handler(request: Request, exc: ImageProcessingError) -> JSONResponse:
     """Handle image processing errors."""
     logger.error("Image processing error: %s", exc.message)
 
@@ -69,7 +69,7 @@ async def image_processing_error_handler(exc: ImageProcessingError) -> JSONRespo
     )
 
 
-async def llm_error_handler(exc: LLMError) -> JSONResponse:
+async def llm_error_handler(request: Request, exc: LLMError) -> JSONResponse:
     """Handle LLM errors."""
     logger.error("LLM error: %s", exc.message)
 
@@ -84,7 +84,7 @@ async def llm_error_handler(exc: LLMError) -> JSONResponse:
     )
 
 
-async def database_error_handler(exc: DatabaseError) -> JSONResponse:
+async def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse:
     """Handle database errors."""
     logger.error("Database error: %s", exc.message)
 
@@ -99,7 +99,7 @@ async def database_error_handler(exc: DatabaseError) -> JSONResponse:
     )
 
 
-async def websocket_error_handler(exc: WebSocketError) -> JSONResponse:
+async def websocket_error_handler(request: Request, exc: WebSocketError) -> JSONResponse:
     """Handle WebSocket errors."""
     logger.error("WebSocket error: %s", exc.message)
 
@@ -114,7 +114,7 @@ async def websocket_error_handler(exc: WebSocketError) -> JSONResponse:
     )
 
 
-async def validation_error_handler(exc: ValidationError) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Handle validation errors."""
     logger.warning("Validation error: %s", exc.message)
 
@@ -130,14 +130,14 @@ async def validation_error_handler(exc: ValidationError) -> JSONResponse:
     )
 
 
-async def service_unavailable_error_handler(exc: ServiceUnavailableError) -> JSONResponse:
+async def service_unavailable_error_handler(request: Request, exc: ServiceUnavailableError) -> JSONResponse:
     """Handle service unavailable errors."""
     logger.error("Service unavailable: %s", exc.message)
 
     return JSONResponse(
         status_code=503,
         content={
-            "error": "External service unavailable",
+            "error": "Service temporarily unavailable",
             "message": exc.message,
             "error_code": exc.error_code or "SERVICE_UNAVAILABLE",
             "timestamp": datetime.now().isoformat(),
@@ -145,22 +145,22 @@ async def service_unavailable_error_handler(exc: ServiceUnavailableError) -> JSO
     )
 
 
-async def agent_error_handler(exc: AgentError) -> JSONResponse:
+async def agent_error_handler(request: Request, exc: AgentError) -> JSONResponse:
     """Handle agent errors."""
     logger.error("Agent error: %s", exc.message)
 
     return JSONResponse(
         status_code=500,
         content={
-            "error": "AI agent error",
-            "message": "The AI verification agent encountered an error. Please try again.",
+            "error": "Agent processing error",
+            "message": exc.message,
             "error_code": exc.error_code or "AGENT_ERROR",
             "timestamp": datetime.now().isoformat(),
         },
     )
 
 
-async def tool_error_handler(exc: ToolError) -> JSONResponse:
+async def tool_error_handler(request: Request, exc: ToolError) -> JSONResponse:
     """Handle tool errors."""
     logger.error("Tool error: %s", exc.message)
 
@@ -168,14 +168,14 @@ async def tool_error_handler(exc: ToolError) -> JSONResponse:
         status_code=500,
         content={
             "error": "Tool execution error",
-            "message": "A verification tool encountered an error. The analysis may be incomplete.",
+            "message": exc.message,
             "error_code": exc.error_code or "TOOL_ERROR",
             "timestamp": datetime.now().isoformat(),
         },
     )
 
 
-async def http_exception_handler(exc: HTTPException) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions."""
     logger.warning("HTTP exception: %s - %s", exc.status_code, exc.detail)
 
@@ -190,7 +190,7 @@ async def http_exception_handler(exc: HTTPException) -> JSONResponse:
     )
 
 
-async def general_exception_handler(exc: Exception) -> JSONResponse:
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle general exceptions."""
     logger.error("Unhandled exception: %s", str(exc), exc_info=True)
 
@@ -205,7 +205,7 @@ async def general_exception_handler(exc: Exception) -> JSONResponse:
     )
 
 
-async def cache_error_handler(exc: CacheError) -> JSONResponse:
+async def cache_error_handler(request: Request, exc: CacheError) -> JSONResponse:
     """Handle cache errors."""
     logger.error("Cache error: %s", exc.message)
     return JSONResponse(
@@ -219,7 +219,7 @@ async def cache_error_handler(exc: CacheError) -> JSONResponse:
     )
 
 
-async def embedding_error_handler(exc: EmbeddingError) -> JSONResponse:
+async def embedding_error_handler(request: Request, exc: EmbeddingError) -> JSONResponse:
     """Handle embedding errors."""
     logger.error("Embedding error: %s", exc.message)
     return JSONResponse(
@@ -233,7 +233,7 @@ async def embedding_error_handler(exc: EmbeddingError) -> JSONResponse:
     )
 
 
-async def graph_error_handler(exc: GraphError) -> JSONResponse:
+async def graph_error_handler(request: Request, exc: GraphError) -> JSONResponse:
     """Handle graph errors."""
     logger.error("Graph error: %s", exc.message)
     return JSONResponse(
@@ -247,7 +247,7 @@ async def graph_error_handler(exc: GraphError) -> JSONResponse:
     )
 
 
-async def relevance_error_handler(exc: RelevanceError) -> JSONResponse:
+async def relevance_error_handler(request: Request, exc: RelevanceError) -> JSONResponse:
     """Handle relevance errors."""
     logger.error("Relevance error: %s", exc.message)
     return JSONResponse(
@@ -261,7 +261,7 @@ async def relevance_error_handler(exc: RelevanceError) -> JSONResponse:
     )
 
 
-async def pipeline_error_handler(exc: PipelineError) -> JSONResponse:
+async def pipeline_error_handler(request: Request, exc: PipelineError) -> JSONResponse:
     """Handle pipeline errors."""
     logger.error("Pipeline error: %s", exc.message)
     return JSONResponse(
@@ -275,7 +275,7 @@ async def pipeline_error_handler(exc: PipelineError) -> JSONResponse:
     )
 
 
-async def analysis_error_handler(exc: AnalysisError) -> JSONResponse:
+async def analysis_error_handler(request: Request, exc: AnalysisError) -> JSONResponse:
     """Handle analysis errors."""
     logger.error("Analysis error: %s", exc.message)
     return JSONResponse(

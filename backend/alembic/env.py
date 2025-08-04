@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
@@ -19,6 +20,21 @@ if config.config_file_name is not None:
 from app.database import Base
 
 target_metadata = Base.metadata
+
+# Override the sqlalchemy.url with environment variables if available
+def get_database_url():
+    """Get database URL from environment variables or config file."""
+    db_host = os.getenv('DB_HOST', 'postgres')
+    db_port = os.getenv('DB_PORT', '5432')
+    db_name = os.getenv('DB_NAME', 'veritas_db')
+    db_user = os.getenv('DB_USER', 'veritas_user')
+    db_password = os.getenv('DB_PASSWORD', 'veritas_password')
+    
+    return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+# Set the database URL
+database_url = get_database_url()
+config.set_main_option("sqlalchemy.url", database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

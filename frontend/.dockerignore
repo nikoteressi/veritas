@@ -1,0 +1,18 @@
+# Зависимости
+node_modules
+
+# Логи
+npm-debug.log
+yarn-error.log
+
+# Папка для сборки (если есть)
+dist
+build
+
+# Системные папки
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore

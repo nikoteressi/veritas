@@ -1,0 +1,75 @@
+{
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
+  "app": {
+    "title": {
+      "default": "Verify a Post",
+      "loading": "Verification in Progress",
+      "complete": "Verification Completed"
+    },
+    "subtitle": {
+      "default": "Upload a screenshot and ask a question to check the facts.",
+      "loading": "Verification in Progress",
+      "complete": "Verification Completed"
+    }
+  },
+  "header": {
+    "brand": "Veritas",
+    "navigation": {
+      "upload": "Upload",
+      "history": "History",
+      "about": "About"
+    },
+    "profile": {
+      "ariaLabel": "User profile"
+    },
+    "mobileMenu": {
+      "ariaLabel": "Open mobile menu"
+    }
+  },
+  "websocket": {
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "sessionId": "Session: {{sessionId}}"
+  },
+  "upload": {
+    "fileUpload": {
+      "label": "Upload Screenshot",
+      "dropActive": "Drop your image here",
+      "title": "Upload an image",
+      "description": "Drag and drop or click to browse",
+      "supportedFormats": "Supports PNG, JPG, GIF up to 10MB",
+      "previewAlt": "Uploaded screenshot preview",
+      "removeImage": "Remove image"
+    },
+    "prompt": {
+      "label": "What would you like to fact-check?",
+      "placeholder": "Describe what you want to verify about this image. For example: 'Is the claim about the new policy in this post accurate?' or 'Can you fact-check the statistics shown in this screenshot?'",
+      "description": "Be specific about what claims or information you want us to verify."
+    },
+    "button": {
+      "processing": "Processing...",
+      "start": "Start Verification"
+    }
+  },
+  "results": {
+    "title": "Verification Results",
+    "initial": {
+      "description": "Upload an image and enter a prompt to start verification"
+    }
+  },
+  "error": {
+    "title": "Verification Failed",
+    "description": "Please try again or contact support if the problem persists"
+  },
+  "loading": {
+    "waiting": "Waiting for verification steps...",
+    "title": "Verification Progress",
+    "progress": "{{progress}}% complete",
+    "stepProgress": "{{progress}}% complete"
+  },
+  "common": {
+    "loading": "Loading..."  
+  }
+}
