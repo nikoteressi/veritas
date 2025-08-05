@@ -199,19 +199,6 @@ class StepsDefinitionData(BaseModel):
     session_id: str = Field(..., description="Session identifier")
 
 
-class ProgressUpdateData(BaseModel):
-    """Data model for progress update message."""
-
-    current_progress: float = Field(..., ge=0, le=100,
-                                    description="Current progress percentage")
-    target_progress: float = Field(..., ge=0, le=100,
-                                   description="Target progress percentage")
-    animation_duration: int = Field(
-        default=300, ge=0, description="Animation duration in ms")
-    current_step_id: str = Field(..., description="Current step identifier")
-    message: str = Field(..., description="Current status message")
-
-
 class StepUpdateData(BaseModel):
     """Data model for step update message."""
 

@@ -16,13 +16,11 @@ from app.models.progress import (
     SmartProgressCalculator,
     StepStatus,
     StepsDefinitionData,
-    ProgressUpdateData,
     StepUpdateData
 )
 from app.config import VerificationSteps, settings
 from app.schemas.websocket import (
     StepsDefinitionMessage,
-    ProgressUpdateMessage,
     StepUpdateMessage
 )
 from app.websocket_manager import connection_manager
@@ -180,15 +178,6 @@ class ProgressManager:
             # Send step update (progress should be 0-100 for frontend)
             await self._send_step_update(session_id, step_id, status, progress * 100, message)
 
-            # Send progress update
-            await self._send_progress_update(
-                session_id=session_id,
-                current_progress=overall_progress,
-                target_progress=overall_progress,
-                current_step_id=step_id,
-                message=message
-            )
-
             logger.debug(
                 "Updated step %s to %s with progress %.2f", step_id, status, progress)
             return True
@@ -217,13 +206,12 @@ class ProgressManager:
             for i, (progress, delay) in enumerate(updates):
                 await asyncio.sleep(delay / 1000.0)  # Convert to seconds
 
-                await self._send_progress_update(
+                await self._send_step_update(
                     session_id=session_id,
-                    current_progress=progress * 100,  # Convert to 0-100 range
-                    target_progress=target_progress * 100,  # Convert to 0-100 range
-                    current_step_id=step_id,
-                    message=message,
-                    animation_duration=200  # Longer duration for smoother updates
+                    step_id=step_id,
+                    status=StepStatus.IN_PROGRESS,
+                    progress=progress * 100,
+                    message=message
                 )
 
             # If we reached 100%, update step status to COMPLETED
@@ -253,14 +241,7 @@ class ProgressManager:
                     step.status = StepStatus.COMPLETED
                     step.completed_at = datetime.now()
 
-            # Send final progress update
-            await self._send_progress_update(
-                session_id=session_id,
-                current_progress=100.0,
-                target_progress=100.0,
-                current_step_id="completion",
-                message="Verification completed successfully"
-            )
+            # Session completed - final step update will be sent by update_step_status
 
             # Clean up session
             del self.active_sessions[session_id]
@@ -328,27 +309,6 @@ class ProgressManager:
             len(pipeline_config.steps))
         logger.debug("Steps definition message: %s", message.model_dump())
         await self.websocket_manager.send_message_to_session(session_id, message.model_dump())
-
-    async def _send_progress_update(self, session_id: str, current_progress: float,
-                                    target_progress: float, current_step_id: str,
-                                    message: str, animation_duration: int = 300):
-        """Send progress update to frontend."""
-        if not self.websocket_manager:
-            logger.warning(
-                "No websocket_manager available for progress update to session %s", session_id)
-            return
-
-        data = ProgressUpdateData(
-            current_progress=current_progress,
-            target_progress=target_progress,
-            animation_duration=animation_duration,
-            current_step_id=current_step_id,
-            message=message
-        )
-
-        message_obj = ProgressUpdateMessage(data=data)
-        logger.debug("Progress update message: %s", message_obj.model_dump())
-        await self.websocket_manager.send_message_to_session(session_id, message_obj.model_dump())
 
     async def _send_step_update(self, session_id: str, step_id: str, status: StepStatus,
                                 progress: float, message: str):

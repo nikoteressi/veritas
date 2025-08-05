@@ -15,7 +15,7 @@ interface ProgressContextValue {
   
   // Actions
   setSteps: (steps: ProgressStep[]) => void
-  updateProgress: (progress: number, message?: string) => void
+
   updateStep: (stepId: string, status: StepStatus, progress?: number, message?: string) => void
   resetProgress: () => void
   setSessionId: (sessionId: string | null) => void
@@ -25,7 +25,6 @@ interface ProgressContextValue {
 // Progress Actions
 type ProgressAction =
   | { type: 'SET_STEPS'; payload: ProgressStep[] }
-  | { type: 'UPDATE_PROGRESS'; payload: { progress: number; message?: string } }
   | { type: 'UPDATE_STEP'; payload: { stepId: string; status: StepStatus; progress?: number; message?: string } }
   | { type: 'RESET_PROGRESS' }
   | { type: 'SET_SESSION_ID'; payload: string | null }
@@ -59,15 +58,7 @@ function progressReducer(state: typeof initialState, action: ProgressAction): ty
         },
       }
       
-    case 'UPDATE_PROGRESS':
-      return {
-        ...state,
-        progressState: {
-          ...state.progressState,
-          overallProgress: Math.max(0, Math.min(100, action.payload.progress)),
-        },
-        currentMessage: action.payload.message || state.currentMessage,
-      }
+
       
     case 'UPDATE_STEP': {
       const { stepId, status, progress, message } = action.payload
@@ -148,9 +139,7 @@ export const ProgressProvider: React.FC<ProgressProviderProps> = ({ children }) 
     dispatch({ type: 'SET_STEPS', payload: steps })
   }, [])
   
-  const updateProgress = useCallback((progress: number, message?: string) => {
-    dispatch({ type: 'UPDATE_PROGRESS', payload: { progress, ...(message !== undefined && { message }) } })
-  }, [])
+
   
   const updateStep = useCallback((stepId: string, status: StepStatus, progress?: number, message?: string) => {
     dispatch({ type: 'UPDATE_STEP', payload: { 
@@ -201,7 +190,6 @@ export const ProgressProvider: React.FC<ProgressProviderProps> = ({ children }) 
     
     // Actions
     setSteps,
-    updateProgress,
     updateStep,
     resetProgress,
     setSessionId,
@@ -214,7 +202,6 @@ export const ProgressProvider: React.FC<ProgressProviderProps> = ({ children }) 
     currentStep,
     isActive,
     setSteps,
-    updateProgress,
     updateStep,
     resetProgress,
     setSessionId,

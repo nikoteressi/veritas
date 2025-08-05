@@ -20,7 +20,6 @@ from app.schemas import ProgressEvent
 from app.schemas.websocket import (
     ProgressWebSocketMessage,
     StepsDefinitionMessage,
-    ProgressUpdateMessage,
     StepUpdateMessage
 )
 
@@ -193,38 +192,7 @@ class ConnectionManager:
             },
         )
 
-    async def send_progress_update(self, session_id: str, step: str, progress: int, details: str | None = None):
-        """
-        Send a progress update to a specific session.
 
-        Args:
-            session_id: Target session ID
-            step: Current processing step
-            progress: Progress percentage (0-100)
-            details: Optional additional details
-        """
-        message = {
-            "type": "progress_update",
-            "data": {
-                "step": step,
-                "progress": progress,
-                "details": details,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        }
-
-        await self.send_message(session_id, message)
-
-        # Update session state in Redis
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        await self.redis.hset(
-            session_key,
-            mapping={
-                "current_step": step,
-                "progress": progress,
-                "last_update": datetime.now(UTC).isoformat(),
-            },
-        )
 
     async def send_verification_result(self, session_id: str, result: dict[str, Any]):
         """
@@ -340,16 +308,7 @@ class ConnectionManager:
                 mapping={
                     "steps_defined": "true",
                     "total_steps": len(message.data.steps),
-                    "last_update": datetime.now(UTC).isoformat(),
-                },
-            )
-        elif isinstance(message, ProgressUpdateMessage):
-            await self.redis.hset(
-                session_key,
-                mapping={
-                    "current_progress": message.data.current_progress,
-                    "current_step_id": message.data.current_step_id,
-                    "last_update": datetime.now(UTC).isoformat(),
+                    "last_update": datetime.now().isoformat(),
                 },
             )
         elif isinstance(message, StepUpdateMessage):
@@ -358,7 +317,7 @@ class ConnectionManager:
                 mapping={
                     f"step_{message.data.step_id}_status": message.data.status.value,
                     f"step_{message.data.step_id}_progress": message.data.progress,
-                    "last_update": datetime.now(UTC).isoformat(),
+                    "last_update": datetime.now().isoformat(),
                 },
             )
 
@@ -460,7 +419,7 @@ class ProgressTracker:
             details: Optional additional details
         """
         self.current_progress = progress
-        await self.connection_manager.send_progress_update(self.session_id, step, progress, details)
+        # Legacy method - now using StepUpdateMessage instead
 
     async def complete(self, result: dict[str, Any]):
         """

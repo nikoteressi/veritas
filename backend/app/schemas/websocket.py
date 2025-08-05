@@ -7,7 +7,7 @@ from typing import Any, Union, Literal
 from pydantic import BaseModel, Field
 
 # Import new progress models
-from app.models.progress import StepsDefinitionData, ProgressUpdateData, StepUpdateData
+from app.models.progress import StepsDefinitionData, StepUpdateData
 
 
 class ProgressEvent(BaseModel):
@@ -30,7 +30,7 @@ class WebSocketMessage(BaseModel):
 # Enhanced progress-specific WebSocket messages
 class EnhancedProgressEvent(ProgressEvent):
     """Enhanced progress event with type-safe payload"""
-    payload: Union[StepsDefinitionData, ProgressUpdateData, StepUpdateData]
+    payload: Union[StepsDefinitionData, StepUpdateData]
 
     class Config:
         use_enum_values = True
@@ -44,14 +44,6 @@ class StepsDefinitionMessage(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
-class ProgressUpdateMessage(BaseModel):
-    """WebSocket message for progress updates."""
-
-    type: Literal["progress_update"] = "progress_update"
-    data: ProgressUpdateData
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-
 class StepUpdateMessage(BaseModel):
     """WebSocket message for step updates."""
 
@@ -61,20 +53,18 @@ class StepUpdateMessage(BaseModel):
 
 
 class ProgressWebSocketMessage(BaseModel):
-    """WebSocket message specifically for progress tracking"""
-    type: Literal["steps_definition", "progress_update", "step_update"]
-    data: Union[StepsDefinitionData, ProgressUpdateData, StepUpdateData]
+    """Union type for all progress-related WebSocket messages"""
+    type: Literal["steps_definition", "step_update"]
+    data: Union[StepsDefinitionData, StepUpdateData]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    def validate_data_type(self, v, values):
-        """Ensure data type matches message type"""
-        msg_type = values.get('type')
+    @classmethod
+    def validate_data_type(cls, v, info):
+        """Validate that data type matches message type"""
+        msg_type = info.data.get('type')
         if msg_type == "steps_definition" and not isinstance(v, StepsDefinitionData):
             raise ValueError(
                 "Data must be StepsDefinitionData for steps_definition type")
-        elif msg_type == "progress_update" and not isinstance(v, ProgressUpdateData):
-            raise ValueError(
-                "Data must be ProgressUpdateData for progress_update type")
         elif msg_type == "step_update" and not isinstance(v, StepUpdateData):
             raise ValueError(
                 "Data must be StepUpdateData for step_update type")
@@ -84,6 +74,5 @@ class ProgressWebSocketMessage(BaseModel):
 # Union type for all progress-related WebSocket messages
 ProgressWebSocketMessageUnion = Union[
     StepsDefinitionMessage,
-    ProgressUpdateMessage,
     StepUpdateMessage
 ]

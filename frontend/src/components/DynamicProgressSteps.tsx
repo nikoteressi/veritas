@@ -79,15 +79,7 @@ const DynamicProgressSteps: React.FC<DynamicProgressStepsProps> = ({
     }).filter(step => step.shouldBeVisible);
   }, [steps, activeStepId]);
 
-  // Memoized progress calculation
-  const normalizedProgress = useMemo(() => {
-    return Math.min(100, Math.max(0, progress));
-  }, [progress]);
 
-  // Memoized rounded progress for display
-  const displayProgress = useMemo(() => {
-    return Math.round(progress);
-  }, [progress]);
 
   // Memoized empty state
   const emptyState = useMemo(() => (

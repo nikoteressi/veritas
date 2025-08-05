@@ -26,15 +26,13 @@ export interface Source {
 
 // WebSocket types
 export type WebSocketMessageType = 
-  | 'steps_definition'
-  | 'progress_update'
-  | 'step_update'
+  | 'connection_established'
   | 'session_established'
-  | 'verification_complete'
+  | 'steps_definition'
+  | 'step_update'
+  | 'verification_result'
   | 'start_verification'
-  | 'error'
-  | 'ping'
-  | 'pong';
+  | 'error';
 
 export interface WebSocketMessage<T = unknown> {
   type: WebSocketMessageType;
@@ -48,13 +46,7 @@ export interface StepsDefinitionData {
   steps: ProgressStep[];
 }
 
-export interface ProgressUpdateData {
-  current_progress: number;
-  current_step_id?: string;
-  target_progress?: number;
-  message?: string;
-  animation_duration?: number;
-}
+
 
 export interface StepUpdateData {
   step_id: string;

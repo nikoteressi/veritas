@@ -78,7 +78,7 @@ export const useWebSocketService = (): UseWebSocketServiceReturn => {
           'pong',
           'status_response',
           'echo'
-          // Progress system messages (steps_definition, progress_update, step_update) 
+          // Progress system messages (steps_definition, step_update) 
           // are handled exclusively by useProgressInterpreter
         ];
 

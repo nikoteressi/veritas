@@ -92,7 +92,7 @@ class RelevanceEmbeddingsCoordinator:
         try:
             # Call hybrid scorer with explain=True to get detailed results
             result = await self.hybrid_scorer.calculate_hybrid_score(query, document, use_cache=True, explain=True)
-            
+
             # Handle the tuple return (score, details)
             if isinstance(result, tuple) and len(result) == 2:
                 score, details = result
@@ -115,7 +115,8 @@ class RelevanceEmbeddingsCoordinator:
                     result["score"] = result.get("hybrid_score", 0.0)
                 return result
             else:
-                logger.warning(f"Unexpected result type from hybrid scorer: {type(result)}")
+                logger.warning(
+                    f"Unexpected result type from hybrid scorer: {type(result)}")
                 return {
                     "score": 0.0,
                     "details": {},
@@ -156,7 +157,7 @@ class RelevanceEmbeddingsCoordinator:
             # Calculate base relevance score (simplified for now)
             base_relevance = 0.5
 
-            logger.info(
+            logger.debug(
                 f"Calling temporal_cache.analyze_temporal_relevance with query={query[:50]}..., content_date={content_date}, base_relevance={base_relevance}")
 
             result = await self.temporal_cache.analyze_temporal_relevance(
@@ -168,7 +169,7 @@ class RelevanceEmbeddingsCoordinator:
                 use_cache=True,
             )
 
-            logger.info(
+            logger.debug(
                 f"Temporal analysis result type: {type(result)}, value: {result}")
 
             return result

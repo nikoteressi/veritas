@@ -231,12 +231,12 @@ class WebScraper:
                 if hasattr(result, 'html') and result.html:
                     publication_date = self._extract_publication_date(
                         result.html)
-                    logger.info(
+                    logger.debug(
                         "Extracted publication date for %s: %s", url, publication_date)
                 elif hasattr(result, 'cleaned_html') and result.cleaned_html:
                     publication_date = self._extract_publication_date(
                         result.cleaned_html)
-                    logger.info(
+                    logger.debug(
                         "Extracted publication date from cleaned HTML for %s: %s", url, publication_date)
 
                 return {
