@@ -8,13 +8,14 @@ Now uses fact-check verdicts and temporal analysis as primary inputs for informe
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, Optional
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
 from app.exceptions import MotivesAnalysisError
+from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
 from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
@@ -27,17 +28,30 @@ class MotivesAnalyzer(BaseAnalyzer):
         super().__init__("motives")
         self.llm_manager = llm_manager
         self.prompt_manager = prompt_manager
+        self.progress_callback: ProgressCallback = NoOpProgressCallback()
+
+    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+        """Set the progress callback for detailed progress reporting."""
+        self.progress_callback = callback or NoOpProgressCallback()
 
     async def analyze(self, context: VerificationContext) -> MotivesAnalysisResult:
         """Analyzes motives using the reasoning LLM and context data, including summarization results."""
+        # Initial progress
+        await self.progress_callback.update_progress(0, 100, "Starting motives analysis...")
+
         temporal_analysis = context.get_temporal_analysis()
         summarization_result = context.get_summarization_result()
 
         # Check for required data - now including summarization
         if not all([context.screenshot_data, temporal_analysis]):
-            raise MotivesAnalysisError("Missing required data in context for motives analysis.")
+            raise MotivesAnalysisError(
+                "Missing required data in context for motives analysis.")
 
-        output_parser = PydanticOutputParser(pydantic_object=MotivesAnalysisResult)
+        # Progress: Preparing analysis
+        await self.progress_callback.update_progress(20, 100, "Preparing motives analysis components...")
+
+        output_parser = PydanticOutputParser(
+            pydantic_object=MotivesAnalysisResult)
 
         try:
             # Prepare enhanced context with summarization
@@ -47,10 +61,15 @@ class MotivesAnalyzer(BaseAnalyzer):
 
             # Format key points for better readability
             key_points_text = (
-                "\n".join([f"• {point}" for point in key_points]) if key_points else "No key points identified"
+                "\n".join([f"• {point}" for point in key_points]
+                          ) if key_points else "No key points identified"
             )
 
-            prompt_template = self.prompt_manager.get_prompt_template("motives_analysis_enhanced")
+            # Progress: Building prompt
+            await self.progress_callback.update_progress(40, 100, "Building motives analysis prompt...")
+
+            prompt_template = self.prompt_manager.get_prompt_template(
+                "motives_analysis_enhanced")
             prompt = await prompt_template.aformat(
                 # Core context
                 temporal_analysis=temporal_analysis,
@@ -65,15 +84,28 @@ class MotivesAnalyzer(BaseAnalyzer):
                 format_instructions=output_parser.get_format_instructions(),
             )
 
-            logger.info("Enhanced motives analysis prompt prepared with summarization context")
+            logger.info(
+                "Enhanced motives analysis prompt prepared with summarization context")
+
+            # Progress: Invoking LLM
+            await self.progress_callback.update_progress(60, 100, "Analyzing motives with LLM...")
 
             response = await self.llm_manager.invoke_text_only(prompt)
+
+            # Progress: Parsing response
+            await self.progress_callback.update_progress(80, 100, "Parsing motives analysis results...")
+
             parsed_response = output_parser.parse(response)
 
             if not isinstance(parsed_response, MotivesAnalysisResult):
-                raise MotivesAnalysisError("Failed to parse motive analysis from LLM response.")
+                raise MotivesAnalysisError(
+                    "Failed to parse motive analysis from LLM response.")
 
-            logger.info("Successfully performed enhanced LLM-based motives analysis with summarization context.")
+            # Final progress
+            await self.progress_callback.update_progress(100, 100, "Motives analysis completed")
+
+            logger.info(
+                "Successfully performed enhanced LLM-based motives analysis with summarization context.")
             return parsed_response
 
         except MotivesAnalysisError:
@@ -85,8 +117,10 @@ class MotivesAnalyzer(BaseAnalyzer):
             TypeError,
             json.JSONDecodeError,
         ) as e:
-            logger.error(f"Error during enhanced motives analysis: {e}", exc_info=True)
-            raise MotivesAnalysisError(f"Enhanced motives analysis failed: {e}") from e
+            logger.error(
+                "Error during enhanced motives analysis: %s", e, exc_info=True)
+            raise MotivesAnalysisError(
+                f"Enhanced motives analysis failed: {e}") from e
 
     def _extract_fact_check_verdict(self, fact_check_result) -> str:
         """Extract the fact-check verdict from the result."""
@@ -94,7 +128,8 @@ class MotivesAnalyzer(BaseAnalyzer):
             # Look for overall assessment in claim results
             for claim_result in fact_check_result.claim_results:
                 if "assessment" in claim_result:
-                    logger.info(f"Fact-check verdict: {claim_result['summary']}")
+                    logger.info(
+                        "Fact-check verdict: %s", claim_result["summary"])
                     return claim_result["summary"]
 
         # Look for verdict in summary
@@ -104,7 +139,7 @@ class MotivesAnalyzer(BaseAnalyzer):
                 summary_dict = summary.model_dump()
                 for key, value in summary_dict.items():
                     if "assessment" in key.lower() or "verdict" in key.lower():
-                        logger.info(f"Fact-check verdict2: {value}")
+                        logger.info("Fact-check verdict2: %s", value)
                         return str(value)
 
         return "unknown"
@@ -137,7 +172,8 @@ class MotivesAnalyzer(BaseAnalyzer):
         temporal_summary = self._format_temporal_analysis(temporal_analysis)
 
         # Create prompt with fact-check context
-        prompt_template = self.prompt_manager.get_prompt_template("motives_analysis")
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "motives_analysis")
         prompt = await prompt_template.aformat(
             fact_check_verdict=fact_check_verdict,
             fact_check_confidence=fact_check_confidence,
@@ -145,7 +181,7 @@ class MotivesAnalyzer(BaseAnalyzer):
             primary_topic=primary_topic,
             content=content,
         )
-        logger.info(f"Motives analysis prompt: {prompt}")
+        logger.info("Motives analysis prompt: %s", prompt)
 
         # Get LLM response
         response = await self.llm_manager.invoke_text_only(prompt)
@@ -168,8 +204,10 @@ class MotivesAnalyzer(BaseAnalyzer):
                     "analysis_method": "fact_check_informed_llm",
                 }
         except Exception as parse_error:
-            logger.warning(f"Failed to parse LLM motives analysis: {parse_error}")
-            raise MotivesAnalysisError(f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
+            logger.warning(
+                "Failed to parse LLM motives analysis: %s", parse_error)
+            raise MotivesAnalysisError(
+                f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
 
         # Fallback to rule-based analysis if LLM parsing fails
         return self._rule_based_analysis(fact_check_verdict, primary_topic, temporal_analysis)
@@ -196,7 +234,8 @@ class MotivesAnalyzer(BaseAnalyzer):
         )
 
         # Create prompt with verdict context
-        prompt_template = self.prompt_manager.get_prompt_template("motives_analysis")
+        prompt_template = self.prompt_manager.get_prompt_template(
+            "motives_analysis")
         prompt = await prompt_template.aformat(
             fact_check_verdict=f"{final_verdict} (Confidence: {verdict_confidence:.2f})",
             fact_check_confidence=verdict_confidence,
@@ -208,7 +247,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         # Add verdict reasoning as additional context
         full_prompt = f"{prompt}\n\n**Verdict Reasoning**: {verdict_reasoning}"
 
-        logger.info(f"Motives analysis prompt: {full_prompt}")
+        logger.info("Motives analysis prompt: %s", full_prompt)
 
         # Get LLM response
         response = await self.llm_manager.invoke_text_only(full_prompt)
@@ -231,8 +270,10 @@ class MotivesAnalyzer(BaseAnalyzer):
                     "analysis_method": "verdict_informed_llm",
                 }
         except Exception as parse_error:
-            logger.warning(f"Failed to parse LLM motives analysis: {parse_error}")
-            raise MotivesAnalysisError(f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
+            logger.warning(
+                "Failed to parse LLM motives analysis: %s", parse_error)
+            raise MotivesAnalysisError(
+                f"Failed to parse LLM motives analysis: {parse_error}") from parse_error
 
         # Fallback to rule-based analysis if LLM parsing fails
         return self._rule_based_analysis_with_verdict(
@@ -503,7 +544,8 @@ class MotivesAnalyzer(BaseAnalyzer):
 
             # Try to use fact-check results if available
             if context.fact_check_result:
-                fact_check_verdict = self._extract_fact_check_verdict(context.fact_check_result)
+                fact_check_verdict = self._extract_fact_check_verdict(
+                    context.fact_check_result)
                 if fact_check_verdict.lower() == "false":
                     primary_motive = "disinformation"
                     risk_level = "high"
@@ -534,4 +576,5 @@ class MotivesAnalyzer(BaseAnalyzer):
 
         except Exception as e:
             logger.error("Even fallback analysis failed: %s", e)
-            raise MotivesAnalysisError(f"Fallback motives analysis failed: {e}") from e
+            raise MotivesAnalysisError(
+                f"Fallback motives analysis failed: {e}") from e

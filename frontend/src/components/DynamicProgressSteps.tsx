@@ -52,7 +52,7 @@ const DynamicProgressSteps: React.FC<DynamicProgressStepsProps> = ({
       const isCompleted = step.status === 'completed';
       const isFailed = step.status === 'failed';
       const isPending = step.status === 'pending';
-      const isInProgress = step.status === 'running';
+      const isInProgress = step.status === 'in_progress';
       const shouldBeVisible = activeStepIndex === -1 || index <= activeStepIndex;
       
       // Calculate individual step progress
@@ -103,26 +103,6 @@ const DynamicProgressSteps: React.FC<DynamicProgressStepsProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Overall Progress Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {t('loading.title')}
-          </h3>
-          <p className="text-sm text-gray-600">
-            {t('loading.progress', { progress: displayProgress })}
-          </p>
-        </div>
-      </div>
-
-      {/* Overall Progress Bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-        <div 
-          className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-          style={{ width: `${normalizedProgress}%` }}
-        />
-      </div>
-
       {/* Steps List */}
       <div className="space-y-3">
         {enrichedSteps.map((step, index) => {

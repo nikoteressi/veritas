@@ -59,14 +59,17 @@
       "description": "Upload an image and enter a prompt to start verification"
     }
   },
+  "verification": {
+    "error": {
+      "title": "Verification Failed"
+    }
+  },
   "error": {
     "title": "Verification Failed",
     "description": "Please try again or contact support if the problem persists"
   },
   "loading": {
     "waiting": "Waiting for verification steps...",
-    "title": "Verification Progress",
-    "progress": "{{progress}}% complete",
     "stepProgress": "{{progress}}% complete"
   },
   "common": {

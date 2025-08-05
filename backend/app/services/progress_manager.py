@@ -175,14 +175,9 @@ class ProgressManager:
                 return False
 
             # Calculate overall progress
-            completed_steps = [
-                step.id for step in calculator.pipeline_config.steps
-                if step.status == StepStatus.COMPLETED
-            ]
-            overall_progress = calculator.calculate_weighted_progress(
-                completed_steps, progress)
+            overall_progress = calculator.calculate_weighted_progress(progress)
 
-            # Send step update
+            # Send step update (progress should be 0-100 for frontend)
             await self._send_step_update(session_id, step_id, status, progress * 100, message)
 
             # Send progress update
@@ -209,6 +204,8 @@ class ProgressManager:
         try:
             calculator = self.active_sessions.get(session_id)
             if not calculator:
+                logger.warning(
+                    "No calculator found for session %s", session_id)
                 return False
 
             # Generate smooth progress updates
@@ -217,17 +214,25 @@ class ProgressManager:
             )
 
             # Send each update with appropriate delay
-            for progress, delay in updates:
+            for i, (progress, delay) in enumerate(updates):
                 await asyncio.sleep(delay / 1000.0)  # Convert to seconds
 
                 await self._send_progress_update(
                     session_id=session_id,
-                    current_progress=progress,
-                    target_progress=target_progress,
+                    current_progress=progress * 100,  # Convert to 0-100 range
+                    target_progress=target_progress * 100,  # Convert to 0-100 range
                     current_step_id=step_id,
                     message=message,
-                    animation_duration=50  # Short duration for smooth updates
+                    animation_duration=200  # Longer duration for smoother updates
                 )
+
+            # If we reached 100%, update step status to COMPLETED
+            if target_progress >= 1.0:
+                status = StepStatus.COMPLETED
+                success = calculator.update_step_status(
+                    step_id, status, target_progress)
+                if success:
+                    await self._send_step_update(session_id, step_id, status, target_progress * 100, message or "Completed")
 
             return True
 
@@ -278,8 +283,7 @@ class ProgressManager:
             if step.status == StepStatus.COMPLETED
         ]
         current_step = calculator.get_current_step()
-        overall_progress = calculator.calculate_weighted_progress(
-            completed_steps)
+        overall_progress = calculator.calculate_weighted_progress()
 
         return {
             "session_id": session_id,
@@ -288,6 +292,22 @@ class ProgressManager:
             "completed_steps": completed_steps,
             "total_steps": len(calculator.pipeline_config.steps)
         }
+
+    def get_step_progress(self, session_id: str, step_id: str) -> float:
+        """Get current progress of a specific step (0.0-1.0)."""
+        calculator = self.active_sessions.get(session_id)
+        if not calculator:
+            logger.warning("No calculator found for session %s", session_id)
+            return 0.0
+
+        step = calculator.pipeline_config.get_step_by_id(step_id)
+        if not step:
+            logger.warning("Step %s not found in session %s",
+                           step_id, session_id)
+            return 0.0
+
+        # Return progress as 0.0-1.0 (step.progress_percentage is 0-100)
+        return step.progress_percentage / 100.0
 
     # Private methods for WebSocket communication
     async def _send_steps_definition(self, session_id: str, pipeline_config: PipelineConfiguration):
@@ -327,9 +347,6 @@ class ProgressManager:
         )
 
         message_obj = ProgressUpdateMessage(data=data)
-        logger.info(
-            "Progress update: session=%s progress=%.1f%% step=%s",
-            session_id, current_progress, current_step_id)
         logger.debug("Progress update message: %s", message_obj.model_dump())
         await self.websocket_manager.send_message_to_session(session_id, message_obj.model_dump())
 

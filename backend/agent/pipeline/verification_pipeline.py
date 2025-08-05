@@ -9,11 +9,12 @@ from collections.abc import Callable
 from typing import Any
 
 from agent.models.verification_context import VerificationContext
+from app.models.progress_callback import PipelineProgressCallback
+from app.models.progress import StepStatus
 from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
 from app.config import settings, VerificationSteps
 from app.exceptions import AgentError
 from app.services.progress_manager import progress_manager
-from app.models.progress import StepStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.infrastructure.event_emission import EventEmissionService
@@ -122,6 +123,20 @@ class VerificationPipeline:
                 verification_step = self._map_step_to_enum(step.name)
 
                 if verification_step:
+                    # Get current progress for this step
+                    current_progress = progress_manager.get_step_progress(
+                        session_id, verification_step.value
+                    )
+
+                    # Set up progress callback for this step
+                    progress_callback = PipelineProgressCallback(
+                        progress_manager,
+                        session_id,
+                        verification_step.value,
+                        last_progress=current_progress
+                    )
+                    step.set_progress_callback(progress_callback)
+
                     # Update step status to IN_PROGRESS
                     await progress_manager.update_step_status(
                         session_id=session_id,
@@ -134,15 +149,8 @@ class VerificationPipeline:
                 # Execute step safely
                 context = await step.safe_execute(context)
 
-                if verification_step:
-                    # Update step status to COMPLETED
-                    await progress_manager.update_step_status(
-                        session_id=session_id,
-                        step_id=verification_step.value,
-                        status=StepStatus.COMPLETED,
-                        progress=1.0,
-                        message=f"Completed {step.name}"
-                    )
+                # Note: Step completion is now handled automatically by PipelineProgressCallback
+                # when progress reaches 100%, so no need to manually update status here
 
             # Compile final result
             final_result = await self._compile_final_result(context)
@@ -171,7 +179,9 @@ class VerificationPipeline:
 
             # Mark current step as failed if we can identify it
             try:
-                current_step = self._get_current_step_enum()
+                # Get current step enum, which may be None
+                current_step = self._get_current_step_enum(
+                ) if self._get_current_step_enum() is not None else None
                 if current_step:
                     await progress_manager.update_step_status(
                         session_id=session_id,

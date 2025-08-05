@@ -6,11 +6,12 @@ from __future__ import annotations
 import logging
 
 from agent.models.verification_context import VerificationContext
+from agent.models.internal import FactCheckResult
 from agent.pipeline.base_step import BasePipelineStep
 from agent.tools import searxng_tool
 from app.exceptions import AgentError
+from app.models.progress_callback import PipelineProgressCallback
 from app.config import VerificationSteps
-from app.models.progress import StepStatus
 
 from ..services.graph.graph_fact_checking import GraphFactCheckingService
 
@@ -32,98 +33,50 @@ class GraphFactCheckingStep(BasePipelineStep):
             search_tool=searxng_tool)
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
-        """
-        Perform graph-based fact-checking.
-
-        Args:
-            context: Verification context containing fact hierarchy and claims
-
-        Returns:
-            Updated verification context with fact check results
-        """
-        # Validate that we have the necessary data
-        if not context.fact_hierarchy:
-            logger.warning(
-                "No fact hierarchy available for graph-based fact checking")
-            return context
-
-        if not context.claims:
-            logger.warning("No claims available for graph-based fact checking")
-            return context
-
-        # Extract claims to determine total count for progress tracking
-        total_claims = len(context.claims)
-
-        # Send initial progress update
+        """Execute graph-based fact checking."""
+        # Setup progress callback - let the service handle all progress updates
         if context.progress_manager and context.session_id:
-            await context.progress_manager.update_step_status(
-                session_id=context.session_id,
-                step_id=VerificationSteps.FACT_CHECKING.value,
-                status=StepStatus.IN_PROGRESS,
-                progress=0.1,
-                message=f"Starting graph-based fact checking for {total_claims} claims..."
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.FACT_CHECKING.value
             )
+            self.graph_fact_checking_service.set_progress_callback(callback)
 
         # Emit start event
         if context.event_service:
+            total_claims = len(context.claims) if context.claims else 0
             await context.event_service.emit_fact_checking_started(total_claims)
 
-        try:
-            # Send progress update for graph building
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.3,
-                    message="Building fact graph and analyzing relationships..."
-                )
+        # Validate required data
+        if not context.claims:
+            logger.warning("No claims found for fact checking")
 
-            # Perform graph-based fact checking
-            fact_check_result = await self.graph_fact_checking_service.verify_facts(context)
-
-            # Send progress update for verification completion
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.9,
-                    message="Finalizing fact verification results..."
-                )
-
-            # Store the result in context
-            context.fact_check_result = fact_check_result
-
-            # Log summary of results
-            logger.info(
-                "Graph fact checking completed: %d facts verified",
-                len(fact_check_result.claim_results),
+            context.fact_check_result = FactCheckResult(
+                overall_verdict="INSUFFICIENT_DATA",
+                confidence_score=0.0,
+                claim_results=[],
+                reasoning="No claims found to fact-check"
             )
+            # Update progress for early return case
+            await self.update_progress(1.0, "No claims to fact-check")
+            return context
 
-            # Emit completion event
-            if context.event_service:
-                await context.event_service.emit_fact_checking_completed()
+        # Log claims for debugging
+        logger.info(
+            f"Processing {len(context.claims)} claims for fact checking")
+        for i, claim in enumerate(context.claims):
+            logger.info(f"Claim {i+1}: {claim}")
 
-        except (ValueError, RuntimeError, AttributeError, TypeError) as e:
-            logger.error("Graph fact checking failed: %s", e, exc_info=True)
+        # Execute graph-based fact checking - service handles all progress updates
+        fact_check_result = await self.graph_fact_checking_service.verify_facts(context)
 
-            # Send error progress update
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.FAILED,
-                    progress=0.0,
-                    message=f"Fact checking failed: {str(e)}"
-                )
+        # Store result in context
+        context.fact_check_result = fact_check_result
 
-            # Emit error event if available
-            if context.event_service and hasattr(context.event_service, "emit_fact_checking_error"):
-                await context.event_service.emit_fact_checking_error(str(e))
-
-            # Re-raise as AgentError to be handled by the pipeline
-            raise AgentError(f"Graph fact checking failed: {e}") from e
+        # Emit completion event
+        if context.event_service:
+            await context.event_service.emit_fact_checking_completed()
 
         return context
 

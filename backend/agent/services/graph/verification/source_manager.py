@@ -550,7 +550,7 @@ class EnhancedSourceManager:
                     # Extract the final score from the relevance result
                     if relevance_result and "final_score" in relevance_result:
                         relevance_score = relevance_result["final_score"]
-                        logger.info(
+                        logger.debug(
                             "Extracted final_score for %s: %.4f",
                             url[:50],
                             relevance_score
@@ -562,7 +562,7 @@ class EnhancedSourceManager:
                             url[:50],
                             relevance_result
                         )
-                    logger.info(
+                    logger.debug(
                         "Enhanced relevance score for %s: %.4f (pub_date: %s)",
                         url[:50],
                         relevance_score,
@@ -594,7 +594,7 @@ class EnhancedSourceManager:
                 context={"content_length": len(content)},
             )
 
-            logger.info(
+            logger.debug(
                 "FILTER_EVIDENCE: URL: %s - Relevance score: %.4f, Threshold: %.4f, Pass: %s",
                 url[:50],
                 relevance_score,

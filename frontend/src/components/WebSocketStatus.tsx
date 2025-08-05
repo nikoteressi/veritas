@@ -12,9 +12,9 @@ const WebSocketStatus: React.FC = () => {
 
   const getStatusText = (): string => {
     if (isConnected) {
-      return t('webSocket.connected')
+      return t('websocket.connected')
     }
-    return t('webSocket.disconnected')
+    return t('websocket.disconnected')
   }
 
   return (
@@ -31,7 +31,7 @@ const WebSocketStatus: React.FC = () => {
       {sessionId && (
         <div className="mt-1">
           <span className="text-xs text-gray-500">
-            {t('webSocket.sessionId', { sessionId })}
+            {t('websocket.sessionId', { sessionId })}
           </span>
         </div>
       )}

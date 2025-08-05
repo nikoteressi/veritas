@@ -46,16 +46,28 @@ class ProgressAnimator {
    * Start animating from current value to target value
    */
   animateTo(targetValue: number, duration?: number): void {
-    // Cancel any existing animation
-    this.stop();
+    const newTargetValue = Math.max(0, Math.min(100, targetValue));
     
-    this.startValue = this.currentValue;
-    this.targetValue = Math.max(0, Math.min(100, targetValue));
+    // If we're already animating to the same target, don't restart
+    if (this.isAnimating && Math.abs(this.targetValue - newTargetValue) < 0.1) {
+      return;
+    }
+    
+    // If we're already animating, smoothly transition from current animated value
+    if (this.isAnimating) {
+      this.startValue = this.currentValue;
+    } else {
+      this.startValue = this.currentValue;
+    }
+    
+    this.targetValue = newTargetValue;
     this.duration = duration || this.duration;
     this.startTime = performance.now();
-    this.isAnimating = true;
     
-    this._animate();
+    if (!this.isAnimating) {
+      this.isAnimating = true;
+      this._animate();
+    }
   }
 
   /**

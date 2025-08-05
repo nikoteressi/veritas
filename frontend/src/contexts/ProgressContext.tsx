@@ -82,7 +82,7 @@ function progressReducer(state: typeof initialState, action: ProgressAction): ty
       const stepIndex = updatedSteps.findIndex(step => step.id === stepId)
       
       if (stepIndex !== -1) {
-        if (status === 'running') {
+        if (status === 'in_progress') {
           newCurrentStepIndex = stepIndex
         } else if (status === 'completed' && stepIndex === newCurrentStepIndex) {
           // Move to next step if current step is completed

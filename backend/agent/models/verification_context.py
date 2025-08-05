@@ -42,9 +42,9 @@ class VerificationContext(BaseModel):
     # Database and services (excluded from serialization)
     db: AsyncSession | None = Field(
         None, exclude=True, description="Database session")
-    event_service: EventEmissionService | None = Field(
+    event_service: "EventEmissionService | None" = Field(
         None, exclude=True, description="Event emission service")
-    result_compiler: ResultCompiler | None = Field(
+    result_compiler: "ResultCompiler | None" = Field(
         None, exclude=True, description="Result compiler service")
     progress_manager: Any | None = Field(
         None, exclude=True, description="Progress manager service")
@@ -85,7 +85,7 @@ class VerificationContext(BaseModel):
     # Analysis results
     analysis_result: ImageAnalysisResult | None = Field(
         None, description="[DEPRECATED] Old image analysis result")
-    post_analysis_result: PostAnalysisResult = Field(
+    post_analysis_result: PostAnalysisResult | None = Field(
         None, description="Post analysis result")
 
     # Fact checking results

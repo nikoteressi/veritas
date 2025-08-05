@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Optional
 
 from agent.llm import llm_manager
 from agent.models import FactCheckResult, VerdictResult
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.prompts import prompt_manager
+from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
 from langchain_core.output_parsers import PydanticOutputParser
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,11 @@ class VerdictService:
 
     def __init__(self):
         self.llm_manager = llm_manager
+        self.progress_callback: ProgressCallback = NoOpProgressCallback()
+
+    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+        """Set the progress callback for detailed progress reporting."""
+        self.progress_callback = callback or NoOpProgressCallback()
 
     async def generate(
         self,
@@ -44,27 +51,38 @@ class VerdictService:
         Returns:
             A VerdictResult object.
         """
+        # Initial progress
+        await self.progress_callback.update_progress(0, 100, "Starting verdict generation...")
+
         # Ensure summary is provided
         if not summary:
             raise ValueError("Summary is required for verdict generation")
+
+        await self.progress_callback.update_progress(20, 100, "Processing fact-check results...")
 
         # Generate detailed fact-check summary from graph results
         fact_check_summary = self._summarize_fact_check(fact_check_result)
         motives_summary = self._summarize_motives_analysis(motives_analysis)
 
+        await self.progress_callback.update_progress(40, 100, "Preparing comprehensive context...")
+
         # Enhanced context logging
         if summary:
-            logger.info(f"Using enhanced summary for verdict: {summary[:100]}...")
+            logger.info(
+                f"Using enhanced summary for verdict: {summary[:100]}...")
         if motives_analysis:
             primary_motive = motives_analysis.primary_motive or "Unknown"
-            logger.info(f"Using motives analysis for verdict: {primary_motive}")
-        logger.info(f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified")
+            logger.info(
+                f"Using motives analysis for verdict: {primary_motive}")
+        logger.info(
+            f"Using detailed fact-check results: {len(fact_check_result.claim_results)} claims verified")
 
         parser = PydanticOutputParser(pydantic_object=VerdictResult)
 
         try:
             # Use enhanced prompt template that better integrates all components
-            prompt_template = prompt_manager.get_prompt_template("verdict_generation_enhanced")
+            prompt_template = prompt_manager.get_prompt_template(
+                "verdict_generation_enhanced")
 
             # Convert temporal_analysis to dict for JSON serialization
             temporal_dict = temporal_analysis.model_dump() if temporal_analysis else {}
@@ -73,6 +91,8 @@ class VerdictService:
             comprehensive_context = self._create_comprehensive_context(
                 fact_check_summary, motives_summary, summary, motives_analysis
             )
+
+            await self.progress_callback.update_progress(60, 100, "Generating verdict prompt...")
 
             prompt = await prompt_template.aformat(
                 comprehensive_context=comprehensive_context,
@@ -83,17 +103,25 @@ class VerdictService:
 
             logger.info("Enhanced verdict generation prompt prepared")
 
+            await self.progress_callback.update_progress(80, 100, "Generating verdict with LLM...")
+
             response = await self.llm_manager.invoke_text_only(prompt)
             logger.info(f"Raw response from LLM: {response}")
 
+            await self.progress_callback.update_progress(95, 100, "Parsing verdict response...")
+
             # Clean and parse the response directly with Pydantic
             parsed_response = parser.parse(response)
-            logger.info(f"Enhanced verdict generated: {parsed_response.verdict}")
+            logger.info(
+                f"Enhanced verdict generated: {parsed_response.verdict}")
+
+            await self.progress_callback.update_progress(100, 100, "Verdict generation completed")
 
             return parsed_response
 
         except Exception as e:
-            logger.error(f"Failed to generate enhanced verdict: {e}", exc_info=True)
+            logger.error(
+                f"Failed to generate enhanced verdict: {e}", exc_info=True)
             raise
 
     def _summarize_fact_check(self, fact_check_result: FactCheckResult) -> str:
@@ -131,7 +159,8 @@ class VerdictService:
         sources_summary = ""
         if all_sources:
             sources_list = list(all_sources)[:10]  # Limit to top 10 sources
-            sources_summary = "\nSources Consulted:\n" + "\n".join([f"- {source}" for source in sources_list])
+            sources_summary = "\nSources Consulted:\n" + \
+                "\n".join([f"- {source}" for source in sources_list])
             if len(all_sources) > 10:
                 sources_summary += f"\n... and {len(all_sources) - 10} additional sources"
 
@@ -174,10 +203,12 @@ class VerdictService:
 
             # Add additional context from motives analysis
             if hasattr(motives_analysis, "analysis_summary") and motives_analysis.analysis_summary:
-                context_parts.append(f"**Analysis Summary:** {motives_analysis.analysis_summary}")
+                context_parts.append(
+                    f"**Analysis Summary:** {motives_analysis.analysis_summary}")
 
             if hasattr(motives_analysis, "credibility_assessment") and motives_analysis.credibility_assessment:
-                context_parts.append(f"**Credibility Assessment:** {motives_analysis.credibility_assessment}")
+                context_parts.append(
+                    f"**Credibility Assessment:** {motives_analysis.credibility_assessment}")
 
             context_parts.append("")
 
@@ -212,7 +243,8 @@ class VerdictService:
 
         # Add analysis summary if available
         if hasattr(motives_analysis, "analysis_summary") and motives_analysis.analysis_summary:
-            summary_lines.append(f"Analysis Summary: {motives_analysis.analysis_summary}")
+            summary_lines.append(
+                f"Analysis Summary: {motives_analysis.analysis_summary}")
 
         return "\n".join(summary_lines)
 

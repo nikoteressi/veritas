@@ -462,9 +462,6 @@ class ProgressTracker:
         self.current_progress = progress
         await self.connection_manager.send_progress_update(self.session_id, step, progress, details)
 
-        logger.info(
-            f"Progress update [{self.session_id}]: {step} ({progress}%)")
-
     async def complete(self, result: dict[str, Any]):
         """
         Mark progress as complete and send result.

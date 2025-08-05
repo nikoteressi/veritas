@@ -70,7 +70,7 @@ const ProgressStepItem: React.FC<ProgressStepItemProps> = ({
         bg: 'bg-green-50',
         border: 'border-green-200'
       };
-    } else if (isInProgress) {
+    } else if (isInProgress || isActive) {
       return {
         text: 'text-blue-700',
         bg: 'bg-blue-50',
@@ -83,7 +83,7 @@ const ProgressStepItem: React.FC<ProgressStepItemProps> = ({
         border: 'border-gray-200'
       };
     }
-  }, [isFailed, isCompleted, isInProgress]);
+  }, [isFailed, isCompleted, isInProgress, isActive]);
 
   // Memoized substeps rendering
   const substepsContent = useMemo(() => {
@@ -101,7 +101,7 @@ const ProgressStepItem: React.FC<ProgressStepItemProps> = ({
             <div className="w-3 h-3 flex-shrink-0">
               {substep.status === 'completed' ? (
                 <CheckCircleIconSolid className="w-3 h-3 text-green-500" />
-              ) : substep.status === 'running' ? (
+              ) : substep.status === 'in_progress' ? (
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse ml-0.5 mt-0.5" />
               ) : (
                 <div className="w-2 h-2 bg-gray-300 rounded-full ml-0.5 mt-0.5" />
@@ -109,7 +109,7 @@ const ProgressStepItem: React.FC<ProgressStepItemProps> = ({
             </div>
             <span className={`
               ${substep.status === 'completed' ? 'text-green-600' : 
-                substep.status === 'running' ? 'text-blue-600' : 'text-gray-500'}
+                substep.status === 'in_progress' ? 'text-blue-600' : 'text-gray-500'}
             `}>
               {substep.title}
             </span>
@@ -138,27 +138,45 @@ const ProgressStepItem: React.FC<ProgressStepItemProps> = ({
 
   // Memoized progress bar
   const progressBar = useMemo(() => {
-    if (!isInProgress || stepProgress <= 0) {
+    if (!(isInProgress || isCompleted || isActive)) {
       return null;
     }
 
+    const displayProgress = isCompleted ? 100 : stepProgress;
+    
     return (
-      <div className="mt-2">
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+          <span>{isCompleted ? 'Completed' : 'Progress'}</span>
+          <span>{Math.round(displayProgress)}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
           <div 
-            className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${stepProgress}%` }}
+            className={`h-2 rounded-full transition-all duration-200 ease-out ${
+              isCompleted 
+                ? 'bg-green-500' 
+                : 'bg-blue-600'
+            }`}
+            style={{ 
+              width: `${Math.max(Math.min(displayProgress, 100), isInProgress ? 2 : 0)}%`,
+              transform: isCompleted ? 'scale(1.02)' : 'scale(1)',
+              transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
           />
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          {t('loading.stepProgress', { progress: Math.round(stepProgress) })}
-        </p>
       </div>
     );
-  }, [isInProgress, stepProgress, t]);
+  }, [isInProgress, isCompleted, isActive, stepProgress, t]);
 
   return (
     <div className="relative">
+      {/* Debug Info (Development Only) */}
+      {import.meta.env.DEV && (isInProgress || isActive || isCompleted) && (
+        <div className="text-xs text-gray-400 mb-1 font-mono">
+          Status: {step.status} | Progress: {stepProgress} | isInProgress: {isInProgress.toString()} | isActive: {isActive.toString()} | isCompleted: {isCompleted.toString()}
+        </div>
+      )}
+      
       {/* Step Container */}
       <div 
         className={`

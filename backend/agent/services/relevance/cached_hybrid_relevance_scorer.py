@@ -242,11 +242,11 @@ class CachedHybridRelevanceScorer:
             self.metrics["total_scores"] += 1
 
             cache_key = self._generate_cache_key(query, text, "hybrid")
-            logger.info("Generated cache key: %s", cache_key)
+            logger.debug("Generated cache key: %s", cache_key)
 
             # Try cache first
             if use_cache:
-                logger.info("Checking cache...")
+                logger.debug("Checking cache...")
                 cached_result = await self.cache.get(cache_key)
                 if cached_result is not None:
                     logger.info("Cache hit!")
@@ -257,16 +257,16 @@ class CachedHybridRelevanceScorer:
                 logger.info("Cache miss, proceeding with calculation...")
 
             # Calculate individual scores
-            logger.info("Calculating BM25 score for text: %s...", text[:50])
+            logger.debug("Calculating BM25 score for text: %s...", text[:50])
             bm25_score = self.calculate_bm25_score(query, text)
-            logger.info("BM25 score calculated: %s", bm25_score)
+            logger.debug("BM25 score calculated: %s", bm25_score)
 
-            logger.info(
+            logger.debug(
                 "Calculating semantic score for text: %s...", text[:50])
             semantic_score = await self.calculate_semantic_score(query, text)
-            logger.info("Semantic score calculated: %s", semantic_score)
+            logger.debug("Semantic score calculated: %s", semantic_score)
 
-            logger.info("BM25: %s, Semantic: %s", bm25_score, semantic_score)
+            logger.debug("BM25: %s, Semantic: %s", bm25_score, semantic_score)
 
             # Combine scores
             hybrid_score = self.bm25_weight * bm25_score + \
@@ -309,7 +309,7 @@ class CachedHybridRelevanceScorer:
             self.metrics["hybrid_scores"] += 1
             self.metrics["processing_time"] += time.time() - start_time
 
-            logger.info("Hybrid score calculation completed: %s", final_score)
+            logger.debug("Hybrid score calculation completed: %s", final_score)
 
             if explain:
                 return final_score, explanation

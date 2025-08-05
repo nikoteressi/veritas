@@ -9,12 +9,13 @@ source reputation system, and intelligent caching.
 
 import asyncio
 import logging
+import hashlib
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from app.exceptions import AgentError
-from app.config import VerificationSteps
-from app.models.progress import StepStatus
+from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
+from agent.models.graph import FactEdge
 
 from ...models import ClaimResult, FactCheckResult, FactCheckSummary
 from ...models.graph import FactGraph, VerificationStatus
@@ -81,7 +82,7 @@ class GraphFactCheckingService:
             self.graph_storage = Neo4jGraphStorage()
             logger.info("Neo4j graph storage initialized")
         except Exception as e:
-            logger.warning(f"Neo4j storage unavailable: {e}")
+            logger.warning("Neo4j storage unavailable: %s", e)
             self.graph_storage = None
 
         # Initialize source reputation system
@@ -90,7 +91,7 @@ class GraphFactCheckingService:
             self.source_reputation = SourceReputationSystem()
             logger.info("Source reputation system initialized")
         except Exception as e:
-            logger.warning(f"Source reputation unavailable: {e}")
+            logger.warning("Source reputation unavailable: %s", e)
             self.source_reputation = None
 
         # Initialize caching systems
@@ -105,7 +106,7 @@ class GraphFactCheckingService:
                 clustering_config, self.graph_builder)
             logger.info("Advanced clustering system initialized")
         except Exception as e:
-            logger.warning(f"Advanced clustering unavailable: {e}")
+            logger.warning("Advanced clustering unavailable: %s", e)
 
         # Initialize Bayesian uncertainty handler (lazy initialization)
         self.uncertainty_handler = None
@@ -121,12 +122,27 @@ class GraphFactCheckingService:
                 relationship_config)
             logger.info("Relationship analysis engine initialized")
         except Exception as e:
-            logger.warning(f"Relationship analyzer unavailable: {e}")
+            logger.warning("Relationship analyzer unavailable: %s", e)
 
         self.logger = logging.getLogger(__name__)
 
         # Track current graph ID for statistics
         self.current_graph_id = None
+
+        # Progress callback for detailed progress reporting
+        self.progress_callback: ProgressCallback = NoOpProgressCallback()
+
+    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+        """Set the progress callback for detailed progress reporting."""
+        self.progress_callback = callback or NoOpProgressCallback()
+
+    async def update_progress(self, current: float, total: float, message: str = "") -> None:
+        """Update the progress for the current operation."""
+        await self.progress_callback.update_progress(current, total, message)
+
+    async def update_substep(self, substep: str, progress: float, message: str = "") -> None:
+        """Update the current substep being executed."""
+        await self.progress_callback.update_substep(substep, progress, message)
 
     async def _ensure_uncertainty_handler(self):
         """Ensure Bayesian uncertainty handler is initialized (lazy initialization)."""
@@ -141,7 +157,7 @@ class GraphFactCheckingService:
                 logger.info(
                     "Bayesian uncertainty handler initialized successfully")
             except Exception as e:
-                logger.warning(f"Uncertainty handler unavailable: {e}")
+                logger.warning("Uncertainty handler unavailable: %s", e)
                 self.uncertainty_handler = None
                 self._uncertainty_handler_initialized = True  # Mark as attempted
 
@@ -185,17 +201,11 @@ class GraphFactCheckingService:
             cached_result = await self.verification_cache.get(cache_key)
             if cached_result:
                 self.logger.info("Found cached verification result")
+                await self.update_progress(1.0, 1.0, "Using cached verification result")
                 return cached_result
 
-            # Send progress update for graph loading/building
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.4,
-                    message="Loading or building fact graph..."
-                )
+            # Update progress for graph loading/building
+            await self.update_substep("Loading or building fact graph", 0.1, "Checking for existing graph...")
 
             # Step 1: Try to load existing graph from persistent storage
             graph = None
@@ -210,24 +220,19 @@ class GraphFactCheckingService:
                             "Loaded existing graph from Neo4j storage")
                 except Exception as e:
                     self.logger.error(
-                        f"Critical error: Failed to load graph from storage: {e}")
+                        "Critical error: Failed to load graph from storage: %s", e)
                     raise AgentError(
                         f"Graph storage is unavailable: {e}") from e
 
             # Step 2: Build the fact graph if not loaded from storage
             if not graph:
+                await self.update_substep("Building fact graph", 0.2, "Creating graph structure...")
                 graph = await self.graph_builder.build_graph(fact_hierarchy)
                 self.logger.info("Built new graph with %s", graph.get_stats())
 
-                # Send progress update for clustering
-                if context.progress_manager and context.session_id:
-                    await context.progress_manager.update_step_status(
-                        session_id=context.session_id,
-                        step_id=VerificationSteps.FACT_CHECKING.value,
-                        status=StepStatus.IN_PROGRESS,
-                        progress=0.5,
-                        message="Applying advanced clustering and relationship analysis..."
-                    )
+                # Update progress for clustering
+                await self.update_substep(
+                    "Applying advanced clustering and relationship analysis", 0.3, "Analyzing fact relationships...")
 
                 # Apply advanced clustering if available
                 if self.advanced_clustering:
@@ -238,7 +243,7 @@ class GraphFactCheckingService:
                         self.logger.info("Applied advanced clustering")
                     except Exception as e:
                         self.logger.error(
-                            f"Critical error: Advanced clustering failed: {e}")
+                            "Critical error: Advanced clustering failed: %s", e)
                         raise AgentError(
                             f"Advanced clustering is required but failed: {e}") from e
 
@@ -258,10 +263,10 @@ class GraphFactCheckingService:
                         # Update graph with relationship information
                         graph = await self._apply_relationship_analysis(graph, relationships)
                         self.logger.info(
-                            f"Analyzed {len(relationships)} fact relationships")
+                            "Analyzed %d fact relationships", len(relationships))
                     except Exception as e:
                         self.logger.warning(
-                            f"Relationship analysis failed: {e}")
+                            "Relationship analysis failed: %s", e)
 
                 # Save to persistent storage
                 if self.graph_storage and graph_id:
@@ -270,37 +275,27 @@ class GraphFactCheckingService:
                         self.logger.info("Saved graph to Neo4j storage")
                     except Exception as e:
                         self.logger.error(
-                            f"Critical error: Failed to save graph to storage: {e}")
+                            "Critical error: Failed to save graph to storage: %s", e)
                         raise AgentError(
                             f"Graph storage save failed: {e}") from e
 
             # Step 3: Enhance context with source reputation if available
             enhanced_context = context
             if self.source_reputation:
+                await self.update_substep(
+                    "Enhancing context with source reputation", 0.4, "Analyzing source credibility...")
                 enhanced_context = await self._enhance_context_with_reputation(context)
 
-            # Send progress update for graph verification
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.6,
-                    message="Verifying facts using graph analysis..."
-                )
+            # Update progress for graph verification
+            await self.update_substep("Verifying facts using graph analysis", 0.5, "Processing fact clusters...")
 
             # Step 4: Verify the graph
+            # Pass progress callback to verification engine for detailed progress tracking
+            self.verification_engine.set_progress_callback(self.progress_callback)
             verification_results = await self.verification_engine.verify_graph(graph, enhanced_context)
 
-            # Send progress update for uncertainty analysis
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.7,
-                    message="Applying Bayesian uncertainty analysis..."
-                )
+            # Update progress for uncertainty analysis
+            await self.update_substep("Applying Bayesian uncertainty analysis", 0.7, "Calculating confidence scores...")
 
             # Step 5: Apply Bayesian uncertainty analysis
             await self._ensure_uncertainty_handler()  # Lazy initialization
@@ -324,31 +319,24 @@ class GraphFactCheckingService:
                     )
                     verification_results["uncertainty_analysis"] = uncertainty_analysis
                     self.logger.info(
-                        f"Applied Bayesian uncertainty analysis: {uncertainty_analysis.get('uncertainty_level', 'unknown')}"
-                    )
+                        "Applied Bayesian uncertainty analysis: %s", uncertainty_analysis.get('uncertainty_level', 'unknown'))
                 except Exception as e:
                     self.logger.warning(
-                        f"Bayesian uncertainty analysis failed: {e}")
+                        "Bayesian uncertainty analysis failed: %s", e)
 
             # Step 6: Update graph storage with verification results
             if self.graph_storage and graph_id:
+                await self.update_substep("Updating graph storage", 0.8, "Saving verification results...")
                 try:
                     await self._update_graph_with_results(graph_id, verification_results)
                 except Exception as e:
                     self.logger.error(
-                        f"Critical error: Failed to update graph storage: {e}")
+                        "Critical error: Failed to update graph storage: %s", e)
                     raise AgentError(
                         f"Failed to update graph storage: {e}") from e
 
-            # Send progress update for result conversion
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=0.8,
-                    message="Converting results to standard format..."
-                )
+            # Update progress for result conversion
+            await self.update_substep("Converting results to standard format", 0.85, "Formatting results...")
 
             # Step 7: Convert results to standard format
             fact_check_result = await self._convert_to_standard_format(verification_results, graph, enhanced_context)
@@ -372,18 +360,13 @@ class GraphFactCheckingService:
                     "cached": False,
                 }
 
-            # Cache the result
+            # Step 8: Cache results
+            await self.update_substep("Caching results", 0.95, "Storing results in cache...")
             await self.verification_cache.set(cache_key, fact_check_result)
 
-            # Send final progress update to complete the step
-            if context.progress_manager and context.session_id:
-                await context.progress_manager.update_step_status(
-                    session_id=context.session_id,
-                    step_id=VerificationSteps.FACT_CHECKING.value,
-                    status=StepStatus.IN_PROGRESS,
-                    progress=1.0,
-                    message="Graph-based fact checking completed successfully"
-                )
+            # Final progress update
+            await self.update_progress(
+                1.0, 1.0, "Graph-based fact checking completed successfully")
 
             return fact_check_result
 
@@ -592,7 +575,7 @@ class GraphFactCheckingService:
                     self.graph_storage.get_graph_stats(graph_id))
                 stats["graph_storage"] = storage_stats
             except Exception as e:
-                self.logger.warning(f"Failed to get storage stats: {e}")
+                self.logger.warning("Failed to get storage stats: %s", e)
 
         return stats
 
@@ -609,7 +592,6 @@ class GraphFactCheckingService:
 
     def _generate_cache_key(self, fact_hierarchy) -> str:
         """Generate a cache key for the fact hierarchy."""
-        import hashlib
 
         # Create a string representation of the fact hierarchy
         facts_str = ""
@@ -627,8 +609,6 @@ class GraphFactCheckingService:
 
     def _generate_graph_id(self, fact_hierarchy) -> str:
         """Generate a unique graph ID for persistent storage."""
-        import hashlib
-        from datetime import datetime
 
         # Create a more detailed string representation
         facts_str = ""
@@ -664,7 +644,7 @@ class GraphFactCheckingService:
 
         except Exception as e:
             self.logger.warning(
-                f"Failed to enhance context with reputation: {e}")
+                "Failed to enhance context with reputation: %s", e)
             return context
 
     async def _update_graph_with_results(self, graph_id: str, verification_results: dict[str, Any]):
@@ -722,7 +702,7 @@ class GraphFactCheckingService:
                     )
 
         except Exception as e:
-            self.logger.error(f"Failed to update graph with results: {e}")
+            self.logger.error("Failed to update graph with results: %s", e)
 
     async def get_verification_history(self, fact_claim: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get verification history for a specific fact claim."""
@@ -759,7 +739,7 @@ class GraphFactCheckingService:
             return enhanced_history
 
         except Exception as e:
-            self.logger.error(f"Failed to get verification history: {e}")
+            self.logger.error("Failed to get verification history: %s", e)
             return []
 
     async def get_source_reputation_score(self, source_url: str) -> float | None:
@@ -770,7 +750,7 @@ class GraphFactCheckingService:
         try:
             return self.source_reputation.get_source_credibility(source_url)
         except Exception as e:
-            self.logger.warning(f"Failed to get source reputation: {e}")
+            self.logger.warning("Failed to get source reputation: %s", e)
             return None
 
     async def _apply_enhanced_clustering(self, graph, enhanced_clusters):
@@ -793,7 +773,7 @@ class GraphFactCheckingService:
 
             return graph
         except Exception as e:
-            self.logger.error(f"Failed to apply enhanced clustering: {e}")
+            self.logger.error("Failed to apply enhanced clustering: %s", e)
             return graph
 
     async def _apply_relationship_analysis(self, graph, relationships):
@@ -808,8 +788,6 @@ class GraphFactCheckingService:
                 edge_key = f"{fact_id_1}_{fact_id_2}"
                 if edge_key not in graph.edges:
                     # Create new edge if it doesn't exist
-                    from agent.models.graph import FactEdge
-
                     edge = FactEdge(
                         source_id=fact_id_1,
                         target_id=fact_id_2,
@@ -832,7 +810,7 @@ class GraphFactCheckingService:
 
             return graph
         except Exception as e:
-            self.logger.error(f"Failed to apply relationship analysis: {e}")
+            self.logger.error("Failed to apply relationship analysis: %s", e)
             return graph
 
     async def get_detailed_stats(self) -> dict[str, Any]:
@@ -844,7 +822,7 @@ class GraphFactCheckingService:
             try:
                 stats["advanced_clustering"] = self.advanced_clustering.get_clustering_stats()
             except Exception as e:
-                self.logger.warning(f"Failed to get clustering stats: {e}")
+                self.logger.warning("Failed to get clustering stats: %s", e)
 
         # Add uncertainty handler stats
         await self._ensure_uncertainty_handler()  # Lazy initialization
@@ -852,14 +830,14 @@ class GraphFactCheckingService:
             try:
                 stats["uncertainty_handler"] = self.uncertainty_handler.get_uncertainty_stats()
             except Exception as e:
-                self.logger.warning(f"Failed to get uncertainty stats: {e}")
+                self.logger.warning("Failed to get uncertainty stats: %s", e)
 
         # Add relationship analyzer stats
         if self.relationship_analyzer:
             try:
                 stats["relationship_analyzer"] = self.relationship_analyzer.get_relationship_stats()
             except Exception as e:
-                self.logger.warning(f"Failed to get relationship stats: {e}")
+                self.logger.warning("Failed to get relationship stats: %s", e)
 
         return stats
 
@@ -884,7 +862,7 @@ class GraphFactCheckingService:
                 for rel in relationships
             ]
         except Exception as e:
-            self.logger.error(f"Standalone relationship analysis failed: {e}")
+            self.logger.error("Standalone relationship analysis failed: %s", e)
             return []
 
     async def get_uncertainty_analysis(self, verification_data: dict[str, Any]) -> dict[str, Any]:
@@ -895,7 +873,7 @@ class GraphFactCheckingService:
         try:
             return await self.uncertainty_handler.analyze_verification_uncertainty(verification_data)
         except Exception as e:
-            self.logger.error(f"Uncertainty analysis failed: {e}")
+            self.logger.error("Uncertainty analysis failed: %s", e)
             return {"error": str(e)}
 
     async def close(self):
@@ -924,7 +902,7 @@ class GraphFactCheckingService:
 
         except AgentError as e:
             self.logger.error(
-                f"Error during GraphFactCheckingService cleanup: {e}")
+                "Error during GraphFactCheckingService cleanup: %s", e)
 
     async def __aenter__(self):
         """Async context manager entry."""

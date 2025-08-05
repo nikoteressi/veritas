@@ -11,6 +11,8 @@ interface StepsDefinitionData {
 
 interface ProgressUpdateData {
   current_progress: number;
+  current_step_id?: string;
+  target_progress?: number;
   message?: string;
   animation_duration?: number;
 }
@@ -66,13 +68,22 @@ export function useProgressInterpreter() {
   const handleProgressUpdate = useCallback((data: ProgressUpdateData) => {
     console.log('📊 Progress update received:', data);
     
-    const progressValue = Math.max(0, Math.min(100, data.current_progress));
-    animateProgress(progressValue, data.animation_duration || 200);
+    // Convert decimal progress (0.0-1.0) to percentage (0-100) if needed
+    let progressValue = data.current_progress;
+    progressValue = Math.max(0, Math.min(100, progressValue));
+    
+    // Update overall progress animation
+    animateProgress(progressValue, data.animation_duration || 500);
+    
+    // Update specific step progress if current_step_id is provided
+    if (data.current_step_id) {
+      updateStep(data.current_step_id, 'in_progress', progressValue, data.message);
+    }
     
     if (data.message) {
       setCurrentMessage(data.message);
     }
-  }, [animateProgress, setCurrentMessage]);
+  }, [animateProgress, setCurrentMessage, updateStep]);
 
   const handleStepUpdate = useCallback((data: StepUpdateData) => {
     console.log('👣 Step update received:', data);

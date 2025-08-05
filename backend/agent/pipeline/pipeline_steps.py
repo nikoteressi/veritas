@@ -13,6 +13,8 @@ from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.pipeline.graph_fact_checking_step import GraphFactCheckingStep
 from agent.prompts import prompt_manager
+from app.models.progress_callback import PipelineProgressCallback
+from app.config import VerificationSteps
 
 from ..services.analysis.post_analyzer import PostAnalyzerService
 from ..services.infrastructure.screenshot_parser import screenshot_parser_service
@@ -33,6 +35,12 @@ class ValidationStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Validate the verification request."""
+        await self.update_progress(0.1, "Starting validation...")
+        
+        await self.update_progress(0.3, "Validating file data...")
+        
+        await self.update_progress(0.6, "Validating request parameters...")
+        
         validated_data = validation_service.validate_verification_request(
             file_data=context.image_bytes,
             prompt=context.user_prompt,
@@ -40,7 +48,10 @@ class ValidationStep(BasePipelineStep):
             session_id=context.session_id,
         )
 
+        await self.update_progress(0.9, "Validation completed...")
         context.validated_data = validated_data
+        
+        await self.update_progress(1.0, "Validation finished")
         return context
 
 
@@ -54,6 +65,15 @@ class SummarizationStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Generate the final summary."""
+        # Setup progress callback
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.SUMMARIZATION.value
+            )
+            self.summarizer_service.set_progress_callback(callback)
+
         if context.event_service:
             await context.event_service.emit_summarization_started()
 
@@ -80,10 +100,23 @@ class ScreenshotParsingStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Parse the screenshot and save the result to the context."""
+        # Setup progress callback for the service
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.SCREENSHOT_PARSING.value
+            )
+            screenshot_parser_service.set_progress_callback(callback)
+        else:
+            logger.warning(f"ScreenshotParsingStep: No progress manager or session_id - progress_manager: {context.progress_manager}, session_id: {context.session_id}")
+        
         if context.event_service:
             await context.event_service.emit_screenshot_parsing_started()
 
+        # The service now handles its own progress updates
         screenshot_data = await screenshot_parser_service.parse(context.image_bytes)
+        
         context.screenshot_data = screenshot_data
 
         if context.event_service:
@@ -101,22 +134,28 @@ class ReputationRetrievalStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Get or create user reputation."""
+        await self.update_progress(0.1, "Starting reputation retrieval...")
+        
         # Emit start event
         if context.event_service:
             await context.event_service.emit_reputation_retrieval_started()
 
+        await self.update_progress(0.3, "Extracting username...")
         username = context.screenshot_data.post_content.author
         logger.info("RETRIEVING REPUTATION FOR USER: %s", username)
 
+        await self.update_progress(0.6, "Querying reputation database...")
         user_reputation = await reputation_service.get_or_create(context.db, username)
         logger.info("RETRIEVED REPUTATION FOR USER: %s", username)
 
+        await self.update_progress(0.8, "Processing reputation data...")
         context.user_reputation = user_reputation
 
         # Emit completion event
         if context.event_service:
             await context.event_service.emit_reputation_retrieval_completed(username)
 
+        await self.update_progress(1.0, "Reputation retrieval completed")
         return context
 
 
@@ -129,6 +168,15 @@ class TemporalAnalysisStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Executes the temporal analysis and updates the context."""
+        # Setup progress callback
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.TEMPORAL_ANALYSIS.value
+            )
+            self.analyzer.set_progress_callback(callback)
+
         if context.event_service:
             await context.event_service.emit_temporal_analysis_started()
 
@@ -153,6 +201,15 @@ class PostAnalysisStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Executes the post analysis and updates the context."""
+        # Setup progress callback
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.POST_ANALYSIS.value
+            )
+            self.analyzer.set_progress_callback(callback)
+
         if context.event_service:
             await context.event_service.emit_post_analysis_started()
 
@@ -180,6 +237,15 @@ class MotivesAnalysisStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Executes the motives analysis and updates the context."""
+        # Setup progress callback
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.MOTIVES_ANALYSIS.value
+            )
+            self.analyzer.set_progress_callback(callback)
+
         if context.event_service:
             await context.event_service.emit_motives_analysis_started()
 
@@ -232,15 +298,28 @@ class VerdictGenerationStep(BasePipelineStep):
 
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Generate final verdict using summarization and motives analysis results."""
+        await self.update_progress(0.1, "Starting verdict generation...")
+        
+        # Setup progress callback
+        if context.progress_manager and context.session_id:
+            callback = PipelineProgressCallback(
+                context.progress_manager,
+                context.session_id,
+                VerificationSteps.VERDICT_GENERATION.value
+            )
+            verdict_service.set_progress_callback(callback)
+
         # Emit start event
         if context.event_service:
             await context.event_service.emit_verdict_generation_started()
 
+        await self.update_progress(0.2, "Gathering analysis results...")
         # Use new typed methods - now including motives analysis
         temporal_analysis = context.get_temporal_analysis()
         summarization_result = context.get_summarization_result()
         motives_analysis_result = context.get_motives_analysis()
 
+        await self.update_progress(0.4, "Processing analysis data...")
         # Debug logging for motives analysis
         logger.info(
             f"Retrieved motives analysis type: {type(motives_analysis_result)}")
@@ -253,6 +332,7 @@ class VerdictGenerationStep(BasePipelineStep):
         # Use summarization result if available, otherwise fallback to context.summary
         summary_text = summarization_result.summary if summarization_result else context.summary
 
+        await self.update_progress(0.6, "Preparing verdict generation...")
         # Log the enhanced context for verdict generation
         if motives_analysis_result:
             logger.info(
@@ -263,6 +343,7 @@ class VerdictGenerationStep(BasePipelineStep):
             logger.warning(
                 "No motives analysis result available for verdict generation")
 
+        await self.update_progress(0.8, "Generating final verdict...")
         verdict_result = await verdict_service.generate(
             context.fact_check_result,
             context.user_prompt,
@@ -272,12 +353,14 @@ class VerdictGenerationStep(BasePipelineStep):
             summary_text,  # Pass the summary from summarization service
         )
 
+        await self.update_progress(0.9, "Finalizing verdict...")
         context.verdict_result = verdict_result
 
         # Emit completion event
         if context.event_service:
             await context.event_service.emit_verdict_generation_completed(verdict_result.verdict)
 
+        await self.update_progress(1.0, "Verdict generation completed")
         return context
 
 

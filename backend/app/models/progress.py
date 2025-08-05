@@ -94,12 +94,11 @@ class SmartProgressCalculator(BaseModel):
     pipeline_config: PipelineConfiguration
     start_time: datetime = Field(default_factory=datetime.utcnow)
 
-    def calculate_weighted_progress(self, completed_steps: List[str], current_step_progress: float = 0.0) -> float:
+    def calculate_weighted_progress(self, current_step_progress: float = 0.0) -> float:
         """
         Calculate progress based on step weights and completion.
 
         Args:
-            completed_steps: List of completed step IDs
             current_step_progress: Progress of current step (0.0-1.0)
 
         Returns:
@@ -110,7 +109,7 @@ class SmartProgressCalculator(BaseModel):
         current_step_weight = 0.0
 
         for step in self.pipeline_config.steps:
-            if step.id in completed_steps:
+            if step.status == StepStatus.COMPLETED:
                 completed_weight += step.weight
             elif step.status == StepStatus.IN_PROGRESS:
                 current_step_weight = step.weight * current_step_progress
@@ -121,7 +120,7 @@ class SmartProgressCalculator(BaseModel):
                                     start_progress: float,
                                     target_progress: float,
                                     duration_ms: int = 300,
-                                    fps: int = 60) -> List[Tuple[float, int]]:
+                                    fps: int = 30) -> List[Tuple[float, int]]:
         """
         Generate intermediate progress values for smooth animation.
 
@@ -134,6 +133,9 @@ class SmartProgressCalculator(BaseModel):
         Returns:
             List of (progress, timestamp_offset) tuples
         """
+        # Ensure minimum duration for smooth animation
+        duration_ms = max(duration_ms, 200)
+
         frame_count = int((duration_ms / 1000.0) * fps)
         if frame_count <= 1:
             return [(target_progress, duration_ms)]

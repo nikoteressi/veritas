@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Optional
 
 from agent.llm.manager import OllamaLLMManager
 from agent.models.summarization_result import SummarizationResult
 from agent.models.verification_context import VerificationContext
 from agent.prompts.manager import PromptManager
+from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,11 @@ class SummarizerService:
     def __init__(self, llm_manager: OllamaLLMManager, prompt_manager: PromptManager):
         self.llm_manager = llm_manager
         self.prompt_manager = prompt_manager
+        self.progress_callback: ProgressCallback = NoOpProgressCallback()
+
+    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+        """Set the progress callback for detailed progress reporting."""
+        self.progress_callback = callback or NoOpProgressCallback()
 
     async def summarize(self, context: VerificationContext) -> SummarizationResult:
         """
@@ -28,12 +35,17 @@ class SummarizerService:
         """
         start_time = time.time()
 
+        # Initial progress
+        await self.progress_callback.update_progress(0, 100, "Starting summarization...")
+
         if not context.fact_check_result:
             raise ValueError(
                 "Fact check result is required for summarization.")
 
         # Get temporal analysis using the new typed method
         temporal_analysis = context.temporal_analysis_result
+
+        await self.progress_callback.update_progress(20, 100, "Preparing summarization prompt...")
 
         # Prepare prompt for LLM
         prompt_template = self.prompt_manager.get_prompt_template(
@@ -44,8 +56,12 @@ class SummarizerService:
                 indent=2),
         )
 
+        await self.progress_callback.update_progress(40, 100, "Generating summary with LLM...")
+
         # Generate summary text
         summary_text = await self.llm_manager.invoke_text_only(prompt)
+
+        await self.progress_callback.update_progress(60, 100, "Processing summary metadata...")
 
         # Extract metadata from fact check result
         sources_used = context.fact_check_result.examined_sources
@@ -54,6 +70,8 @@ class SummarizerService:
         # Create fact check summary
         fact_check_summary = self._create_fact_check_summary(
             context.fact_check_result)
+
+        await self.progress_callback.update_progress(80, 100, "Extracting key points and calculating confidence...")
 
         # Extract key points (simple implementation - can be enhanced)
         key_points = self._extract_key_points(summary_text)
@@ -66,6 +84,8 @@ class SummarizerService:
         temporal_context_included = temporal_analysis is not None
 
         processing_time = time.time() - start_time
+
+        await self.progress_callback.update_progress(100, 100, "Summarization completed")
 
         return SummarizationResult(
             summary=summary_text,

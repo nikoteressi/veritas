@@ -50,6 +50,8 @@ export interface StepsDefinitionData {
 
 export interface ProgressUpdateData {
   current_progress: number;
+  current_step_id?: string;
+  target_progress?: number;
   message?: string;
   animation_duration?: number;
 }
@@ -96,7 +98,7 @@ export interface VerificationState {
 }
 
 // Progress and Step types (unified)
-export type StepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
 
 export interface ProgressStep {
   id: string;

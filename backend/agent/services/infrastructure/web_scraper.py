@@ -21,8 +21,16 @@ class WebScraper:
     """
 
     def __init__(self, max_concurrent_scrapes: int = 3):
-        self.browser_config = BrowserConfig(headless=True, verbose=False, extra_args=["--no-sandbox", "--disable-gpu"])
-        self.crawler = AsyncWebCrawler(config=self.browser_config)
+        self.browser_config = BrowserConfig(
+            headless=True,
+            verbose=False,
+            extra_args=["--no-sandbox", "--disable-gpu",
+                        "--disable-logging", "--silent"]
+        )
+        self.crawler = AsyncWebCrawler(
+            config=self.browser_config,
+            verbose=False
+        )
         self._initialized = False
         # Semaphore to limit concurrent scraping operations
         self.semaphore = asyncio.Semaphore(max_concurrent_scrapes)
@@ -31,16 +39,16 @@ class WebScraper:
     def _extract_publication_date(self, html_content: str) -> Optional[str]:
         """
         Extract publication date from HTML content using various strategies.
-        
+
         Args:
             html_content: Raw HTML content
-            
+
         Returns:
             ISO formatted date string or None if not found
         """
         if not html_content:
             return None
-            
+
         # Common meta tag patterns for publication dates
         meta_patterns = [
             # Open Graph
@@ -61,7 +69,7 @@ class WebScraper:
             r'<time[^>]*datetime=["\']([^"\']+)["\']',
             r'<time[^>]*pubdate[^>]*datetime=["\']([^"\']+)["\']',
         ]
-        
+
         for pattern in meta_patterns:
             matches = re.findall(pattern, html_content, re.IGNORECASE)
             if matches:
@@ -70,7 +78,7 @@ class WebScraper:
                 parsed_date = self._parse_date_string(date_str)
                 if parsed_date:
                     return parsed_date
-                    
+
         # Fallback: Look for common date patterns in text
         text_date_patterns = [
             # ISO format variations
@@ -81,7 +89,7 @@ class WebScraper:
             r'Date:?\s*(\d{1,2}/\d{1,2}/\d{4})',
             r'(\w+\s+\d{1,2},?\s+\d{4})',  # "January 15, 2024"
         ]
-        
+
         for pattern in text_date_patterns:
             matches = re.findall(pattern, html_content, re.IGNORECASE)
             if matches:
@@ -89,26 +97,26 @@ class WebScraper:
                 parsed_date = self._parse_date_string(date_str)
                 if parsed_date:
                     return parsed_date
-                    
+
         return None
-        
+
     def _parse_date_string(self, date_str: str) -> Optional[str]:
         """
         Parse various date string formats and return ISO format.
-        
+
         Args:
             date_str: Date string to parse
-            
+
         Returns:
             ISO formatted date string or None if parsing fails
         """
         if not date_str:
             return None
-            
+
         # Common date formats to try
         date_formats = [
             "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%SZ", 
+            "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S%z",
             "%Y-%m-%dT%H:%M:%S",
             "%Y-%m-%d",
@@ -119,18 +127,19 @@ class WebScraper:
             "%d %B %Y",
             "%d %b %Y",
         ]
-        
+
         for fmt in date_formats:
             try:
                 parsed = datetime.strptime(date_str, fmt)
                 return parsed.isoformat()
             except ValueError:
                 continue
-                
+
         # Try to handle timezone-aware strings
         try:
             # Remove common timezone abbreviations and try again
-            cleaned = re.sub(r'\s+(UTC|GMT|EST|PST|CST|MST|EDT|PDT|CDT|MDT)\s*$', '', date_str, flags=re.IGNORECASE)
+            cleaned = re.sub(
+                r'\s+(UTC|GMT|EST|PST|CST|MST|EDT|PDT|CDT|MDT)\s*$', '', date_str, flags=re.IGNORECASE)
             for fmt in date_formats:
                 try:
                     parsed = datetime.strptime(cleaned, fmt)
@@ -139,7 +148,7 @@ class WebScraper:
                     continue
         except Exception:
             pass
-            
+
         logger.debug("Could not parse date string: %s", date_str)
         return None
 
@@ -163,7 +172,8 @@ class WebScraper:
         await self._ensure_initialized()
 
         logger.info(
-            f"Starting scraping of {len(urls)} URLs with max {self.max_concurrent_scrapes} concurrent operations"
+            "Starting scraping of %d URLs with max %d concurrent operations",
+            len(urls), self.max_concurrent_scrapes
         )
 
         # Create semaphore-controlled tasks
@@ -189,8 +199,10 @@ class WebScraper:
             else:
                 processed_results.append(result)
 
-        successful_scrapes = len([r for r in processed_results if r.get("status") == "success"])
-        logger.info(f"Completed scraping: {successful_scrapes}/{len(urls)} successful")
+        successful_scrapes = len(
+            [r for r in processed_results if r.get("status") == "success"])
+        logger.info(
+            "Completed scraping: %d/%d successful", successful_scrapes, len(urls))
 
         return processed_results
 
@@ -209,6 +221,7 @@ class WebScraper:
             run_config = CrawlerRunConfig(
                 extraction_strategy=NoExtractionStrategy(),
                 page_timeout=30000,
+                verbose=False
             )
             result = await self.crawler.arun(url, config=run_config)
 
@@ -216,12 +229,16 @@ class WebScraper:
                 # Extract publication date from HTML
                 publication_date = None
                 if hasattr(result, 'html') and result.html:
-                    publication_date = self._extract_publication_date(result.html)
-                    logger.info("Extracted publication date for %s: %s", url, publication_date)
+                    publication_date = self._extract_publication_date(
+                        result.html)
+                    logger.info(
+                        "Extracted publication date for %s: %s", url, publication_date)
                 elif hasattr(result, 'cleaned_html') and result.cleaned_html:
-                    publication_date = self._extract_publication_date(result.cleaned_html)
-                    logger.info("Extracted publication date from cleaned HTML for %s: %s", url, publication_date)
-                
+                    publication_date = self._extract_publication_date(
+                        result.cleaned_html)
+                    logger.info(
+                        "Extracted publication date from cleaned HTML for %s: %s", url, publication_date)
+
                 return {
                     "url": url,
                     "content": result.markdown.raw_markdown,
