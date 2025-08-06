@@ -1,7 +1,7 @@
 """
 Agent Services Module
 
-Экспорт всех сервисов агента, включая новые компоненты релевантности и рефакторированную архитектуру fact-checking.
+Export all agent services, including new relevance components and refactored fact-checking architecture.
 """
 
 # Core orchestration and system management
@@ -13,14 +13,12 @@ from .analysis.post_analyzer import PostAnalyzerService
 from .analysis.relationship_analysis import SemanticAnalyzer
 
 # Caching and performance optimization
-from .cache.cache_monitor import CacheMonitor
-from .cache.intelligent_cache import IntelligentCache
 from .cache.relevance_cache_monitor import (
     RelevanceCacheMonitor,
     close_relevance_cache_monitor,
     get_relevance_cache_monitor,
 )
-from .cache.temporal_analysis_cache import TemporalAnalysisCache
+
 from .core.agent_manager import AgentManager
 from .core.component_manager import ComponentManager
 from .core.fact_checking_orchestrator import FactCheckingOrchestrator
@@ -115,12 +113,10 @@ __all__ = [
     "SourceManager",
     "GraphVerificationProcessor",
     # Caching and performance optimization
-    "CacheMonitor",
     "RelevanceCacheMonitor",
     "get_relevance_cache_monitor",
     "close_relevance_cache_monitor",
-    "IntelligentCache",
-    "TemporalAnalysisCache",
+
     # Monitoring services
     "RelevanceSystemHealthMonitor",
     "get_relevance_health_monitor",

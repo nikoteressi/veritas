@@ -11,7 +11,7 @@ import statistics
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..cache.intelligent_cache import IntelligentCache
+from app.cache.factory import cache_factory
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,8 @@ class AdaptiveThresholds:
     """Manages dynamic threshold calibration for relevance scoring."""
 
     def __init__(self):
-        self.cache = IntelligentCache(max_memory_size=500)
+        self.cache = None
+        self._cache_initialized = False
 
         # Default thresholds
         self.default_thresholds = {
@@ -39,6 +40,19 @@ class AdaptiveThresholds:
             "source_retention_rates": [],
         }
 
+    async def _ensure_cache_initialized(self):
+        """Ensure the cache is initialized."""
+        if not self._cache_initialized:
+            try:
+                self.cache = cache_factory.adaptive_cache
+                self._cache_initialized = True
+                logger.debug(
+                    "AdaptiveThresholds cache initialized successfully")
+            except Exception as e:
+                logger.error(
+                    f"Failed to initialize AdaptiveThresholds cache: {e}")
+                raise
+
     async def get_adaptive_threshold(
         self,
         query_type: str = "general",
@@ -46,6 +60,8 @@ class AdaptiveThresholds:
         context: dict[str, Any] | None = None,
     ) -> float:
         """Get dynamically calibrated relevance threshold."""
+
+        await self._ensure_cache_initialized()
 
         cache_key = f"threshold:{query_type}:{source_type}"
 
@@ -82,8 +98,7 @@ class AdaptiveThresholds:
         await self.cache.set(
             cache_key,
             adaptive_threshold,
-            ttl_seconds=3600,  # Cache for 1 hour
-            dependencies=["performance_data", f"query_type:{query_type}"],
+            ttl=3600,  # Cache for 1 hour
         )
 
         logger.debug(
@@ -246,7 +261,8 @@ class AdaptiveThresholds:
             self._performance_history = self._performance_history[-500:]
 
         # Invalidate cached thresholds to force recalibration
-        await self.cache.invalidate_dependencies("performance_data")
+        if self._cache_initialized:
+            await self.cache.clear_by_pattern("threshold:*")
 
         logger.debug(
             "Recorded performance: P=%.3f, R=%.3f, F1=%.3f, Retention=%.3f",

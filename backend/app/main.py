@@ -15,8 +15,8 @@ from app.config import settings
 from app.database import create_db_and_tables
 from app.error_handlers import EXCEPTION_HANDLERS
 from app.handlers.websocket_handler import websocket_handler
+from app.cache.factory import cache_factory
 from app.matplotlib_config import configure_matplotlib
-from app.redis_client import redis_manager
 from app.routers import reputation, verification
 from app.services.progress_manager import initialize_progress_manager
 from app.services.verification_service import verification_service
@@ -45,9 +45,9 @@ async def lifespan(app_instance: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Veritas application...")
 
-    # Initialize Redis
-    await redis_manager.init_redis()
-    logger.info("Redis connection pool initialized.")
+    # Initialize Cache
+    await cache_factory.initialize()
+    logger.info("Cache connection pool initialized.")
 
     # Initialize database
     create_db_and_tables()
@@ -80,9 +80,9 @@ async def lifespan(app_instance: FastAPI):
     except (ConnectionError, TimeoutError, RuntimeError) as e:
         logger.error("Error closing verification service: %s", e)
 
-    # Disconnect from Redis
-    await redis_manager.close()
-    logger.info("Redis connection pool closed.")
+    # Disconnect from Cache
+    await cache_factory.close()
+    logger.info("Cache connection pool closed.")
 
 
 # Create FastAPI application

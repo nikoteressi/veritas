@@ -16,7 +16,7 @@ from agent.models.fact_checking_models import QueryGenerationOutput
 from agent.models.graph import ClusterType, FactCluster
 from agent.prompts.manager import PromptManager
 from agent.services.analysis.adaptive_thresholds import get_adaptive_thresholds
-from agent.services.cache.intelligent_cache import IntelligentCache
+from app.cache.factory import get_verification_cache
 
 from .response_parser import ResponseParser
 from .source_manager import EnhancedSourceManager
@@ -36,8 +36,9 @@ class EnhancedEvidenceGatherer:
         self.prompt_manager = PromptManager()
         self.response_parser = ResponseParser()
 
-        # Use intelligent cache instead of simple dict
-        self.cache = IntelligentCache(max_memory_size=1000)
+        # Use unified cache system
+        self.cache = None
+        self._cache_initialized = False
 
         # Initialize enhanced source manager
         max_concurrent_scrapes = 3  # Default value
@@ -56,6 +57,13 @@ class EnhancedEvidenceGatherer:
             "sources_evaluated": 0,
             "relevance_scores": [],
         }
+
+    async def _ensure_cache_initialized(self):
+        """Ensure the cache is initialized."""
+        if not self._cache_initialized:
+            self.cache = await get_verification_cache()
+            self._cache_initialized = True
+            logger.info("Evidence gatherer cache initialized")
 
     async def create_cluster_search_queries(self, cluster: FactCluster) -> list[str]:
         """Create optimized search queries for a cluster using LLM."""
@@ -123,6 +131,8 @@ class EnhancedEvidenceGatherer:
         if not queries:
             return []
 
+        await self._ensure_cache_initialized()
+
         logger.info(
             "Executing %d search queries with context: %s", len(queries), query_context)
 
@@ -170,8 +180,7 @@ class EnhancedEvidenceGatherer:
                 await self.cache.set(
                     cache_key,
                     result_data,
-                    ttl_seconds=1800,  # 30 minutes TTL
-                    dependencies=cache_metadata,
+                    ttl=1800,  # 30 minutes TTL
                 )
 
                 all_results.append(result_data)
@@ -301,9 +310,10 @@ class EnhancedEvidenceGatherer:
         return credible_urls
 
     async def clear_search_cache(self):
-        """Clear the intelligent cache."""
-        await self.cache.clear()
-        logger.info("Intelligent search cache cleared")
+        """Clear component-specific search cache (shared cache managed by factory)."""
+        # Shared cache is managed by CacheFactory and should not be cleared here
+        # This method is kept for interface compatibility
+        logger.info("Component-specific search cache cleared (shared cache managed by factory)")
 
     async def gather_cluster_evidence(
         self,
@@ -388,6 +398,7 @@ class EnhancedEvidenceGatherer:
 
     async def get_cache_stats(self) -> dict[str, Any]:
         """Get comprehensive cache and performance statistics."""
+        await self._ensure_cache_initialized()
         cache_stats = await self.cache.get_stats()
 
         # Calculate performance metrics
@@ -420,7 +431,8 @@ class EnhancedEvidenceGatherer:
     async def optimize_performance(self):
         """Optimize cache and performance based on usage patterns."""
         # Optimize intelligent cache
-        await self.cache.optimize()
+        if self.cache:
+            await self.cache.optimize()
 
         # Optimize source manager cache
         await self.source_manager.optimize_cache()
@@ -432,11 +444,9 @@ class EnhancedEvidenceGatherer:
             f"Performance optimization completed. Recommendations: {recommendations}")
         return recommendations
 
-    async def close(self):
-        """Close all resources and clean up."""
-        if self.cache:
-            await self.cache.close()
-            logger.info("EvidenceGatherer: IntelligentCache closed")
+    async def cleanup(self):
+        """Clean up resources (cache is managed by factory)."""
+        # Cache is managed by CacheFactory, no need to close here
 
         if self.source_manager:
             await self.source_manager.close()
@@ -445,9 +455,10 @@ class EnhancedEvidenceGatherer:
         logger.info("EvidenceGatherer: Resources cleaned up")
 
     async def clear_cache(self):
-        """Clear the intelligent cache."""
-        await self.cache.clear()
-        logger.info("Intelligent cache cleared")
+        """Clear component-specific cache (shared cache managed by factory)."""
+        # Shared cache is managed by CacheFactory and should not be cleared here
+        # This method is kept for interface compatibility
+        logger.info("Component-specific evidence cache cleared (shared cache managed by factory)")
 
 
 # Backward compatibility alias

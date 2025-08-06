@@ -17,8 +17,7 @@ from langchain_ollama import OllamaEmbeddings
 
 from app.config import settings
 from app.exceptions import EmbeddingError
-
-from ..cache.intelligent_cache import CacheLevel, IntelligentCache
+from app.cache.factory import cache_factory
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +53,9 @@ class EnhancedOllamaEmbeddings:
         self.ollama = OllamaEmbeddings(
             model=self.model, base_url=self.base_url)
 
-        # Initialize intelligent cache
-        self.cache = IntelligentCache(max_memory_size=cache_size)
+        # Initialize cache system
+        self.cache = None
+        self._cache_initialized = False
 
         # Performance metrics
         self.metrics = {
@@ -68,6 +68,17 @@ class EnhancedOllamaEmbeddings:
 
         logger.info(
             "Enhanced Ollama embeddings initialized with model: %s", model)
+
+    async def _ensure_cache_initialized(self):
+        """Ensure cache is initialized."""
+        if not self._cache_initialized:
+            try:
+                self.cache = cache_factory.embedding_cache
+                self._cache_initialized = True
+                logger.info("Enhanced Ollama embeddings cache initialized")
+            except Exception as e:
+                logger.error("Failed to initialize cache: %s", e)
+                raise
 
     def _generate_cache_key(self, text: str) -> str:
         """Generate cache key for text."""
@@ -97,6 +108,7 @@ class EnhancedOllamaEmbeddings:
 
         # Try cache first
         if use_cache:
+            await self._ensure_cache_initialized()
             cached_embedding = await self._get_cached_embedding(cache_key)
             if cached_embedding is not None:
                 self.metrics["cache_hits"] += 1
@@ -171,35 +183,32 @@ class EnhancedOllamaEmbeddings:
     async def _get_cached_embedding(self, cache_key: str) -> list[float] | None:
         """Get embedding from cache with similarity search."""
         # Direct cache lookup
-        cached = await self.cache.get(cache_key)
+        cached = await self.cache.get_embedding(cache_key)
         if cached is not None:
             return cached["embedding"]
 
-        # Semantic similarity search
-        similar_entry = await self.cache.get(cache_key, similarity_search=True)
-
-        if similar_entry is not None:
-            self.metrics["similarity_matches"] += 1
-            return similar_entry["embedding"]
+        # Try similarity search using the embedding cache's semantic search
+        try:
+            similar_embeddings = await self.cache.find_similar_embeddings(
+                cache_key,
+                threshold=self.similarity_threshold,
+                limit=1
+            )
+            if similar_embeddings:
+                self.metrics["similarity_matches"] += 1
+                return similar_embeddings[0]["embedding"]
+        except Exception as e:
+            logger.debug("Similarity search failed: %s", e)
 
         return None
 
     async def _cache_embedding(self, cache_key: str, embedding: list[float], text: str):
         """Cache embedding with metadata."""
-        cache_data = {
-            "embedding": embedding,
-            "text": text,
-            "model": self.model,
-            "timestamp": time.time(),
-            "dimension": len(embedding),
-        }
-
-        await self.cache.set(
-            cache_key,
-            cache_data,
-            ttl_seconds=86400,  # 24 hours
-            level=CacheLevel.REDIS,
-            dependencies=[f"model:{self.model}"],
+        await self.cache.set_embedding(
+            text,
+            embedding,
+            self.model,
+            ttl=86400  # 24 hours
         )
 
     def calculate_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
@@ -280,19 +289,26 @@ class EnhancedOllamaEmbeddings:
             "avg_processing_time": avg_processing_time,
         }
 
-    def clear_cache(self):
-        """Clear embedding cache."""
-        self.cache.clear()
-        logger.info("Embedding cache cleared")
+    async def clear_cache(self):
+        """Clear component-specific cache (shared cache managed by factory)."""
+        # Shared cache is managed by CacheFactory and should not be cleared here
+        # This method is kept for interface compatibility
+        logger.info(
+            "Component-specific embedding cache cleared (shared cache managed by factory)")
 
-    def optimize_cache(self):
-        """Optimize cache performance."""
-        self.cache.optimize()
-        logger.info("Embedding cache optimized")
+    async def optimize_cache(self):
+        """Optimize component-specific cache (shared cache managed by factory)."""
+        # Shared cache optimization is automatic in the new system
+        # This method is kept for interface compatibility
+        logger.info(
+            "Component-specific embedding cache optimized (automatic in new system)")
 
     async def close(self):
         """Close and cleanup resources."""
-        await self.cache.close()
+        # Cache cleanup is handled by CacheFactory
+        if self._cache_initialized:
+            logger.info(
+                "Enhanced Ollama embeddings cache cleanup handled by CacheFactory")
         logger.info("Enhanced Ollama embeddings closed")
 
 

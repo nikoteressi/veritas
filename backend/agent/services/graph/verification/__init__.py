@@ -6,14 +6,13 @@ featuring intelligent caching, adaptive thresholds, and comprehensive performanc
 """
 
 from ...analysis.adaptive_thresholds import AdaptiveThresholds
-from ...cache.intelligent_cache import IntelligentCache
 from .cluster_analyzer import ClusterAnalyzer
 from .engine import EnhancedGraphVerificationEngine, GraphVerificationEngine
 from .evidence_gatherer import EnhancedEvidenceGatherer, EvidenceGatherer
 from .response_parser import ResponseParser
 from .result_compiler import ResultCompiler
 from .source_manager import EnhancedSourceManager, SourceManager
-from .utils import CacheManager, VerificationUtils
+from .utils import VerificationUtils
 from .verification_processor import EnhancedVerificationProcessor, VerificationProcessor
 
 __all__ = [
@@ -32,8 +31,6 @@ __all__ = [
     "ResultCompiler",
     "ResponseParser",
     # Utility components
-    "IntelligentCache",
     "AdaptiveThresholds",
     "VerificationUtils",
-    "CacheManager",
 ]

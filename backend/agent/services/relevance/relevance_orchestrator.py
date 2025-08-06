@@ -12,7 +12,7 @@ from typing import Any
 
 from app.exceptions import ValidationError
 
-from ..cache.cache_monitor import CacheMonitor
+from app.cache import CacheMonitor
 from .relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
 
 logger = logging.getLogger(__name__)
@@ -217,8 +217,7 @@ class RelevanceOrchestrator:
 
             # Optimize cache settings
             if self.cache_monitor:
-                cache_optimization = await self.cache_monitor.optimize_cache_settings(
-                    "embedding_cache")
+                cache_optimization = await self.cache_monitor.optimize_cache_settings()
                 optimization_results["cache"] = cache_optimization
 
             logger.info("Performance optimization completed")
@@ -268,7 +267,7 @@ class RelevanceOrchestrator:
             return {"error": "Cache monitor not available"}
 
         try:
-            return await self.cache_monitor.collect_cache_metrics()
+            return await self.cache_monitor.get_cache_metrics()
         except Exception as e:
             raise ValidationError(
                 f"Failed to get cache metrics: {e}") from e

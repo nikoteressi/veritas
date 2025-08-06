@@ -18,8 +18,7 @@ import numpy as np
 
 from app.exceptions import ValidationError
 
-from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
-from ..cache.temporal_analysis_cache import TemporalAnalysisCache
+from app.cache.factory import get_general_cache, get_temporal_cache
 from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,6 @@ class ExplainableRelevanceScorer:
     def __init__(
         self,
         hybrid_scorer: CachedHybridRelevanceScorer | None = None,
-        temporal_analyzer: TemporalAnalysisCache | None = None,
         cache_size: int = 300,
         explanation_depth: str = "detailed",  # "basic", "detailed", "comprehensive"
     ):
@@ -40,15 +38,15 @@ class ExplainableRelevanceScorer:
 
         Args:
             hybrid_scorer: Hybrid relevance scorer instance
-            temporal_analyzer: Temporal analysis cache instance
             cache_size: Cache size for explanations
             explanation_depth: Level of explanation detail
         """
         self.hybrid_scorer = hybrid_scorer or CachedHybridRelevanceScorer()
-        self.temporal_analyzer = temporal_analyzer or TemporalAnalysisCache()
+        self.temporal_analyzer = None  # Will be initialized from cache_factory
         self.explanation_depth = explanation_depth
 
-        self.cache = IntelligentCache(max_memory_size=cache_size)
+        self.cache = None
+        self._cache_initialized = False
 
         # Linguistic patterns for analysis
         self.question_patterns = [
@@ -73,8 +71,16 @@ class ExplainableRelevanceScorer:
             "processing_time": 0.0,
         }
 
+    async def _ensure_cache_initialized(self):
+        """Ensure cache is initialized with the new unified cache system."""
+        if not self._cache_initialized:
+            self.cache = await get_general_cache()
+            self.temporal_analyzer = await get_temporal_cache()
+            self._cache_initialized = True
+            logger.info("Explainable relevance scorer cache initialized")
+
         logger.info(
-            "Explainable relevance scorer initialized with %s explanations", explanation_depth)
+            "Explainable relevance scorer initialized with %s explanations", self.explanation_depth)
 
     def _generate_cache_key(self, query: str, text: str, depth: str = "detailed") -> str:
         """Generate cache key for explanation."""
@@ -97,9 +103,8 @@ class ExplainableRelevanceScorer:
             # Pattern matching
             question_matches = sum(len(re.findall(pattern, text, re.IGNORECASE))
                                    for pattern in self.question_patterns)
-            importance_matches = sum(
-                len(re.findall(pattern, text, re.IGNORECASE)) for pattern in self.importance_indicators
-            )
+            importance_matches = sum(len(re.findall(pattern, text, re.IGNORECASE)) for pattern in self.importance_indicators
+                                     )
 
             # Text complexity metrics
             avg_word_length = np.mean([len(word)
@@ -192,8 +197,8 @@ class ExplainableRelevanceScorer:
 
                 # Calculate overlap with query
                 overlap = len(query_words.intersection(sentence_words))
-                overlap_ratio = overlap / \
-                    len(query_words) if query_words else 0
+                overlap_ratio = overlap
+                len(query_words) if query_words else 0
 
                 # Position weight (earlier sentences are more important)
                 position_weight = 1.0 - (i / len(sentences))
@@ -379,6 +384,9 @@ class ExplainableRelevanceScorer:
         explanation_depth = depth or self.explanation_depth
         cache_key = self._generate_cache_key(query, text, explanation_depth)
 
+        # Ensure cache is initialized
+        await self._ensure_cache_initialized()
+
         # Try cache first
         if use_cache:
             cached_explanation = await self.cache.get(cache_key)
@@ -427,14 +435,10 @@ class ExplainableRelevanceScorer:
 
         # Cache explanation
         if use_cache:
-            dependencies = [
-                f"query:{hashlib.md5(query.encode()).hexdigest()[:8]}"]
             await self.cache.set(
                 cache_key,
                 explanation,
-                ttl_seconds=1800,  # 30 minutes
-                level=CacheStrategy.LRU,
-                dependencies=dependencies,
+                ttl=1800,  # 30 minutes
             )
 
         # Update metrics
@@ -493,26 +497,12 @@ class ExplainableRelevanceScorer:
             "temporal_analyzer_metrics": temporal_metrics,
         }
 
-    def clear_cache(self):
-        """Clear explanation cache."""
-        self.cache.clear()
-        self.hybrid_scorer.clear_cache()
-        self.temporal_analyzer.clear_cache()
-        logger.info("Explanation cache cleared")
-
-    def optimize_cache(self):
-        """Optimize cache performance."""
-        self.cache.optimize()
-        self.hybrid_scorer.optimize_cache()
-        self.temporal_analyzer.optimize_cache()
-        logger.info("Explanation cache optimized")
-
-    async def close(self):
-        """Close and cleanup resources."""
-        await self.cache.close()
+    async def cleanup(self):
+        """Clean up resources (cache is managed by factory)."""
+        # Cache is managed by CacheFactory, no need to close here
         await self.hybrid_scorer.close()
         await self.temporal_analyzer.close()
-        logger.info("Explainable relevance scorer closed")
+        logger.info("Explainable relevance scorer cleaned up")
 
 
 # Factory function for easy initialization

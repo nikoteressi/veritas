@@ -136,7 +136,7 @@ class RelevanceSystemHealthMonitor(SystemHealthMonitor):
                 ("hybrid_scorer", coordinator.hybrid_scorer),
                 ("temporal_cache", coordinator.temporal_cache),
                 ("explainable_scorer", coordinator.explainable_scorer),
-                ("intelligent_cache", coordinator.intelligent_cache),
+                ("unified_cache", coordinator.unified_cache),
                 ("adaptive_thresholds", coordinator.adaptive_thresholds),
             ]
 

@@ -13,8 +13,10 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
+from app.cache import get_general_cache
+
 from ...analysis.adaptive_thresholds import get_adaptive_thresholds
-from ...cache.intelligent_cache import IntelligentCache
+from app.cache.factory import CacheFactory
 from ...infrastructure.web_scraper import WebScraper
 from ...relevance.relevance_orchestrator import get_relevance_manager
 
@@ -33,8 +35,9 @@ class EnhancedSourceManager:
         self.web_scraper = WebScraper(
             max_concurrent_scrapes=max_concurrent_scrapes)
 
-        # Use IntelligentCache instead of simple dict
-        self.cache = IntelligentCache(max_memory_size=1000)
+        # Use new unified cache system
+        self.cache = None
+        self._cache_initialized = False
 
         # Get adaptive thresholds instance
         self.adaptive_thresholds = get_adaptive_thresholds()
@@ -96,6 +99,16 @@ class EnhancedSourceManager:
             "whom",
         }
 
+    async def _ensure_cache_initialized(self):
+        """Ensure cache is initialized."""
+        if not self._cache_initialized:
+            try:
+                self.cache = await get_general_cache()
+                self._cache_initialized = True
+                logger.info("Cache system initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize cache system: {e}")
+
     async def _ensure_relevance_manager(self):
         """Ensure relevance manager is initialized."""
         if not self._relevance_initialized:
@@ -143,6 +156,9 @@ class EnhancedSourceManager:
         """
         logger.info("Starting batch scraping for %d URLs", len(urls))
 
+        # Ensure cache is initialized
+        await self._ensure_cache_initialized()
+
         results = {}
         cache_hits = 0
         urls_to_scrape = []
@@ -153,7 +169,7 @@ class EnhancedSourceManager:
                 # Generate cache key
                 cache_key = f"source_content:{hashlib.md5(url.encode()).hexdigest()}"
 
-                # Check intelligent cache first
+                # Check cache first
                 cached_data = await self.cache.get(cache_key)
                 if cached_data:
                     logger.debug("Cache hit for URL: %s", url)
@@ -210,8 +226,7 @@ class EnhancedSourceManager:
                             await self.cache.set(
                                 cache_key,
                                 cache_data,
-                                ttl_seconds=3600,  # 1 hour TTL
-                                dependencies=cache_metadata,
+                                ttl=3600,  # 1 hour TTL
                             )
 
                             results[url] = cache_data
@@ -272,6 +287,9 @@ class EnhancedSourceManager:
         if not content or not query:
             return 0.0
 
+        # Ensure cache is initialized
+        await self._ensure_cache_initialized()
+
         # Generate cache key for relevance calculation
         inner = content[:100] + query + source_type + query_type
         hash_ = hashlib.md5(inner.encode()).hexdigest()
@@ -287,7 +305,7 @@ class EnhancedSourceManager:
 
         # Cache the result
         # 30 minutes TTL
-        await self.cache.set(cache_key, score, ttl_seconds=1800)
+        await self.cache.set(cache_key, score, ttl=1800)
 
         return score
 
@@ -647,25 +665,31 @@ class EnhancedSourceManager:
         return limited_evidence
 
     async def clear_cache(self):
-        """Clear the intelligent cache."""
-        await self.cache.clear()
-        logger.info("Intelligent cache cleared")
+        """Clear component-specific cache (shared cache managed by factory)."""
+        # Shared cache is managed by CacheFactory and should not be cleared here
+        # This method is kept for interface compatibility
+        logger.info(
+            "Component-specific source cache cleared (shared cache managed by factory)")
 
     async def get_cache_stats(self) -> dict[str, Any]:
         """Get comprehensive cache statistics."""
+        await self._ensure_cache_initialized()
         stats = await self.cache.get_stats()
         return {
-            "cache_levels": stats.get("levels", {}),
-            "total_entries": stats.get("total_entries", 0),
+            "total_entries": stats.get("total_keys", 0),
             "hit_rate": stats.get("hit_rate", 0.0),
-            "memory_usage": stats.get("memory_usage", 0),
-            "strategies_active": stats.get("strategies", []),
+            "memory_usage": stats.get("memory_cache_size", 0),
+            "redis_connected": stats.get("redis_connected", False),
+            "cache_hits": stats.get("cache_hits", 0),
+            "cache_misses": stats.get("cache_misses", 0),
         }
 
     async def optimize_cache(self):
-        """Optimize cache performance based on usage patterns."""
-        await self.cache.optimize()
-        logger.info("Cache optimization completed")
+        """Optimize component-specific cache (shared cache managed by factory)."""
+        # Shared cache optimization is automatic in the new system
+        # This method is kept for interface compatibility
+        logger.info(
+            "Component-specific source cache optimized (automatic in new system)")
 
     async def close(self):
         """Close the web scraper and clean up resources."""
@@ -678,10 +702,9 @@ class EnhancedSourceManager:
             await self.relevance_manager.close()
             logger.info("SourceManager: RelevanceManager closed")
 
-        # Close intelligent cache
-        if self.cache:
-            await self.cache.close()
-            logger.info("SourceManager: IntelligentCache closed")
+        # Cache cleanup is handled by CacheFactory
+        if self._cache_initialized:
+            logger.info("SourceManager: Cache cleanup handled by CacheFactory")
 
         logger.info("SourceManager: Resources cleaned up")
 

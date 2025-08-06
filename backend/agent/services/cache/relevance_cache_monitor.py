@@ -10,13 +10,13 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from app.cache.factory import cache_factory
 from ..relevance.relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
-from .cache_monitor import CacheMonitor
 
 logger = logging.getLogger(__name__)
 
 
-class RelevanceCacheMonitor(CacheMonitor):
+class RelevanceCacheMonitor:
     """
     Extended cache monitor that includes relevance-specific cache monitoring.
 
@@ -31,17 +31,16 @@ class RelevanceCacheMonitor(CacheMonitor):
         Args:
             embeddings_coordinator: RelevanceEmbeddingsCoordinator instance for monitoring
         """
-        super().__init__()
         self.embeddings_coordinator = embeddings_coordinator
+        self.cache_factory = cache_factory
 
-        # Add relevance-specific monitoring data
-        self._monitoring_data.update(
-            {
-                "temporal_cache": [],
-                "adaptive_thresholds_cache": [],
-                "explainable_scorer_cache": [],
-            }
-        )
+        # Initialize monitoring data
+        self._monitoring_data = {
+            "temporal_cache": [],
+            "adaptive_thresholds_cache": [],
+            "explainable_scorer_cache": [],
+            "unified_cache": [],
+        }
 
     async def collect_cache_metrics(self) -> dict[str, dict[str, Any]]:
         """
@@ -51,8 +50,11 @@ class RelevanceCacheMonitor(CacheMonitor):
             dict: Comprehensive cache metrics
         """
         try:
-            # Get base cache metrics
-            metrics = await super().collect_cache_metrics()
+            metrics = {}
+
+            # Get unified cache metrics
+            unified_metrics = await self._collect_unified_cache_metrics()
+            metrics.update(unified_metrics)
 
             # Add relevance-specific cache metrics
             if self.embeddings_coordinator and self.embeddings_coordinator._initialized:
@@ -63,6 +65,55 @@ class RelevanceCacheMonitor(CacheMonitor):
 
         except Exception as e:
             logger.error(f"Error collecting cache metrics: {e}")
+            return {}
+
+    async def _collect_unified_cache_metrics(self) -> dict[str, dict[str, Any]]:
+        """
+        Collect metrics from the new unified cache system.
+
+        Returns:
+            dict: Unified cache metrics
+        """
+        try:
+            unified_metrics = {}
+
+            # Get cache manager metrics
+            if hasattr(self.cache_factory, '_cache_manager') and self.cache_factory._cache_manager:
+                cache_manager = self.cache_factory._cache_manager
+                if hasattr(cache_manager, 'get_metrics'):
+                    manager_stats = await cache_manager.get_metrics()
+                    unified_metrics["cache_manager"] = {
+                        **manager_stats,
+                        "timestamp": datetime.now().isoformat(),
+                        "cache_type": "unified_manager",
+                    }
+
+            # Get specialized cache metrics
+            for cache_name in ["embedding_cache", "verification_cache", "temporal_cache"]:
+                try:
+                    cache_instance = getattr(self.cache_factory, cache_name, None)
+                    if cache_instance and hasattr(cache_instance, 'get_metrics'):
+                        cache_stats = await cache_instance.get_metrics()
+                        unified_metrics[cache_name] = {
+                            **cache_stats,
+                            "timestamp": datetime.now().isoformat(),
+                            "cache_type": cache_name,
+                        }
+                except Exception as e:
+                    logger.debug(f"Could not get metrics for {cache_name}: {e}")
+
+            # Store metrics for trend analysis
+            for cache_name, cache_metrics in unified_metrics.items():
+                if cache_name in self._monitoring_data:
+                    self._monitoring_data[cache_name].append(cache_metrics)
+                    # Keep only last 100 measurements
+                    if len(self._monitoring_data[cache_name]) > 100:
+                        self._monitoring_data[cache_name] = self._monitoring_data[cache_name][-100:]
+
+            return unified_metrics
+
+        except Exception as e:
+            logger.error(f"Error collecting unified cache metrics: {e}")
             return {}
 
     async def _collect_relevance_cache_metrics(self) -> dict[str, dict[str, Any]]:
@@ -179,17 +230,85 @@ class RelevanceCacheMonitor(CacheMonitor):
             str: Detailed performance report
         """
         try:
-            # Get base performance report
-            base_report = await super().generate_performance_report()
+            # Get unified cache report
+            unified_report = await self._generate_unified_cache_report()
 
             # Add relevance-specific cache report
             relevance_report = await self._generate_relevance_cache_report()
 
-            return base_report + relevance_report
+            return unified_report + relevance_report
 
         except Exception as e:
             logger.error(f"Error generating performance report: {e}")
             return f"Error generating performance report: {e}"
+
+    async def _generate_unified_cache_report(self) -> str:
+        """
+        Generate performance report for the unified cache system.
+
+        Returns:
+            str: Unified cache performance report
+        """
+        try:
+            report_lines = [
+                "=== UNIFIED CACHE SYSTEM PERFORMANCE REPORT ===",
+                f"Generated at: {datetime.now().isoformat()}",
+                ""
+            ]
+
+            # Get current metrics
+            unified_metrics = await self._collect_unified_cache_metrics()
+
+            if not unified_metrics:
+                report_lines.append("No unified cache metrics available")
+                return "\n".join(report_lines) + "\n\n"
+
+            # Cache Manager Report
+            if "cache_manager" in unified_metrics:
+                manager_metrics = unified_metrics["cache_manager"]
+                report_lines.extend([
+                    "--- Cache Manager ---",
+                    f"Total Entries: {manager_metrics.get('total_entries', 'N/A')}",
+                    f"Memory Usage: {manager_metrics.get('memory_usage_mb', 'N/A')} MB",
+                    f"Hit Rate: {manager_metrics.get('hit_rate', 'N/A')}%",
+                    f"Miss Rate: {manager_metrics.get('miss_rate', 'N/A')}%",
+                    ""
+                ])
+
+            # Specialized Caches Report
+            for cache_name in ["embedding_cache", "verification_cache", "temporal_cache"]:
+                if cache_name in unified_metrics:
+                    cache_metrics = unified_metrics[cache_name]
+                    cache_display_name = cache_name.replace("_", " ").title()
+                    
+                    report_lines.extend([
+                        f"--- {cache_display_name} ---",
+                        f"Entries: {cache_metrics.get('total_entries', 'N/A')}",
+                        f"Hit Rate: {cache_metrics.get('hit_rate', 'N/A')}%",
+                        f"Memory Usage: {cache_metrics.get('memory_usage_mb', 'N/A')} MB",
+                        ""
+                    ])
+
+            # Performance Trends
+            report_lines.extend([
+                "--- Performance Trends ---"
+            ])
+
+            for cache_name, metrics_history in self._monitoring_data.items():
+                if metrics_history and len(metrics_history) > 1:
+                    recent_metrics = metrics_history[-10:]  # Last 10 measurements
+                    hit_rates = [m.get('hit_rate', 0) for m in recent_metrics if 'hit_rate' in m]
+                    
+                    if hit_rates:
+                        avg_hit_rate = sum(hit_rates) / len(hit_rates)
+                        trend = "↑" if len(hit_rates) > 1 and hit_rates[-1] > hit_rates[0] else "↓"
+                        report_lines.append(f"{cache_name}: Avg Hit Rate {avg_hit_rate:.1f}% {trend}")
+
+            return "\n".join(report_lines) + "\n\n"
+
+        except Exception as e:
+            logger.error(f"Error generating unified cache report: {e}")
+            return f"Error generating unified cache report: {e}\n\n"
 
     async def _generate_relevance_cache_report(self) -> str:
         """Generate performance report for relevance-specific caches."""

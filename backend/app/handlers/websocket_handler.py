@@ -8,7 +8,7 @@ from datetime import datetime
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app.websocket_manager import connection_manager
+from app.websocket_manager import websocket_manager
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class WebSocketHandler:
     """Handles WebSocket connections and message processing."""
 
     def __init__(self):
-        self.connection_manager = connection_manager
+        self.connection_manager = websocket_manager
 
     async def handle_connection(self, websocket: WebSocket):
         """

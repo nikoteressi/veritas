@@ -20,7 +20,7 @@ from ..analysis.relationship_analysis import (
     RelationshipAnalysisEngine,
     RelationshipConfig,
 )
-from ..cache.intelligent_cache import IntelligentCache
+from app.cache.factory import cache_factory
 from ..graph.graph_fact_checking import GraphFactCheckingService
 from ..graph.graph_storage import Neo4jGraphStorage
 from ..reputation.source_reputation import SourceReputationSystem
@@ -46,7 +46,6 @@ class ComponentManager:
 
         # Core components
         self.graph_service: GraphFactCheckingService | None = None
-        self.cache_system: IntelligentCache | None = None
         self.graph_storage: Neo4jGraphStorage | None = None
         self.reputation_system: SourceReputationSystem | None = None
         self.clustering_system: AdvancedClusteringSystem | None = None
@@ -67,12 +66,6 @@ class ComponentManager:
         try:
             self.logger.info(
                 "Initializing enhanced fact-checking system components...")
-
-            # Initialize cache system
-            self.cache_system = IntelligentCache(
-                max_memory_size=self.config.cache_config.memory_cache_size)
-            await self.cache_system.initialize()
-            self.logger.info("Cache system initialized")
 
             # Initialize graph storage (if Neo4j config is provided)
             if self.config.neo4j_config:
@@ -169,12 +162,6 @@ class ComponentManager:
                 # Note: Neo4jGraphStorage.close() is synchronous, not async
                 self.graph_storage.close()
 
-            if self.cache_system:
-                # Clear cache before cleanup
-                if hasattr(self.cache_system, "clear"):
-                    await self.cache_system.clear()
-                self.cache_system = None
-
             self.is_initialized = False
             self.logger.info("System components shutdown complete")
             return True
@@ -193,7 +180,6 @@ class ComponentManager:
             The requested component or None if not found
         """
         component_map = {
-            "cache_system": self.cache_system,
             "graph_storage": self.graph_storage,
             "reputation_system": self.reputation_system,
             "clustering_system": self.clustering_system,
@@ -228,8 +214,6 @@ class ComponentManager:
         """
         components = []
 
-        if self.cache_system:
-            components.append("intelligent_cache")
         if self.graph_storage:
             components.append("neo4j_storage")
         if self.reputation_system:
@@ -253,10 +237,6 @@ class ComponentManager:
             bool: True if caches cleared successfully, False otherwise
         """
         try:
-            if self.cache_system:
-                if hasattr(self.cache_system, "clear_all"):
-                    await self.cache_system.clear_all()
-
             if self.graph_service:
                 if hasattr(self.graph_service, "clear_caches"):
                     await self.graph_service.clear_caches()

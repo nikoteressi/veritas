@@ -10,7 +10,7 @@ import asyncio
 import gc
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.models.graph import FactCluster, FactGraph, FactNode
@@ -18,6 +18,7 @@ from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
 from app.config import settings
 from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
+from app.cache import get_verification_cache
 
 from ..graph_config import ClusterVerificationResult, VerificationConfig
 from .cluster_analyzer import ClusterAnalyzer
@@ -25,11 +26,8 @@ from .evidence_gatherer import EnhancedEvidenceGatherer
 from .response_parser import ResponseParser
 from .result_compiler import ResultCompiler
 from .source_manager import EnhancedSourceManager
-from .utils import CacheManager
 from .verification_processor import EnhancedVerificationProcessor
-
-if TYPE_CHECKING:
-    from agent.tools import SearxNGSearchTool
+from agent.tools import SearxNGSearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +64,9 @@ class EnhancedGraphVerificationEngine:
         self.result_compiler = ResultCompiler()
         self.response_parser = ResponseParser()
 
-        # Initialize cache manager
-        self.cache_manager = CacheManager(
-            max_size=(self.config.cache_size if hasattr(
-                self.config, "cache_size") else 1000),
-            ttl_seconds=3600,
-        )
+        # Initialize unified cache system (lazy initialization)
+        self.cache_manager = None
+        self._cache_initialized = False
 
         # Performance tracking
         self.performance_metrics = {
@@ -99,6 +94,17 @@ class EnhancedGraphVerificationEngine:
     async def update_progress(self, current: float, total: float, message: str = "") -> None:
         """Update the progress for the current operation."""
         await self.progress_callback.update_progress(current, total, message)
+
+    async def _ensure_cache_initialized(self):
+        """Ensure cache is initialized with the new unified cache system."""
+        if not self._cache_initialized:
+            try:
+                self.cache_manager = await get_verification_cache()
+                self._cache_initialized = True
+                self.logger.info("Graph verification engine cache initialized")
+            except Exception as e:
+                self.logger.error("Failed to initialize cache: %s", e)
+                raise
 
     async def verify_graph(self, graph: FactGraph, context: VerificationContext) -> dict[str, Any]:
         """
@@ -557,6 +563,9 @@ class EnhancedGraphVerificationEngine:
     # Additional utility methods
     async def get_performance_metrics(self) -> dict[str, Any]:
         """Get comprehensive performance metrics from all components."""
+        # Ensure cache is initialized
+        await self._ensure_cache_initialized()
+
         # Get metrics from individual components
         evidence_metrics = await self.evidence_gatherer.get_cache_stats()
         source_metrics = await self.source_manager.get_cache_stats()
@@ -577,8 +586,8 @@ class EnhancedGraphVerificationEngine:
                 "average_verification_time": avg_verification_time,
                 "error_count": self.performance_metrics["error_count"],
                 "error_rate": error_rate,
-                "cache_size": len(self.cache_manager.cache),
-                "max_cache_size": self.cache_manager.max_size,
+                "cache_size": self.cache_manager.get_stats().get("size", 0),
+                "max_cache_size": self.cache_manager.get_stats().get("max_size", 0),
             },
             "component_metrics": {
                 "evidence_gatherer": evidence_metrics,
@@ -587,24 +596,26 @@ class EnhancedGraphVerificationEngine:
             },
         }
 
-    def get_cache_stats(self) -> dict[str, Any]:
+    async def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
-        return {
-            "cache_size": len(self.cache_manager.cache),
-            "max_size": self.cache_manager.max_size,
-            "ttl_seconds": self.cache_manager.ttl_seconds,
-        }
+        await self._ensure_cache_initialized()
+        return self.cache_manager.get_stats()
 
     async def clear_cache(self):
-        """Clear all caches."""
-        self.cache_manager.clear()
+        """Clear component-specific caches (shared cache managed by factory)."""
+        # Clear component-specific caches only
         await self.evidence_gatherer.clear_cache()
         await self.source_manager.clear_cache()
         await self.verification_processor.clear_cache()
-        self.logger.info("All caches cleared")
+
+        # Shared cache is managed by CacheFactory and should not be cleared here
+        self.logger.info(
+            "Component-specific engine caches cleared (shared cache managed by factory)")
 
     async def optimize_performance(self):
         """Optimize performance across all components."""
+        # Shared cache optimization is automatic in the new system
+
         # Optimize individual components
         evidence_recommendations = await self.evidence_gatherer.optimize_performance()
         # source_manager doesn't return recommendations
@@ -615,8 +626,10 @@ class EnhancedGraphVerificationEngine:
         engine_recommendations = []
 
         # Check if cache needs resizing
-        cache_usage = len(self.cache_manager.cache) / \
-            self.cache_manager.max_size
+        cache_stats = self.cache_manager.get_stats()
+        cache_size = cache_stats.get("size", 0)
+        max_cache_size = cache_stats.get("max_size", 1)
+        cache_usage = cache_size / max_cache_size
         if cache_usage > 0.9:
             engine_recommendations.append("Consider increasing cache size")
         elif cache_usage < 0.1:
@@ -660,7 +673,7 @@ class EnhancedGraphVerificationEngine:
         """Close all modules and clean up resources."""
         # Close enhanced components
         if hasattr(self, "verification_processor") and self.verification_processor:
-            await self.verification_processor.close()
+            await self.verification_processor.cleanup()
             logger.info(
                 "EnhancedGraphVerificationEngine: VerificationProcessor closed")
 
@@ -670,13 +683,12 @@ class EnhancedGraphVerificationEngine:
                 "EnhancedGraphVerificationEngine: SourceManager closed")
 
         if hasattr(self, "evidence_gatherer") and self.evidence_gatherer:
-            await self.evidence_gatherer.close()
+            await self.evidence_gatherer.cleanup()
             logger.info(
                 "EnhancedGraphVerificationEngine: EvidenceGatherer closed")
 
-        # Clear all caches
-        if hasattr(self, "cache_manager") and self.cache_manager:
-            self.cache_manager.clear()
+        # Cache is managed by CacheFactory, no need to clear here
+        # Caches are shared resources and should not be cleared on component shutdown
 
         logger.info("EnhancedGraphVerificationEngine: All resources cleaned up")
 

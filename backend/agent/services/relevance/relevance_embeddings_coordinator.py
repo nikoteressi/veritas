@@ -10,10 +10,9 @@ import logging
 from typing import Any
 
 from app.exceptions import ValidationError
+from app.cache.factory import get_temporal_cache, get_general_cache
 
 from ..analysis.adaptive_thresholds import AdaptiveThresholds
-from ..cache.intelligent_cache import IntelligentCache
-from ..cache.temporal_analysis_cache import TemporalAnalysisCache
 from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 from .explainable_relevance_scorer import ExplainableRelevanceScorer
@@ -28,10 +27,10 @@ class RelevanceEmbeddingsCoordinator:
         """Initialize the relevance embeddings coordinator."""
         self.embeddings: EnhancedOllamaEmbeddings | None = None
         self.hybrid_scorer: CachedHybridRelevanceScorer | None = None
-        self.temporal_cache: TemporalAnalysisCache | None = None
+        self.temporal_cache = None  # Will be initialized from cache_factory
         self.explainable_scorer: ExplainableRelevanceScorer | None = None
-        self.intelligent_cache: IntelligentCache | None = None
         self.adaptive_thresholds: AdaptiveThresholds | None = None
+        self.cache = None  # Will be initialized from cache_factory
         self._initialized = False
 
     async def initialize(self) -> bool:
@@ -42,12 +41,11 @@ class RelevanceEmbeddingsCoordinator:
             # Initialize embeddings
             self.embeddings = EnhancedOllamaEmbeddings()
 
-            # Initialize intelligent cache
-            self.intelligent_cache = IntelligentCache()
-            await self.intelligent_cache.initialize()
-
             # Initialize temporal analysis cache
-            self.temporal_cache = TemporalAnalysisCache()
+            self.temporal_cache = await get_temporal_cache()
+
+            # Initialize unified cache for general caching needs
+            self.cache = await get_general_cache()
 
             # Initialize adaptive thresholds
             self.adaptive_thresholds = AdaptiveThresholds()
@@ -226,12 +224,6 @@ class RelevanceEmbeddingsCoordinator:
                 embeddings_optimization = await self.embeddings.optimize_cache()
                 optimization_results["embeddings"] = embeddings_optimization
 
-            # Optimize intelligent cache
-            if self.intelligent_cache:
-                await self.intelligent_cache.optimize()
-                cache_stats = await self.intelligent_cache.get_stats()
-                optimization_results["cache"] = cache_stats
-
             # Note: AdaptiveThresholds doesn't have an optimize method
             # It automatically adjusts based on performance data
 
@@ -254,11 +246,7 @@ class RelevanceEmbeddingsCoordinator:
             if self.embeddings:
                 metrics["embeddings"] = await self.embeddings.get_performance_metrics()
 
-            # Cache metrics
-            if self.intelligent_cache:
-                metrics["cache"] = await self.intelligent_cache.get_stats()
-
-            # Note: TemporalAnalysisCache doesn't have get_stats method
+            # Note: Temporal cache from unified system doesn't have get_stats method
             # Note: AdaptiveThresholds doesn't have get_stats method
             # These components track their own internal metrics
 
@@ -269,19 +257,14 @@ class RelevanceEmbeddingsCoordinator:
                 f"Failed to get performance metrics: {e}") from e
 
     async def close(self):
-        """Clean up resources."""
+        """Clean up resources (cache is managed by factory)."""
         try:
             logger.info("Closing RelevanceEmbeddingsCoordinator...")
 
             if self.embeddings:
                 await self.embeddings.close()
 
-            if self.intelligent_cache:
-                await self.intelligent_cache.close()
-
-            if self.temporal_cache:
-                await self.temporal_cache.close()
-
+            # Cache is managed by CacheFactory, no need to close here
             # Note: AdaptiveThresholds doesn't have a close method
             # It doesn't require explicit cleanup
 

@@ -41,7 +41,8 @@ class GraphBuilder:
 
     def __init__(self, config: ClusteringConfig | None = None):
         self.config = config or ClusteringConfig()
-        self.embeddings = OllamaEmbeddingFunction(ollama_url=settings.ollama_base_url, model_name="nomic-embed-text")
+        self.embeddings = OllamaEmbeddingFunction(
+            ollama_url=settings.ollama_base_url, model_name="nomic-embed-text")
         self.logger = logging.getLogger(__name__)
 
         # Cache for embeddings to avoid recomputation
@@ -133,7 +134,8 @@ class GraphBuilder:
         Returns:
             FactGraph: Complete graph with nodes, edges, and clusters
         """
-        self.logger.info("Building graph from %d facts", len(fact_hierarchy.supporting_facts))
+        self.logger.info("Building graph from %d facts",
+                         len(fact_hierarchy.supporting_facts))
 
         graph = FactGraph()
 
@@ -208,7 +210,7 @@ class GraphBuilder:
 
         # Compare each pair of nodes
         for i, node1 in enumerate(nodes):
-            for j, node2 in enumerate(nodes[i + 1 :], i + 1):
+            for j, node2 in enumerate(nodes[i + 1:], i + 1):
                 relationships = await self._analyze_relationship(node1, node2, embeddings[i], embeddings[j])
 
                 for rel_type, strength in relationships:
@@ -242,7 +244,8 @@ class GraphBuilder:
         # Semantic similarity
         similarity = cosine_similarity([embedding1], [embedding2])[0][0]
         if similarity > 0.5:  # Lower threshold for detection
-            relationships.append((RelationshipType.SIMILARITY, float(similarity)))
+            relationships.append(
+                (RelationshipType.SIMILARITY, float(similarity)))
 
         # Domain relationship
         if node1.domain == node2.domain and node1.domain != "general":
@@ -251,7 +254,8 @@ class GraphBuilder:
         # Temporal relationship
         temporal_strength = await self._detect_temporal_relationship(node1, node2)
         if temporal_strength > 0.6:
-            relationships.append((RelationshipType.TEMPORAL, temporal_strength))
+            relationships.append(
+                (RelationshipType.TEMPORAL, temporal_strength))
 
         # Causal relationship
         causal_strength = await self._detect_causal_relationship(node1, node2)
@@ -261,7 +265,8 @@ class GraphBuilder:
         # Contradiction detection
         contradiction_strength = await self._detect_contradiction(node1, node2, similarity)
         if contradiction_strength > 0.7:
-            relationships.append((RelationshipType.CONTRADICTION, contradiction_strength))
+            relationships.append(
+                (RelationshipType.CONTRADICTION, contradiction_strength))
 
         # Support relationship
         support_strength = await self._detect_support_relationship(node1, node2, similarity)
@@ -453,7 +458,8 @@ class GraphBuilder:
             if label == -1:  # Noise points
                 continue
 
-            cluster_nodes = [nodes[i] for i, l in enumerate(clustering.labels_) if l == label]
+            cluster_nodes = [nodes[i]
+                             for i, l in enumerate(clustering.labels_) if l == label]
 
             if (
                 len(cluster_nodes) >= self.config.min_cluster_size
@@ -497,7 +503,8 @@ class GraphBuilder:
                     cluster_type=ClusterType.DOMAIN_CLUSTER,
                     shared_context=shared_context,
                     verification_strategy="domain_specific",
-                    metadata={"domain": domain, "clustering_method": "domain_based"},
+                    metadata={"domain": domain,
+                              "clustering_method": "domain_based"},
                 )
 
                 graph.add_cluster(cluster)
@@ -509,13 +516,15 @@ class GraphBuilder:
         self, nodes: list[FactNode], edges: list[FactEdge], graph: FactGraph
     ) -> list[FactCluster]:
         """Create clusters based on temporal relationships."""
-        temporal_edges = [e for e in edges if e.relationship_type == RelationshipType.TEMPORAL]
+        temporal_edges = [
+            e for e in edges if e.relationship_type == RelationshipType.TEMPORAL]
 
         if not temporal_edges:
             return []
 
         # Find connected components in temporal graph
-        temporal_groups = self._find_connected_components(nodes, temporal_edges)
+        temporal_groups = self._find_connected_components(
+            nodes, temporal_edges)
 
         clusters = []
         for group in temporal_groups:
@@ -539,7 +548,8 @@ class GraphBuilder:
         self, nodes: list[FactNode], edges: list[FactEdge], graph: FactGraph
     ) -> list[FactCluster]:
         """Create clusters based on causal relationships."""
-        causal_edges = [e for e in edges if e.relationship_type == RelationshipType.CAUSAL]
+        causal_edges = [
+            e for e in edges if e.relationship_type == RelationshipType.CAUSAL]
 
         if not causal_edges:
             return []
@@ -613,7 +623,8 @@ class GraphBuilder:
             word_freq[word] = word_freq.get(word, 0) + 1
 
         # Find common words (appearing in multiple claims)
-        common_words = [word for word, freq in word_freq.items() if freq > 1 and len(word) > 3]
+        common_words = [word for word, freq in word_freq.items()
+                        if freq > 1 and len(word) > 3]
 
         if common_words:
             # Limit to 3 most common words to keep context short
@@ -652,7 +663,7 @@ class GraphBuilder:
         cluster_pairs_to_merge = []
 
         for i, cluster1 in enumerate(clusters):
-            for cluster2 in clusters[i + 1 :]:
+            for cluster2 in clusters[i + 1:]:
                 # Skip if clusters are of different types (unless both are similarity-based)
                 if (
                     cluster1.cluster_type != cluster2.cluster_type
@@ -672,22 +683,27 @@ class GraphBuilder:
                 context_similarity = 0.0
                 if cluster1.shared_context and cluster2.shared_context:
                     try:
-                        contexts = [cluster1.shared_context, cluster2.shared_context]
+                        contexts = [cluster1.shared_context,
+                                    cluster2.shared_context]
                         embeddings = await self._get_embeddings(contexts)
                         if len(embeddings) == 2:
-                            similarity_matrix = cosine_similarity([embeddings[0]], [embeddings[1]])
+                            similarity_matrix = cosine_similarity(
+                                [embeddings[0]], [embeddings[1]])
                             context_similarity = similarity_matrix[0][0]
                     except (ValueError, TypeError, RuntimeError) as e:
-                        self.logger.warning("Failed to calculate context similarity: %s", e)
+                        self.logger.warning(
+                            "Failed to calculate context similarity: %s", e)
 
                 # Merge if high overlap or high context similarity
                 if (overlap_ratio > 0.7 or context_similarity > 0.8) and len(
                     nodes1.union(nodes2)
                 ) <= self.config.max_cluster_size:
-                    cluster_pairs_to_merge.append((cluster1, cluster2, overlap_ratio, context_similarity))
+                    cluster_pairs_to_merge.append(
+                        (cluster1, cluster2, overlap_ratio, context_similarity))
 
         # Sort by similarity and merge the most similar pairs first
-        cluster_pairs_to_merge.sort(key=lambda x: max(x[2], x[3]), reverse=True)
+        cluster_pairs_to_merge.sort(
+            key=lambda x: max(x[2], x[3]), reverse=True)
 
         merged_cluster_ids = set()
         for (
@@ -701,13 +717,16 @@ class GraphBuilder:
                 continue
 
             # Merge clusters
-            merged_nodes = list({node.id: node for node in cluster1.nodes + cluster2.nodes}.values())
+            merged_nodes = list(
+                {node.id: node for node in cluster1.nodes + cluster2.nodes}.values())
 
             # Create new shared context
             if cluster1.shared_context and cluster2.shared_context:
                 # Extract key terms instead of combining full contexts
-                context1_clean = cluster1.shared_context.replace("Combined:", "").replace("Common themes:", "").strip()
-                context2_clean = cluster2.shared_context.replace("Combined:", "").replace("Common themes:", "").strip()
+                context1_clean = cluster1.shared_context.replace(
+                    "Combined:", "").replace("Common themes:", "").strip()
+                context2_clean = cluster2.shared_context.replace(
+                    "Combined:", "").replace("Common themes:", "").strip()
 
                 # Take only first few words from each context
                 words1 = context1_clean.split()[:3]
@@ -781,8 +800,10 @@ class GraphBuilder:
             for cluster in containing_clusters:
                 if cluster.id != best_cluster.id:
                     # Remove node from cluster
-                    cluster.nodes = [n for n in cluster.nodes if n.id != node_id]
-                    self.logger.debug("Removed node %s from cluster %s", node_id, cluster.id)
+                    cluster.nodes = [
+                        n for n in cluster.nodes if n.id != node_id]
+                    self.logger.debug(
+                        "Removed node %s from cluster %s", node_id, cluster.id)
 
         # Remove empty clusters
         empty_clusters = [c for c in clusters if len(c.nodes) == 0]
@@ -820,26 +841,31 @@ class GraphBuilder:
                 try:
                     # Get embeddings for target node and other nodes
                     # Limit to 5 for performance
-                    texts = [target_node.claim] + [n.claim for n in other_nodes[:5]]
+                    texts = [target_node.claim] + \
+                        [n.claim for n in other_nodes[:5]]
                     embeddings = await self._get_embeddings(texts)
 
                     if len(embeddings) > 1:
                         target_embedding = embeddings[0:1]
                         other_embeddings = embeddings[1:]
-                        similarities = cosine_similarity(target_embedding, other_embeddings)
+                        similarities = cosine_similarity(
+                            target_embedding, other_embeddings)
                         avg_similarity = np.mean(similarities)
                         score += avg_similarity * 0.7  # 70% weight for content similarity
                 except (ValueError, TypeError, RuntimeError) as e:
-                    self.logger.warning("Failed to calculate node similarity: %s", e)
+                    self.logger.warning(
+                        "Failed to calculate node similarity: %s", e)
 
             # Add bonus for domain match
             if other_nodes and target_node.domain:
-                domain_matches = sum(1 for n in other_nodes if n.domain == target_node.domain)
+                domain_matches = sum(
+                    1 for n in other_nodes if n.domain == target_node.domain)
                 domain_score = domain_matches / len(other_nodes)
                 score += domain_score * 0.2  # 20% weight for domain similarity
 
             # Add bonus for cluster size (prefer larger, more stable clusters)
-            size_score = min(len(cluster.nodes) / self.config.max_cluster_size, 1.0)
+            size_score = min(len(cluster.nodes) /
+                             self.config.max_cluster_size, 1.0)
             score += size_score * 0.1  # 10% weight for cluster size
 
             if score > best_score:
@@ -864,14 +890,17 @@ class GraphBuilder:
                     embeddings.append(embedding_array)
                 else:
                     # Raise error if embedding fails
-                    self.logger.error("Failed to get embedding for text: %s...", text[:50])
-                    raise RuntimeError(f"Failed to get embedding for text: {text[:50]}...")
+                    self.logger.error(
+                        "Failed to get embedding for text: %s...", text[:50])
+                    raise RuntimeError(
+                        f"Failed to get embedding for text: {text[:50]}...")
 
         return np.array(embeddings)
 
     async def clear_cache(self):
-        """Clear the embedding cache."""
-        await self._embedding_cache.clear()
+        """Clear component-specific embedding cache (shared cache managed by factory)."""
+        self._embedding_cache.clear()
+        self.logger.info("Component-specific graph builder cache cleared (shared cache managed by factory)")
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""

@@ -19,8 +19,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from app.config import settings
 from app.exceptions import ValidationError
 
-from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
-from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
+from app.cache.factory import get_temporal_cache
+from agent.services.infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +76,9 @@ class CachedHybridRelevanceScorer:
                 model=embeddings_model, base_url=embeddings_url, cache_size=cache_size
             )
 
-        # Further reduced for Docker
-        self.cache = IntelligentCache(max_memory_size=cache_size // 2)
+        # Initialize cache using new unified cache system
+        self.cache = None
+        self._cache_initialized = False
 
         # BM25 and TF-IDF components
         self.bm25_corpus = None
@@ -92,11 +93,23 @@ class CachedHybridRelevanceScorer:
         self.metrics = {
             "total_scores": 0,
             "cache_hits": 0,
+            "cache_misses": 0,
             "bm25_scores": 0,
             "semantic_scores": 0,
             "hybrid_scores": 0,
             "processing_time": 0.0,
         }
+
+    async def _ensure_cache_initialized(self):
+        """Ensure cache is initialized using the new unified cache system."""
+        if not self._cache_initialized:
+            try:
+                self.cache = await get_temporal_cache()
+                self._cache_initialized = True
+                logger.info("Relevance cache initialized successfully")
+            except Exception as e:
+                logger.error("Failed to initialize relevance cache: %s", e)
+                raise
 
         logger.info("Cached hybrid relevance scorer initialized")
 
@@ -242,6 +255,9 @@ class CachedHybridRelevanceScorer:
             start_time = time.time()
             self.metrics["total_scores"] += 1
 
+            # Ensure cache is initialized
+            await self._ensure_cache_initialized()
+
             cache_key = self._generate_cache_key(query, text, "hybrid")
             logger.debug("Generated cache key: %s", cache_key)
 
@@ -300,10 +316,7 @@ class CachedHybridRelevanceScorer:
                 await self.cache.set(
                     cache_key,
                     cache_data,
-                    ttl_seconds=3600,  # 1 hour
-                    level=CacheStrategy.LRU,
-                    dependencies=[
-                        f"query:{hashlib.md5(query.encode()).hexdigest()[:8]}"],
+                    ttl=3600,  # 1 hour
                 )
 
             # Update metrics
@@ -437,7 +450,7 @@ class CachedHybridRelevanceScorer:
             "embeddings_metrics": embeddings_metrics,
         }
 
-    def update_weights(self, bm25_weight: float, semantic_weight: float):
+    async def update_weights(self, bm25_weight: float, semantic_weight: float):
         """Update scoring weights."""
         total_weight = bm25_weight + semantic_weight
         if total_weight > 0:
@@ -445,28 +458,29 @@ class CachedHybridRelevanceScorer:
             self.semantic_weight = semantic_weight / total_weight
 
             # Clear cache as weights changed
-            self.cache.clear()
+            if self._cache_initialized:
+                await self.cache.clear_by_pattern("*")
             logger.info(
                 "Updated weights: BM25=%.2f, Semantic=%.2f",
                 self.bm25_weight,
                 self.semantic_weight,
             )
 
-    def clear_cache(self):
-        """Clear relevance cache."""
-        self.cache.clear()
-        self.embeddings.clear_cache()
-        logger.info("Relevance cache cleared")
+    async def clear_cache(self):
+        """Clear component-specific cache (shared cache managed by factory)."""
+        # Only clear embeddings cache - shared cache is managed by CacheFactory
+        await self.embeddings.clear_cache()
+        logger.info("Component-specific relevance cache cleared")
 
-    def optimize_cache(self):
-        """Optimize cache performance."""
-        self.cache.optimize()
-        self.embeddings.optimize_cache()
-        logger.info("Relevance cache optimized")
+    async def optimize_cache(self):
+        """Optimize component-specific cache (shared cache managed by factory)."""
+        # Only optimize embeddings cache - shared cache optimization is automatic
+        await self.embeddings.optimize_cache()
+        logger.info("Component-specific relevance cache optimized")
 
     async def close(self):
-        """Close and cleanup resources."""
-        await self.cache.close()
+        """Close and cleanup resources (cache is managed by factory)."""
+        # Cache is managed by CacheFactory, no need to close here
         await self.embeddings.close()
         logger.info("Cached hybrid relevance scorer closed")
 

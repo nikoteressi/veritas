@@ -41,7 +41,8 @@ class VerificationUtils:
     def extract_keywords(text: str, min_length: int = 3) -> list[str]:
         """Extract keywords from text."""
         # Remove special characters and split
-        words = re.findall(r"\b[a-zA-Z]{" + str(min_length) + ",}\b", text.lower())
+        words = re.findall(
+            r"\b[a-zA-Z]{" + str(min_length) + ",}\b", text.lower())
 
         # Common stop words to filter out
         stop_words = {
@@ -171,7 +172,8 @@ class VerificationUtils:
         diversity_score = min(1.0, source_diversity / 3.0)
 
         # Weighted combination
-        confidence = evidence_score * 0.4 + diversity_score * 0.3 + consistency_score * 0.3
+        confidence = evidence_score * 0.4 + \
+            diversity_score * 0.3 + consistency_score * 0.3
 
         return min(1.0, max(0.0, confidence))
 
@@ -190,11 +192,12 @@ class VerificationUtils:
         ]
 
         for i, stmt1 in enumerate(statements):
-            for j, stmt2 in enumerate(statements[i + 1 :], i + 1):
+            for j, stmt2 in enumerate(statements[i + 1:], i + 1):
                 # Check for direct negation patterns
                 for neg_pattern, pos_pattern in negation_patterns:
                     if (re.search(neg_pattern, stmt1.lower()) and re.search(pos_pattern, stmt2.lower())) or (
-                        re.search(pos_pattern, stmt1.lower()) and re.search(neg_pattern, stmt2.lower())
+                        re.search(pos_pattern, stmt1.lower()) and re.search(
+                            neg_pattern, stmt2.lower())
                     ):
                         contradictions.append((i, j))
                         break
@@ -236,7 +239,8 @@ class VerificationUtils:
             start_time = time.time()
             result = func(*args, **kwargs)
             execution_time = time.time() - start_time
-            logger.debug(f"{func.__name__} executed in {execution_time:.2f} seconds")
+            logger.debug(
+                f"{func.__name__} executed in {execution_time:.2f} seconds")
             return result
 
         return wrapper
@@ -249,7 +253,8 @@ class VerificationUtils:
             start_time = time.time()
             result = await func(*args, **kwargs)
             execution_time = time.time() - start_time
-            logger.debug(f"{func.__name__} executed in {execution_time:.2f} seconds")
+            logger.debug(
+                f"{func.__name__} executed in {execution_time:.2f} seconds")
             return result
 
         return wrapper
@@ -272,7 +277,8 @@ class VerificationUtils:
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
-                items.extend(VerificationUtils.flatten_dict(v, new_key, sep=sep).items())
+                items.extend(VerificationUtils.flatten_dict(
+                    v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
         return dict(items)
@@ -288,7 +294,8 @@ class VerificationUtils:
         for text in texts[1:]:
             is_duplicate = False
             for unique_text in unique_texts:
-                similarity = VerificationUtils.calculate_text_similarity(text, unique_text)
+                similarity = VerificationUtils.calculate_text_similarity(
+                    text, unique_text)
                 if similarity >= similarity_threshold:
                     is_duplicate = True
                     break
@@ -342,63 +349,4 @@ class VerificationUtils:
         return {"numbers": numbers, "dates": dates}
 
 
-class CacheManager:
-    """Simple in-memory cache manager."""
-
-    def __init__(self, max_size: int = 1000, ttl_seconds: int = 3600):
-        self.cache = {}
-        self.timestamps = {}
-        self.max_size = max_size
-        self.ttl_seconds = ttl_seconds
-
-    def get(self, key: str) -> Any | None:
-        """Get value from cache."""
-        if key not in self.cache:
-            return None
-
-        # Check TTL
-        if time.time() - self.timestamps[key] > self.ttl_seconds:
-            self.delete(key)
-            return None
-
-        return self.cache[key]
-
-    def set(self, key: str, value: Any):
-        """Set value in cache."""
-        # Clean old entries if cache is full
-        if len(self.cache) >= self.max_size:
-            self._cleanup_old_entries()
-
-        self.cache[key] = value
-        self.timestamps[key] = time.time()
-
-    def delete(self, key: str):
-        """Delete key from cache."""
-        self.cache.pop(key, None)
-        self.timestamps.pop(key, None)
-
-    def clear(self):
-        """Clear all cache."""
-        self.cache.clear()
-        self.timestamps.clear()
-
-    def _cleanup_old_entries(self):
-        """Remove oldest entries to make space."""
-        current_time = time.time()
-
-        # Remove expired entries first
-        expired_keys = [
-            key for key, timestamp in self.timestamps.items() if current_time - timestamp > self.ttl_seconds
-        ]
-
-        for key in expired_keys:
-            self.delete(key)
-
-        # If still full, remove oldest entries
-        if len(self.cache) >= self.max_size:
-            sorted_keys = sorted(self.timestamps.items(), key=lambda x: x[1])
-
-            # Remove oldest 20% of entries
-            remove_count = max(1, len(sorted_keys) // 5)
-            for key, _ in sorted_keys[:remove_count]:
-                self.delete(key)
+# CacheManager has been removed - use unified cache system from app.cache.factory instead

@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.orchestration import workflow_coordinator
 from agent.services.processing.validation_service import validation_service
+from app.cache.factory import get_verification_cache
 from app.crud import VerificationResultCRUD
 from app.database import async_session_factory
-from app.websocket_manager import EventProgressTracker, connection_manager
+from app.websocket_manager import EventProgressTracker, websocket_manager
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,8 @@ class VerificationService:
                     filename, validated_data["prompt"][:100])
 
         # If session_id provided, start WebSocket session
-        if session_id and session_id in connection_manager.active_connections:
-            await connection_manager.start_verification_session(
+        if session_id and session_id in websocket_manager.active_connections:
+            await websocket_manager.start_verification_session(
                 session_id,
                 {
                     "verification_id": verification_id,
@@ -88,13 +89,37 @@ class VerificationService:
                 "session_id": session_id,
             }
         else:
+            # Check cache first
+            cache = await get_verification_cache()
+            content = f"{filename}:{validated_data['prompt']}"
+            verification_type = "image_verification"
+            context = {"filename": filename} if filename else None
+
+            cached_result = await cache.get_verification_result(
+                content=content,
+                verification_type=verification_type,
+                context=context
+            )
+            if cached_result:
+                logger.info("Cache hit for verification request: %s", content)
+                return cached_result.get('result', cached_result)
+
             # Run verification synchronously
+            logger.info("Cache miss for verification request: %s", content)
             result = await self.coordinator.execute_verification(
                 image_bytes=validated_data["image_data"],
                 user_prompt=validated_data["prompt"],
                 db=db,
                 session_id="sync",
                 filename=filename,
+            )
+
+            # Cache the result
+            await cache.set_verification_result(
+                content=content,
+                verification_type=verification_type,
+                result=result,
+                context=context
             )
 
             return result
@@ -118,7 +143,7 @@ class VerificationService:
             filename: Original filename
         """
         db: AsyncSession | None = None
-        event_tracker = EventProgressTracker(connection_manager, session_id)
+        event_tracker = EventProgressTracker(websocket_manager, session_id)
 
         try:
             # Create a new database session for the background task
@@ -126,6 +151,25 @@ class VerificationService:
                 logger.info(
                     "Starting background verification for session %s", session_id)
 
+                # Check cache first
+                cache = await get_verification_cache()
+                content = f"{filename}:{prompt}"
+                verification_type = "image_verification"
+                context = {"filename": filename} if filename else None
+
+                cached_result = await cache.get_verification_result(
+                    content=content,
+                    verification_type=verification_type,
+                    context=context
+                )
+                if cached_result:
+                    logger.info(
+                        "Cache hit for WebSocket verification: %s", content)
+                    await event_tracker.complete(cached_result.get('result', cached_result))
+                    return
+
+                logger.info(
+                    "Cache miss for WebSocket verification: %s", content)
                 # Run verification with event callback
                 result = await self.coordinator.execute_verification(
                     image_bytes=image_content,
@@ -134,6 +178,14 @@ class VerificationService:
                     event_callback=event_tracker.emit_event,
                     session_id=session_id,
                     filename=filename,
+                )
+
+                # Cache the result
+                await cache.set_verification_result(
+                    content=content,
+                    verification_type=verification_type,
+                    result=result,
+                    context=context
                 )
 
                 logger.info(

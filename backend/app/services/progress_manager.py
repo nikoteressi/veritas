@@ -19,7 +19,7 @@ from app.models.progress import (
     StepUpdateData,
 )
 from app.schemas.websocket import StepsDefinitionMessage, StepUpdateMessage
-from app.websocket_manager import connection_manager
+from app.websocket_manager import websocket_manager
 
 logger = logging.getLogger(__name__)
 
@@ -333,4 +333,4 @@ progress_manager = ProgressManager()
 
 def initialize_progress_manager():
     """Initialize progress manager with websocket manager dependency."""
-    progress_manager.set_websocket_manager(connection_manager)
+    progress_manager.set_websocket_manager(websocket_manager)

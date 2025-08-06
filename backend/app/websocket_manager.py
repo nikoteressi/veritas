@@ -12,12 +12,11 @@ from uuid import uuid4
 
 from fastapi import WebSocket
 from pydantic import BaseModel
-from redis.asyncio.client import Redis
 
 from app.json_utils import json_dumps
-from app.redis_client import redis_manager
 from app.schemas import ProgressEvent
 from app.schemas.websocket import ProgressWebSocketMessage, StepsDefinitionMessage, StepUpdateMessage
+from app.cache.connection_manager import connection_manager
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +39,14 @@ class ConnectionManager:
     def __init__(self):
         # Store active connections by session ID
         self.active_connections: dict[str, WebSocket] = {}
+        # Redis client for session management
+        self.redis = None
 
-    @property
-    def redis(self) -> Redis:
-        """Get a redis client from the redis_manager singleton."""
-        return redis_manager.get_client()
+    async def _get_redis(self):
+        """Get Redis client instance."""
+        if self.redis is None:
+            self.redis = await connection_manager.get_client()
+        return self.redis
 
     async def connect(self, websocket: WebSocket) -> str:
         """
@@ -61,7 +63,9 @@ class ConnectionManager:
         self.active_connections[session_id] = websocket
 
         # Store active connection in Redis
-        await self.redis.hset(ACTIVE_CONNECTIONS_KEY, session_id, "active")
+        redis = await self._get_redis()
+        if redis:
+            await redis.hset(ACTIVE_CONNECTIONS_KEY, session_id, "active")
 
         logger.info(f"WebSocket connected: {session_id}")
 
@@ -88,8 +92,10 @@ class ConnectionManager:
             del self.active_connections[session_id]
 
         # Remove from Redis
-        await self.redis.hdel(ACTIVE_CONNECTIONS_KEY, session_id)
-        await self.redis.delete(f"{SESSION_KEY_PREFIX}{session_id}")
+        redis = await self._get_redis()
+        if redis:
+            await redis.hdel(ACTIVE_CONNECTIONS_KEY, session_id)
+            await redis.delete(f"{SESSION_KEY_PREFIX}{session_id}")
 
         logger.info(f"WebSocket disconnected: {session_id}")
 
@@ -179,16 +185,16 @@ class ConnectionManager:
         await self.send_message(session_id, message)
 
         # Update session state in Redis
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        await self.redis.hset(
-            session_key,
-            mapping={
-                "current_event": event.event_name,
-                "last_update": datetime.now(UTC).isoformat(),
-            },
-        )
-
-
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            await redis.hset(
+                session_key,
+                mapping={
+                    "current_event": event.event_name,
+                    "last_update": datetime.now(UTC).isoformat(),
+                },
+            )
 
     async def send_verification_result(self, session_id: str, result: dict[str, Any]):
         """
@@ -207,15 +213,17 @@ class ConnectionManager:
         await self.send_message(session_id, message)
 
         # Mark session as completed in Redis
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        await self.redis.hset(
-            session_key,
-            mapping={
-                "status": "completed",
-                "result": json_dumps(result),
-                "completed_at": datetime.now(UTC).isoformat(),
-            },
-        )
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            await redis.hset(
+                session_key,
+                mapping={
+                    "status": "completed",
+                    "result": json_dumps(result),
+                    "completed_at": datetime.now(UTC).isoformat(),
+                },
+            )
 
     async def send_error(self, session_id: str, error_message: str, error_code: str | None = None):
         """
@@ -238,15 +246,17 @@ class ConnectionManager:
         await self.send_message(session_id, message)
 
         # Mark session as failed in Redis
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        await self.redis.hset(
-            session_key,
-            mapping={
-                "status": "failed",
-                "error": error_message,
-                "failed_at": datetime.now(UTC).isoformat(),
-            },
-        )
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            await redis.hset(
+                session_key,
+                mapping={
+                    "status": "failed",
+                    "error": error_message,
+                    "failed_at": datetime.now(UTC).isoformat(),
+                },
+            )
 
     async def start_verification_session(self, session_id: str, verification_data: dict[str, Any]):
         """
@@ -256,17 +266,19 @@ class ConnectionManager:
             session_id: Session ID
             verification_data: Initial verification data
         """
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        await self.redis.hset(
-            session_key,
-            mapping={
-                "status": "started",
-                "started_at": datetime.now(UTC).isoformat(),
-                "current_step": "initializing",
-                "progress": 0,
-                "data": json.dumps(verification_data),
-            },
-        )
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            await redis.hset(
+                session_key,
+                mapping={
+                    "status": "started",
+                    "started_at": datetime.now(UTC).isoformat(),
+                    "current_step": "initializing",
+                    "progress": 0,
+                    "data": json.dumps(verification_data),
+                },
+            )
 
         logger.info(f"Started verification session: {session_id}")
 
@@ -297,25 +309,27 @@ class ConnectionManager:
         await self.send_message(session_id, message_dict)
 
         # Update session state in Redis for enhanced messages
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        if isinstance(message, StepsDefinitionMessage):
-            await self.redis.hset(
-                session_key,
-                mapping={
-                    "steps_defined": "true",
-                    "total_steps": len(message.data.steps),
-                    "last_update": datetime.now().isoformat(),
-                },
-            )
-        elif isinstance(message, StepUpdateMessage):
-            await self.redis.hset(
-                session_key,
-                mapping={
-                    f"step_{message.data.step_id}_status": message.data.status.value,
-                    f"step_{message.data.step_id}_progress": message.data.progress,
-                    "last_update": datetime.now().isoformat(),
-                },
-            )
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            if isinstance(message, StepsDefinitionMessage):
+                await redis.hset(
+                    session_key,
+                    mapping={
+                        "steps_defined": "true",
+                        "total_steps": len(message.data.steps),
+                        "last_update": datetime.now().isoformat(),
+                    },
+                )
+            elif isinstance(message, StepUpdateMessage):
+                await redis.hset(
+                    session_key,
+                    mapping={
+                        f"step_{message.data.step_id}_status": message.data.status.value,
+                        f"step_{message.data.step_id}_progress": message.data.progress,
+                        "last_update": datetime.now().isoformat(),
+                    },
+                )
 
     async def get_session_status(self, session_id: str) -> dict[str, Any] | None:
         """
@@ -327,12 +341,18 @@ class ConnectionManager:
         Returns:
             Session status dictionary or None if not found
         """
-        session_key = f"{SESSION_KEY_PREFIX}{session_id}"
-        return await self.redis.hgetall(session_key)
+        redis = await self._get_redis()
+        if redis:
+            session_key = f"{SESSION_KEY_PREFIX}{session_id}"
+            return await redis.hgetall(session_key)
+        return None
 
     async def get_active_sessions(self) -> list[str]:
         """Get a list of active session IDs from Redis."""
-        return list(await self.redis.hkeys(ACTIVE_CONNECTIONS_KEY))
+        redis = await self._get_redis()
+        if redis:
+            return list(await redis.hkeys(ACTIVE_CONNECTIONS_KEY))
+        return []
 
     async def get_verification_sessions(self) -> list[dict[str, Any]]:
         """
@@ -341,14 +361,18 @@ class ConnectionManager:
         Note: This can be a very expensive operation if there are many sessions.
         Use with caution in a production environment.
         """
-        session_keys = await self.redis.keys(f"{SESSION_KEY_PREFIX}*")
+        redis = await self._get_redis()
+        if not redis:
+            return []
+
+        session_keys = await redis.keys(f"{SESSION_KEY_PREFIX}*")
 
         if not session_keys:
             return []
 
         sessions = []
         for key in session_keys:
-            session_data = await self.redis.hgetall(key)
+            session_data = await redis.hgetall(key)
             if session_data:
                 sessions.append(session_data)
 
@@ -442,5 +466,5 @@ class ProgressTracker:
             f"Verification failed [{self.session_id}]: {error_message}")
 
 
-# Global connection manager instance
-connection_manager = ConnectionManager()
+# Global WebSocket connection manager instance
+websocket_manager = ConnectionManager()
