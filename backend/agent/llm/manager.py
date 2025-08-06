@@ -8,11 +8,12 @@ import logging
 from io import BytesIO
 from typing import Any
 
-from app.config import settings
-from app.exceptions import LLMError
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
 from PIL import Image
+
+from app.config import settings
+from app.exceptions import LLMError
 
 logger = logging.getLogger(__name__)
 

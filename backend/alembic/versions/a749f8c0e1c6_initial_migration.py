@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -39,7 +40,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     op.create_index(op.f('ix_users_nickname'), 'users', ['nickname'], unique=True)
-    
+
     # Create verification_results table
     op.create_table(
         'verification_results',
@@ -73,7 +74,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_verification_results_user_nickname'), table_name='verification_results')
     op.drop_index(op.f('ix_verification_results_id'), table_name='verification_results')
     op.drop_table('verification_results')
-    
+
     op.drop_index(op.f('ix_users_nickname'), table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_table('users')

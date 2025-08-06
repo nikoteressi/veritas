@@ -8,15 +8,16 @@ Now uses fact-check verdicts and temporal analysis as primary inputs for informe
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
+
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
 from app.exceptions import MotivesAnalysisError
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
-from langchain_core.output_parsers import PydanticOutputParser
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class MotivesAnalyzer(BaseAnalyzer):
         self.prompt_manager = prompt_manager
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

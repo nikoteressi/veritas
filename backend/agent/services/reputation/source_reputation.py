@@ -15,8 +15,9 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
 
-from app.config import Settings
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+from app.config import Settings
 
 settings = Settings()
 

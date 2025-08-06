@@ -11,8 +11,8 @@ from uuid import uuid4
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agent.services.processing.validation_service import validation_service
 from agent.orchestration import workflow_coordinator
+from agent.services.processing.validation_service import validation_service
 from app.crud import VerificationResultCRUD
 from app.database import async_session_factory
 from app.websocket_manager import EventProgressTracker, connection_manager

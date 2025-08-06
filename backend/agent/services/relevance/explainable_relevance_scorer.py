@@ -15,6 +15,7 @@ from collections import Counter
 from typing import Any
 
 import numpy as np
+
 from app.exceptions import ValidationError
 
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache

@@ -12,6 +12,9 @@ import re
 from typing import Any
 
 import numpy as np
+from sklearn.cluster import DBSCAN
+from sklearn.metrics.pairwise import cosine_similarity
+
 from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.models.fact import FactHierarchy
 from agent.models.graph import (
@@ -23,8 +26,6 @@ from agent.models.graph import (
     RelationshipType,
 )
 from app.config import settings
-from sklearn.cluster import DBSCAN
-from sklearn.metrics.pairwise import cosine_similarity
 
 from .graph_config import ClusteringConfig
 

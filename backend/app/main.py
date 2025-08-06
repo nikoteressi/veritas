@@ -18,8 +18,8 @@ from app.handlers.websocket_handler import websocket_handler
 from app.matplotlib_config import configure_matplotlib
 from app.redis_client import redis_manager
 from app.routers import reputation, verification
-from app.services.verification_service import verification_service
 from app.services.progress_manager import initialize_progress_manager
+from app.services.verification_service import verification_service
 
 # --- Telemetry Patch ---
 # This is a workaround for a bug in chromadb 0.5.3. It prevents telemetry errors

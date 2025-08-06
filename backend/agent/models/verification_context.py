@@ -7,13 +7,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from agent.models.fact import FactHierarchy
 from agent.models.graph import FactGraph
 from agent.models.post_analysis_result import PostAnalysisResult
 from agent.services.infrastructure.event_emission import EventEmissionService
 from agent.services.output.result_compiler import ResultCompiler
-from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .extracted_info import ExtractedInfo
 from .image_analysis import ImageAnalysisResult
@@ -42,9 +43,9 @@ class VerificationContext(BaseModel):
     # Database and services (excluded from serialization)
     db: AsyncSession | None = Field(
         None, exclude=True, description="Database session")
-    event_service: "EventEmissionService | None" = Field(
+    event_service: EventEmissionService | None = Field(
         None, exclude=True, description="Event emission service")
-    result_compiler: "ResultCompiler | None" = Field(
+    result_compiler: ResultCompiler | None = Field(
         None, exclude=True, description="Result compiler service")
     progress_manager: Any | None = Field(
         None, exclude=True, description="Progress manager service")
@@ -164,3 +165,7 @@ class VerificationContext(BaseModel):
     def get_fact_graph(self) -> FactGraph | None:
         """Get the fact graph."""
         return self.fact_graph
+
+    def get_event_service(self) -> EventEmissionService | None:
+        """Get the event service."""
+        return self.event_service

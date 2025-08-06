@@ -4,14 +4,14 @@ Service for parsing screenshots using a vision model.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.models.screenshot_data import ScreenshotData
 from agent.prompts import prompt_manager
 from app.exceptions import ScreenshotParsingError
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
-from langchain_core.output_parsers import PydanticOutputParser
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,14 @@ class ScreenshotParserService:
     def __init__(self):
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 
     async def parse(self, image_bytes: bytes) -> ScreenshotData:
         """Parses the screenshot and returns structured data."""
         await self.progress_callback.update_progress(10, 100, "Initializing screenshot parser...")
-        
+
         output_parser = PydanticOutputParser(pydantic_object=ScreenshotData)
 
         try:
@@ -37,7 +37,7 @@ class ScreenshotParserService:
             prompt_template = prompt_manager.get_prompt_template("screenshot_parsing")
             prompt = prompt_template.partial(format_instructions=output_parser.get_format_instructions())
             prompt_value = prompt.format_prompt()
-            
+
             await self.progress_callback.update_progress(50, 100, "Processing image with vision model...")
             response = await llm_manager.invoke_multimodal(text=prompt_value.to_string(), image_bytes=image_bytes)
 

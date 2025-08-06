@@ -13,10 +13,11 @@ import time
 import traceback
 from typing import Any
 
-from app.config import settings
-from app.exceptions import ValidationError
 from rank_bm25 import BM25Okapi
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+from app.config import settings
+from app.exceptions import ValidationError
 
 from ..cache.intelligent_cache import CacheStrategy, IntelligentCache
 from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
@@ -35,7 +36,7 @@ class CachedHybridRelevanceScorer:
         bm25_weight: float = 0.3,
         semantic_weight: float = 0.7,
         min_score_threshold: float = 0.1,
-        shared_embeddings: "EnhancedOllamaEmbeddings" | None = None,
+        shared_embeddings: EnhancedOllamaEmbeddings | None = None,
     ):
         """
         Initialize hybrid relevance scorer.

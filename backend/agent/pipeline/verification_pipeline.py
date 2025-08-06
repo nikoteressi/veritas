@@ -8,14 +8,15 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from agent.models.verification_context import VerificationContext
-from app.models.progress_callback import PipelineProgressCallback
-from app.models.progress import StepStatus
-from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
-from app.config import settings, VerificationSteps
-from app.exceptions import AgentError
-from app.services.progress_manager import progress_manager
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from agent.models.verification_context import VerificationContext
+from agent.pipeline.pipeline_steps import BasePipelineStep, step_registry
+from app.config import VerificationSteps, settings
+from app.exceptions import AgentError
+from app.models.progress import StepStatus
+from app.models.progress_callback import PipelineProgressCallback
+from app.services.progress_manager import progress_manager
 
 from ..services.infrastructure.event_emission import EventEmissionService
 from ..services.infrastructure.storage import storage_service

@@ -3,7 +3,8 @@ Pydantic schemas for WebSocket communication models.
 """
 
 from datetime import datetime
-from typing import Any, Union, Literal
+from typing import Any, Literal, Union
+
 from pydantic import BaseModel, Field
 
 # Import new progress models
@@ -30,7 +31,7 @@ class WebSocketMessage(BaseModel):
 # Enhanced progress-specific WebSocket messages
 class EnhancedProgressEvent(ProgressEvent):
     """Enhanced progress event with type-safe payload"""
-    payload: Union[StepsDefinitionData, StepUpdateData]
+    payload: StepsDefinitionData | StepUpdateData
 
     class Config:
         use_enum_values = True
@@ -55,7 +56,7 @@ class StepUpdateMessage(BaseModel):
 class ProgressWebSocketMessage(BaseModel):
     """Union type for all progress-related WebSocket messages"""
     type: Literal["steps_definition", "step_update"]
-    data: Union[StepsDefinitionData, StepUpdateData]
+    data: StepsDefinitionData | StepUpdateData
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     @classmethod

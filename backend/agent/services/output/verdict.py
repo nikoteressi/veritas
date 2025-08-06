@@ -6,15 +6,15 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
+
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm import llm_manager
 from agent.models import FactCheckResult, VerdictResult
 from agent.models.motives_analysis import MotivesAnalysisResult
 from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.prompts import prompt_manager
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
-from langchain_core.output_parsers import PydanticOutputParser
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class VerdictService:
         self.llm_manager = llm_manager
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

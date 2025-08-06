@@ -10,14 +10,14 @@ import asyncio
 import gc
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.models.graph import FactCluster, FactGraph, FactNode
 from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
 from app.config import settings
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 from ..graph_config import ClusterVerificationResult, VerificationConfig
 from .cluster_analyzer import ClusterAnalyzer
@@ -44,7 +44,7 @@ class EnhancedGraphVerificationEngine:
     adaptive thresholds, and performance monitoring.
     """
 
-    def __init__(self, search_tool: "SearxNGSearchTool", config: VerificationConfig):
+    def __init__(self, search_tool: SearxNGSearchTool, config: VerificationConfig):
         self._search_tool = search_tool
         self.config = config or VerificationConfig()
 
@@ -92,7 +92,7 @@ class EnhancedGraphVerificationEngine:
         self.logger.debug(
             "Memory cleanup completed after GraphVerificationEngine initialization")
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

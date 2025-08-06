@@ -39,7 +39,6 @@ class BaseAnalyzer(ABC):
         Returns:
             Analysis results dictionary
         """
-        pass
 
     def _log_analysis_start(self) -> None:
         """Log the start of analysis."""
@@ -52,7 +51,8 @@ class BaseAnalyzer(ABC):
 
     def _log_analysis_error(self, error: Exception) -> None:
         """Log analysis error."""
-        self.logger.error(f"Failed {self.analyzer_name} analysis: {error}", exc_info=True)
+        self.logger.error(
+            f"Failed {self.analyzer_name} analysis: {error}", exc_info=True)
 
     async def safe_analyze(self, context: VerificationContext) -> dict[str, Any]:
         """
@@ -73,7 +73,8 @@ class BaseAnalyzer(ABC):
             self._log_analysis_error(e)
             # For safe_analyze, we return error result instead of raising
             # This maintains the safe wrapper behavior while logging the AgentError context
-            agent_error = AgentError(f"Analysis failed in {self.analyzer_name}: {e}")
+            agent_error = AgentError(
+                f"Analysis failed in {self.analyzer_name}: {e}")
             self.logger.error(f"AgentError context: {agent_error}")
             return self._get_error_result(agent_error)
 

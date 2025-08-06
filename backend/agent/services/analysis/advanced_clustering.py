@@ -16,11 +16,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from app.exceptions import AnalysisError
 from dateutil import parser
 from sklearn.cluster import DBSCAN, AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
 from torch_geometric.nn import GATConv, GCNConv, global_mean_pool
+
+from app.exceptions import AnalysisError
 
 logger = logging.getLogger(__name__)
 

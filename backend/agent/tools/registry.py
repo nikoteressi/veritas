@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 # from typing import dict, list  # Removed legacy typing imports
-
 from langchain.tools import BaseTool
 
 from .search import searxng_tool

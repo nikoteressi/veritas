@@ -13,8 +13,8 @@ from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.pipeline.graph_fact_checking_step import GraphFactCheckingStep
 from agent.prompts import prompt_manager
-from app.models.progress_callback import PipelineProgressCallback
 from app.config import VerificationSteps
+from app.models.progress_callback import PipelineProgressCallback
 
 from ..services.analysis.post_analyzer import PostAnalyzerService
 from ..services.infrastructure.screenshot_parser import screenshot_parser_service
@@ -36,11 +36,11 @@ class ValidationStep(BasePipelineStep):
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Validate the verification request."""
         await self.update_progress(0.1, "Starting validation...")
-        
+
         await self.update_progress(0.3, "Validating file data...")
-        
+
         await self.update_progress(0.6, "Validating request parameters...")
-        
+
         validated_data = validation_service.validate_verification_request(
             file_data=context.image_bytes,
             prompt=context.user_prompt,
@@ -50,7 +50,7 @@ class ValidationStep(BasePipelineStep):
 
         await self.update_progress(0.9, "Validation completed...")
         context.validated_data = validated_data
-        
+
         await self.update_progress(1.0, "Validation finished")
         return context
 
@@ -109,14 +109,17 @@ class ScreenshotParsingStep(BasePipelineStep):
             )
             screenshot_parser_service.set_progress_callback(callback)
         else:
-            logger.warning(f"ScreenshotParsingStep: No progress manager or session_id - progress_manager: {context.progress_manager}, session_id: {context.session_id}")
-        
+            logger.warning(
+                "ScreenshotParsingStep: No progress manager or session_id - "
+                "progress_manager: %s, session_id: %s",
+                context.progress_manager, context.session_id)
+
         if context.event_service:
             await context.event_service.emit_screenshot_parsing_started()
 
         # The service now handles its own progress updates
         screenshot_data = await screenshot_parser_service.parse(context.image_bytes)
-        
+
         context.screenshot_data = screenshot_data
 
         if context.event_service:
@@ -135,7 +138,7 @@ class ReputationRetrievalStep(BasePipelineStep):
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Get or create user reputation."""
         await self.update_progress(0.1, "Starting reputation retrieval...")
-        
+
         # Emit start event
         if context.event_service:
             await context.event_service.emit_reputation_retrieval_started()
@@ -265,20 +268,14 @@ class MotivesAnalysisStep(BasePipelineStep):
         # Get typed result from analyzer
         motives_analysis_result = await self.analyzer.analyze(context)
 
-        # Debug logging
-        logger.info(
-            f"Motives analysis result type: {type(motives_analysis_result)}")
-        logger.info(
-            f"Motives analysis result primary_motive: {motives_analysis_result.primary_motive if motives_analysis_result else 'None'}"
-        )
-
         # Use new typed method
         context.set_motives_analysis(motives_analysis_result)
 
         # Verify it was set correctly
         verification = context.get_motives_analysis()
         logger.info(
-            f"Verification after setting: {verification.primary_motive if verification else 'None'}")
+            "Verification after setting: %s",
+            verification.primary_motive if verification else 'None')
 
         if context.event_service:
             await context.event_service.emit_motives_analysis_completed()
@@ -299,7 +296,7 @@ class VerdictGenerationStep(BasePipelineStep):
     async def execute(self, context: VerificationContext) -> VerificationContext:
         """Generate final verdict using summarization and motives analysis results."""
         await self.update_progress(0.1, "Starting verdict generation...")
-        
+
         # Setup progress callback
         if context.progress_manager and context.session_id:
             callback = PipelineProgressCallback(
@@ -320,14 +317,6 @@ class VerdictGenerationStep(BasePipelineStep):
         motives_analysis_result = context.get_motives_analysis()
 
         await self.update_progress(0.4, "Processing analysis data...")
-        # Debug logging for motives analysis
-        logger.info(
-            f"Retrieved motives analysis type: {type(motives_analysis_result)}")
-        logger.info(
-            f"Retrieved motives analysis primary_motive: {motives_analysis_result.primary_motive if motives_analysis_result else 'None'}"
-        )
-        logger.info(
-            f"Context motives_analysis_result field: {context.motives_analysis_result}")
 
         # Use summarization result if available, otherwise fallback to context.summary
         summary_text = summarization_result.summary if summarization_result else context.summary
@@ -381,7 +370,11 @@ class ReputationUpdateStep(BasePipelineStep):
         if context.extracted_info_typed and context.extracted_info_typed.username:
             username = context.extracted_info_typed.username
 
-        updated_reputation = await reputation_service.update(context.db, username, context.verdict_result.verdict)
+        updated_reputation = await reputation_service.update(
+            context.db,
+            username,
+            context.verdict_result.verdict
+        )
 
         context.updated_reputation = updated_reputation
 
@@ -412,17 +405,11 @@ class ResultStorageStep(BasePipelineStep):
         if context.extracted_info_typed:
             extracted_info_dict = context.extracted_info_typed.model_dump()
 
-        # Debug logging for claims
-        logger.info(f"Context claims: {context.claims}")
-        logger.info(f"Context claims type: {type(context.claims)}")
-        logger.info(
-            f"Context claims length: {len(context.claims) if context.claims else 'None'}")
-
         # Add claims from context.claims to the extracted_info_dict
         extracted_info_dict["claims"] = context.claims if context.claims else []
 
         logger.info(
-            f"Final extracted_info_dict claims: {extracted_info_dict.get('claims', [])}")
+            "Final extracted_info_dict claims: %s",  extracted_info_dict.get('claims', []))
 
         verification_record = await storage_service.save_verification_result(
             db=context.db,

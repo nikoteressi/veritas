@@ -1,12 +1,19 @@
 // Core verification types
 export interface VerificationResult {
   id?: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'success';
+  verdict?: 'true' | 'false' | 'mostly_accurate' | 'partially_accurate' | 'inconclusive';
   confidence?: number;
+  confidence_score?: number;
   analysis?: string;
+  justification?: string;
   sources?: Source[];
   timestamp: string;
   message?: string;
+  uploaded_image?: string;
+  identified_claims?: string[];
+  processing_time?: number;
+  primary_topic?: string;
   metadata?: {
     processingTime?: number;
     modelVersion?: string;
@@ -17,8 +24,9 @@ export interface VerificationResult {
 export interface Source {
   url: string;
   title: string;
-  credibility: number;
-  relevance: number;
+  description?: string;
+  credibility?: number;
+  relevance?: number;
   snippet?: string;
   publishDate?: string;
   domain?: string;

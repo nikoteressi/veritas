@@ -13,9 +13,10 @@ import time
 from typing import Any
 
 import numpy as np
+from langchain_ollama import OllamaEmbeddings
+
 from app.config import settings
 from app.exceptions import EmbeddingError
-from langchain_ollama import OllamaEmbeddings
 
 from ..cache.intelligent_cache import CacheLevel, IntelligentCache
 

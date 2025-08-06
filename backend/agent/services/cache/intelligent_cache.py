@@ -18,6 +18,7 @@ from typing import Any
 
 import numpy as np
 import redis.asyncio as redis
+
 from app.config import Settings
 from app.exceptions import CacheError
 from app.redis_client import redis_manager

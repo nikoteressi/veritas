@@ -6,8 +6,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from app.crud import UserCRUD
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import UserCRUD
 
 logger = logging.getLogger(__name__)
 

@@ -17,6 +17,7 @@ from agent.models.graph import ClusterType, FactCluster
 from agent.prompts.manager import PromptManager
 from agent.services.analysis.adaptive_thresholds import get_adaptive_thresholds
 from agent.services.cache.intelligent_cache import IntelligentCache
+
 from .response_parser import ResponseParser
 from .source_manager import EnhancedSourceManager
 
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 class EnhancedEvidenceGatherer:
     """Enhanced evidence gatherer with intelligent caching and adaptive relevance scoring."""
 
-    def __init__(self, search_tool: "SearxNGSearchTool", config=None):
+    def __init__(self, search_tool: SearxNGSearchTool, config=None):
         self._search_tool = search_tool
         self.config = config
         self.prompt_manager = PromptManager()
@@ -230,7 +231,7 @@ class EnhancedEvidenceGatherer:
 
         # Scrape and evaluate sources with relevance scoring
         logger.info(
-            "Scraping and evaluating {} sources".format(len(sources_to_evaluate)))
+            f"Scraping and evaluating {len(sources_to_evaluate)} sources")
 
         source_contents = await self.source_manager.scrape_sources_batch(
             sources_to_evaluate, query_context=combined_claim
@@ -241,15 +242,15 @@ class EnhancedEvidenceGatherer:
         for url, scraped_info in source_contents.items():
             content = scraped_info.get("content", "")
             publication_date = scraped_info.get("publication_date")
-            
+
             if content and not content.startswith("Failed to scrape"):
                 relevance_score = await self.source_manager.calculate_relevance(
                     content, combined_claim, source_type, query_type
                 )
 
                 scored_sources.append({
-                    "url": url, 
-                    "content": content, 
+                    "url": url,
+                    "content": content,
                     "relevance_score": relevance_score,
                     "publication_date": publication_date
                 })
@@ -329,7 +330,7 @@ class EnhancedEvidenceGatherer:
 
             if not search_queries:
                 logger.warning(
-                    "No search queries generated for cluster {}".format(cluster.id))
+                    f"No search queries generated for cluster {cluster.id}")
                 return []
 
             # Step 2: Execute searches with context
@@ -382,7 +383,7 @@ class EnhancedEvidenceGatherer:
 
         except Exception as e:
             logger.error(
-                "Failed to gather evidence for cluster {}: {}".format(cluster.id, e))
+                f"Failed to gather evidence for cluster {cluster.id}: {e}")
             return []
 
     async def get_cache_stats(self) -> dict[str, Any]:
@@ -428,7 +429,7 @@ class EnhancedEvidenceGatherer:
         recommendations = await self.adaptive_thresholds.get_threshold_recommendations()
 
         logger.info(
-            "Performance optimization completed. Recommendations: {}".format(recommendations))
+            f"Performance optimization completed. Recommendations: {recommendations}")
         return recommendations
 
     async def close(self):

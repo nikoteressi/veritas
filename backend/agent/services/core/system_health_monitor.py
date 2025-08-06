@@ -12,8 +12,6 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from app.exceptions import AgentError
-
 from .component_manager import ComponentManager
 
 

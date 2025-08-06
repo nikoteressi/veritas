@@ -4,8 +4,9 @@ Refactored temporal analysis module for detecting temporal mismatches in social 
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from datetime import datetime
+
+from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.analyzers.base_analyzer import BaseAnalyzer
 from agent.llm import OllamaLLMManager
@@ -13,8 +14,7 @@ from agent.models.temporal_analysis import TemporalAnalysisResult
 from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
 from app.exceptions import TemporalAnalysisError
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
-from langchain_core.output_parsers import PydanticOutputParser
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class TemporalAnalyzer(BaseAnalyzer):
         self.prompt_manager = prompt_manager
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

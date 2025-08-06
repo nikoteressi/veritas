@@ -86,7 +86,7 @@ class TemporalAnalysisCache:
 
             # Parse the date string
             parsed = date_parser.parse(date_str)
-            
+
             # Convert to naive datetime for consistency with datetime.now()
             return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
 

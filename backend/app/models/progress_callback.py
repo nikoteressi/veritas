@@ -3,7 +3,7 @@ Progress callback interfaces for reporting progress during pipeline execution.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
+
 from app.models.progress import StepStatus
 
 
@@ -15,21 +15,19 @@ class ProgressCallback(ABC):
         self,
         current: float,
         total: float,
-        message: Optional[str] = None,
+        message: str | None = None,
         use_smooth_animation: bool = True
     ) -> None:
         """Update progress with current/total values."""
-        pass
 
     @abstractmethod
     async def update_substep(
         self,
         substep_name: str,
         progress: float,
-        message: Optional[str] = None
+        message: str | None = None
     ) -> None:
         """Update progress for a substep."""
-        pass
 
 
 class PipelineProgressCallback(ProgressCallback):
@@ -45,7 +43,7 @@ class PipelineProgressCallback(ProgressCallback):
         self,
         current: float,
         total: float,
-        message: Optional[str] = None,
+        message: str | None = None,
         use_smooth_animation: bool = True
     ) -> None:
         """Update progress with smooth animations for significant changes."""
@@ -83,12 +81,12 @@ class PipelineProgressCallback(ProgressCallback):
         self,
         substep_name: str,
         progress: float,
-        message: Optional[str] = None
+        message: str | None = None
     ) -> None:
         """Update progress for a substep."""
         # Convert progress from percentage (0-100) to fraction (0.0-1.0) if needed
         normalized_progress = progress / 100.0 if progress > 1.0 else progress
-        
+
         # Determine status based on normalized progress
         status = StepStatus.COMPLETED if normalized_progress >= 1.0 else StepStatus.IN_PROGRESS
 
@@ -102,7 +100,7 @@ class PipelineProgressCallback(ProgressCallback):
             progress=normalized_progress,
             message=formatted_message
         )
-        
+
         # Update last_progress to track changes
         self.last_progress = normalized_progress
 
@@ -114,17 +112,15 @@ class NoOpProgressCallback(ProgressCallback):
         self,
         current: float,
         total: float,
-        message: Optional[str] = None,
+        message: str | None = None,
         use_smooth_animation: bool = True
     ) -> None:
         """No-op implementation."""
-        pass
 
     async def update_substep(
         self,
         substep_name: str,
         progress: float,
-        message: Optional[str] = None
+        message: str | None = None
     ) -> None:
         """No-op implementation."""
-        pass

@@ -29,7 +29,7 @@ def get_database_url():
     db_name = os.getenv('DB_NAME', 'veritas_db')
     db_user = os.getenv('DB_USER', 'veritas_user')
     db_password = os.getenv('DB_PASSWORD', 'veritas_password')
-    
+
     return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 # Set the database URL

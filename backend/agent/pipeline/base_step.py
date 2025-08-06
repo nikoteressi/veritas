@@ -5,11 +5,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from agent.models.verification_context import VerificationContext
 from app.exceptions import AgentError
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 
 class BasePipelineStep(ABC):
@@ -20,7 +19,7 @@ class BasePipelineStep(ABC):
         self.logger = logging.getLogger(f"{__name__}.{name}")
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for this step."""
         self.progress_callback = callback or NoOpProgressCallback()
 
@@ -79,7 +78,8 @@ class BasePipelineStep(ABC):
             # Update progress to indicate failure
             if self.progress_callback:
                 self.logger.info(
-                    f"BasePipelineStep.safe_execute: Updating progress to 0% for failed step '{self.name}'")
+                    "BasePipelineStep.safe_execute: Updating progress to 0%% for failed step '%s'",
+                    self.name)
                 await self.progress_callback.update_progress(0, 100, f"Failed: {str(e)}")
 
             raise AgentError(f"Step '{self.name}' failed: {e}") from e

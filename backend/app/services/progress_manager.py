@@ -5,24 +5,20 @@ This service provides centralized management of progress tracking,
 step definitions, and smooth progress calculations.
 """
 
-from typing import Dict, List, Optional
-from datetime import datetime
 import asyncio
 import logging
+from datetime import datetime
 
-from app.models.progress import (
-    ProgressStep,
-    PipelineConfiguration,
-    SmartProgressCalculator,
-    StepStatus,
-    StepsDefinitionData,
-    StepUpdateData
-)
 from app.config import VerificationSteps, settings
-from app.schemas.websocket import (
-    StepsDefinitionMessage,
-    StepUpdateMessage
+from app.models.progress import (
+    PipelineConfiguration,
+    ProgressStep,
+    SmartProgressCalculator,
+    StepsDefinitionData,
+    StepStatus,
+    StepUpdateData,
 )
+from app.schemas.websocket import StepsDefinitionMessage, StepUpdateMessage
 from app.websocket_manager import connection_manager
 
 logger = logging.getLogger(__name__)
@@ -89,7 +85,7 @@ class StepDefinitionManager:
         )
 
     @classmethod
-    def create_custom_pipeline(cls, session_id: str, step_configs: List[Dict]) -> PipelineConfiguration:
+    def create_custom_pipeline(cls, session_id: str, step_configs: list[dict]) -> PipelineConfiguration:
         """Create a custom pipeline configuration from step configs."""
         steps = []
         total_duration = 0
@@ -117,14 +113,14 @@ class ProgressManager:
     """Manages progress tracking for verification sessions."""
 
     def __init__(self):
-        self.active_sessions: Dict[str, SmartProgressCalculator] = {}
+        self.active_sessions: dict[str, SmartProgressCalculator] = {}
         self.websocket_manager = None  # Will be injected
 
     def set_websocket_manager(self, websocket_manager):
         """Inject WebSocket manager dependency."""
         self.websocket_manager = websocket_manager
 
-    async def start_session(self, session_id: str, custom_steps: Optional[List[Dict]] = None) -> PipelineConfiguration:
+    async def start_session(self, session_id: str, custom_steps: list[dict] | None = None) -> PipelineConfiguration:
         """Start a new progress tracking session."""
         try:
             # Create pipeline configuration
@@ -253,7 +249,7 @@ class ProgressManager:
             logger.error("Failed to complete session %s: %s", session_id, e)
             return False
 
-    def get_session_status(self, session_id: str) -> Optional[Dict]:
+    def get_session_status(self, session_id: str) -> dict | None:
         """Get current status of a progress session."""
         calculator = self.active_sessions.get(session_id)
         if not calculator:

@@ -9,13 +9,13 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from agent.clients.vector_store import vector_store
+from agent.models.verification_result import VerificationResult
 from app.config import settings
 from app.crud import VerificationResultCRUD
 from app.exceptions import AgentError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from agent.models.verification_result import VerificationResult
-from agent.clients.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
 

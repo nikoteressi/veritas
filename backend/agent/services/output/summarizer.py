@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
 
 from agent.llm.manager import OllamaLLMManager
 from agent.models.summarization_result import SummarizationResult
 from agent.models.verification_context import VerificationContext
 from agent.prompts.manager import PromptManager
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class SummarizerService:
         self.prompt_manager = prompt_manager
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

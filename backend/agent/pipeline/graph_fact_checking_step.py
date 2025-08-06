@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import logging
 
-from agent.models.verification_context import VerificationContext
 from agent.models.internal import FactCheckResult
+from agent.models.verification_context import VerificationContext
 from agent.pipeline.base_step import BasePipelineStep
 from agent.tools import searxng_tool
+from app.config import VerificationSteps
 from app.exceptions import AgentError
 from app.models.progress_callback import PipelineProgressCallback
-from app.config import VerificationSteps
 
 from ..services.graph.graph_fact_checking import GraphFactCheckingService
 

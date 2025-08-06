@@ -48,7 +48,7 @@ class RedisClient:
         if self._async_pool_text is None:
             try:
                 logger.info("Initializing async Redis connection pools at %s", settings.redis_url)
-                
+
                 # Pool for text data (with UTF-8 decoding)
                 self._async_pool_text = AsyncConnectionPool.from_url(
                     settings.redis_url,
@@ -57,7 +57,7 @@ class RedisClient:
                     max_connections=10,  # Limit concurrent connections
                     retry_on_timeout=True,
                 )
-                
+
                 # Pool for binary data (no decoding)
                 self._async_pool_binary = AsyncConnectionPool.from_url(
                     settings.redis_url,
@@ -65,7 +65,7 @@ class RedisClient:
                     max_connections=10,  # Limit concurrent connections
                     retry_on_timeout=True,
                 )
-                
+
                 # Test connections
                 client_text = self.get_async_client_text()
                 client_binary = self.get_async_client_binary()
@@ -103,7 +103,7 @@ class RedisClient:
             await self._async_pool_text.disconnect()
             self._async_pool_text = None
             logger.info("Async Redis text connection pool closed.")
-        
+
         if self._async_pool_binary:
             await self._async_pool_binary.disconnect()
             self._async_pool_binary = None

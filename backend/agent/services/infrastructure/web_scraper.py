@@ -5,11 +5,11 @@ import asyncio
 import logging
 import re
 from datetime import datetime
-from typing import Optional
 
-from app.exceptions import AgentError
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 from crawl4ai.extraction_strategy import NoExtractionStrategy
+
+from app.exceptions import AgentError
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class WebScraper:
         self.semaphore = asyncio.Semaphore(max_concurrent_scrapes)
         self.max_concurrent_scrapes = max_concurrent_scrapes
 
-    def _extract_publication_date(self, html_content: str) -> Optional[str]:
+    def _extract_publication_date(self, html_content: str) -> str | None:
         """
         Extract publication date from HTML content using various strategies.
 
@@ -100,7 +100,7 @@ class WebScraper:
 
         return None
 
-    def _parse_date_string(self, date_str: str) -> Optional[str]:
+    def _parse_date_string(self, date_str: str) -> str | None:
         """
         Parse various date string formats and return ISO format.
 

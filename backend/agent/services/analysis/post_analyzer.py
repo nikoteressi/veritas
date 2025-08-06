@@ -5,15 +5,14 @@ Provides functionality to analyze screenshots and temporal data using LLM.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from langchain_core.output_parsers import PydanticOutputParser
 
 from agent.llm.manager import OllamaLLMManager
-from agent.prompts.manager import PromptManager
 from agent.models.post_analysis_result import PostAnalysisResult
 from agent.models.verification_context import VerificationContext
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
+from agent.prompts.manager import PromptManager
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class PostAnalyzerService:
         self.prompt_manager = prompt_manager
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

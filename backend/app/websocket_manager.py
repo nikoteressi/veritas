@@ -17,11 +17,7 @@ from redis.asyncio.client import Redis
 from app.json_utils import json_dumps
 from app.redis_client import redis_manager
 from app.schemas import ProgressEvent
-from app.schemas.websocket import (
-    ProgressWebSocketMessage,
-    StepsDefinitionMessage,
-    StepUpdateMessage
-)
+from app.schemas.websocket import ProgressWebSocketMessage, StepsDefinitionMessage, StepUpdateMessage
 
 logger = logging.getLogger(__name__)
 

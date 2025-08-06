@@ -8,14 +8,14 @@ source reputation system, and intelligent caching.
 """
 
 import asyncio
-import logging
 import hashlib
+import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from app.exceptions import AgentError
-from app.models.progress_callback import ProgressCallback, NoOpProgressCallback
 from agent.models.graph import FactEdge
+from app.exceptions import AgentError
+from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
 
 from ...models import ClaimResult, FactCheckResult, FactCheckSummary
 from ...models.graph import FactGraph, VerificationStatus
@@ -132,7 +132,7 @@ class GraphFactCheckingService:
         # Progress callback for detailed progress reporting
         self.progress_callback: ProgressCallback = NoOpProgressCallback()
 
-    def set_progress_callback(self, callback: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
         self.progress_callback = callback or NoOpProgressCallback()
 

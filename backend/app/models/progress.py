@@ -5,10 +5,11 @@ This module defines Pydantic models for the new progress tracking system
 that centralizes step management and enables smooth progress animations.
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class StepStatus(str, Enum):
@@ -32,13 +33,13 @@ class ProgressStep(BaseModel):
                           description="Step weight for progress calculation")
     status: StepStatus = Field(
         default=StepStatus.PENDING, description="Current step status")
-    substeps: Optional[List['ProgressStep']] = Field(
+    substeps: list['ProgressStep'] | None = Field(
         default=None, description="Optional substeps")
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None, description="Additional step metadata")
-    started_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(
         default=None, description="Step start timestamp")
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         default=None, description="Step completion timestamp")
     progress_percentage: float = Field(
         default=0.0, ge=0.0, le=100.0, description="Current step progress")
@@ -66,7 +67,7 @@ ProgressStep.model_rebuild()
 class PipelineConfiguration(BaseModel):
     """Configuration for the entire pipeline."""
 
-    steps: List[ProgressStep] = Field(...,
+    steps: list[ProgressStep] = Field(...,
                                       description="List of pipeline steps")
     session_id: str = Field(..., description="Session identifier")
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -80,7 +81,7 @@ class PipelineConfiguration(BaseModel):
         """Calculate total weight of all steps."""
         return sum(step.weight for step in self.steps)
 
-    def get_step_by_id(self, step_id: str) -> Optional[ProgressStep]:
+    def get_step_by_id(self, step_id: str) -> ProgressStep | None:
         """Get step by ID."""
         for step in self.steps:
             if step.id == step_id:
@@ -120,7 +121,7 @@ class SmartProgressCalculator(BaseModel):
                                     start_progress: float,
                                     target_progress: float,
                                     duration_ms: int = 300,
-                                    fps: int = 30) -> List[Tuple[float, int]]:
+                                    fps: int = 30) -> list[tuple[float, int]]:
         """
         Generate intermediate progress values for smooth animation.
 
@@ -156,7 +157,7 @@ class SmartProgressCalculator(BaseModel):
 
         return updates
 
-    def get_current_step(self) -> Optional[ProgressStep]:
+    def get_current_step(self) -> ProgressStep | None:
         """Get the currently active step."""
         for step in self.pipeline_config.steps:
             if step.status == StepStatus.IN_PROGRESS:
@@ -194,7 +195,7 @@ class SmartProgressCalculator(BaseModel):
 class StepsDefinitionData(BaseModel):
     """Data model for steps definition message."""
 
-    steps: List[ProgressStep] = Field(...,
+    steps: list[ProgressStep] = Field(...,
                                       description="List of pipeline steps")
     session_id: str = Field(..., description="Session identifier")
 
@@ -207,7 +208,7 @@ class StepUpdateData(BaseModel):
     progress: float = Field(..., ge=0, le=100,
                             description="Step progress percentage")
     message: str = Field(..., description="Step status message")
-    duration: Optional[int] = Field(
+    duration: int | None = Field(
         None, ge=0, description="Step duration in ms if completed")
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None, description="Additional step metadata")

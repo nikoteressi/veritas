@@ -31,7 +31,7 @@ class ResultCompiler:
 
     async def compile_result(
         self,
-        context: "VerificationContext",
+        context: VerificationContext,
     ) -> dict[str, Any]:
         """
         Compile all verification results into a final JSON-serializable format.
