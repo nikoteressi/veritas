@@ -9,12 +9,14 @@ import logging
 import time
 from typing import Any, Dict, List, Optional, Set
 
-from app.cache.cache_manager import CacheManager
+from app.exceptions import CacheError
+from app.cache.core import CacheManager
+from .base_cache_service import BatchCacheServiceInterface, InvalidationCacheServiceInterface
 
 logger = logging.getLogger(__name__)
 
 
-class VerificationCache:
+class VerificationCache(BatchCacheServiceInterface, InvalidationCacheServiceInterface):
     """
     Specialized cache for verification results.
 
@@ -34,11 +36,16 @@ class VerificationCache:
             cache_manager: Unified cache manager instance
         """
         self.cache_manager = cache_manager
-        self.cache_type = 'verification'
+        self._cache_type = 'verification'
 
         # Dependency tracking
         self._dependencies: Dict[str, Set[str]] = {}
         self._reverse_dependencies: Dict[str, Set[str]] = {}
+
+    @property
+    def cache_type(self) -> str:
+        """Get cache type identifier."""
+        return self._cache_type
 
     async def get_verification_result(
         self,
@@ -59,12 +66,12 @@ class VerificationCache:
         """
         key = self._generate_verification_key(
             content, verification_type, context)
-        result = await self.cache_manager.get(key, self.cache_type)
+        result = await self.cache_manager.get(key, self._cache_type)
 
         if result:
             # Update access time for metrics
             result['last_accessed'] = time.time()
-            await self.cache_manager.set(key, result, cache_type=self.cache_type)
+            await self.cache_manager.set(key, result, cache_type=self._cache_type)
 
         return result
 
@@ -106,7 +113,7 @@ class VerificationCache:
         }
 
         # Store result
-        success = await self.cache_manager.set(key, cached_result, ttl, self.cache_type)
+        success = await self.cache_manager.set(key, cached_result, ttl, self._cache_type)
 
         if success and dependencies:
             # Update dependency tracking
@@ -141,7 +148,7 @@ class VerificationCache:
             request_map[key] = i
 
         # Get results from cache
-        results = await self.cache_manager.get_many(keys, self.cache_type)
+        results = await self.cache_manager.get_many(keys, self._cache_type)
 
         # Map back to request indices
         batch_results = {}
@@ -152,7 +159,7 @@ class VerificationCache:
 
                 # Update access time
                 result['last_accessed'] = time.time()
-                await self.cache_manager.set(key, result, cache_type=self.cache_type)
+                await self.cache_manager.set(key, result, cache_type=self._cache_type)
 
         return batch_results
 
@@ -173,7 +180,7 @@ class VerificationCache:
 
         invalidated_count = 0
         for key in list(dependent_keys):
-            success = await self.cache_manager.delete(key, self.cache_type)
+            success = await self.cache_manager.delete(key, self._cache_type)
             if success:
                 invalidated_count += 1
                 self._remove_dependency_tracking(key)
@@ -193,7 +200,7 @@ class VerificationCache:
         pattern = f"*:{verification_type}:*"
 
         # Clear from cache
-        deleted_count = await self.cache_manager.clear_by_pattern(pattern, self.cache_type)
+        deleted_count = await self.cache_manager.clear_by_pattern(pattern, self._cache_type)
 
         # Clean up dependency tracking
         keys_to_remove = []
@@ -205,6 +212,10 @@ class VerificationCache:
             self._remove_dependency_tracking(key)
 
         return deleted_count
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get cache service statistics (implements CacheServiceInterface)."""
+        return await self.get_verification_stats()
 
     async def get_verification_stats(self) -> Dict[str, Any]:
         """Get verification cache statistics."""
@@ -226,6 +237,10 @@ class VerificationCache:
             'verification_stats': verification_stats
         }
 
+    async def cleanup(self) -> int:
+        """Clean up expired cache entries (implements CacheServiceInterface)."""
+        return await self.cleanup_expired_dependencies()
+
     async def cleanup_expired_dependencies(self) -> int:
         """
         Clean up dependency tracking for expired cache entries.
@@ -238,7 +253,7 @@ class VerificationCache:
 
         # Check which keys still exist in cache
         for key in self._dependencies:
-            exists = await self.cache_manager.exists(key, self.cache_type)
+            exists = await self.cache_manager.exists(key, self._cache_type)
             if not exists:
                 keys_to_remove.append(key)
 
@@ -307,3 +322,62 @@ class VerificationCache:
                 # Clean up empty reverse dependency sets
                 if not self._reverse_dependencies[dep_hash]:
                     del self._reverse_dependencies[dep_hash]
+
+    async def get_batch(self, keys: list) -> Dict[str, Any]:
+        """Get multiple verification results (implements BatchCacheServiceInterface)."""
+        # This maps to our existing get_verification_batch method
+        # Keys should be verification request dictionaries
+        if not keys:
+            return {}
+
+        # Convert keys to verification requests format
+        requests = []
+        for key in keys:
+            if isinstance(key, dict):
+                requests.append(key)
+            else:
+                # Assume key is a string and create basic request
+                requests.append({'content': str(key), 'type': 'default'})
+
+        return await self.get_verification_batch(requests)
+
+    async def set_batch(self, data: Dict[str, Any], ttl: Optional[int] = None) -> bool:
+        """Set multiple verification results (implements BatchCacheServiceInterface)."""
+        # Data should be in format: {key: (content, verification_type, result), ...}
+        try:
+            for key, value in data.items():
+                if isinstance(value, tuple) and len(value) >= 3:
+                    content, verification_type, result = value[:3]
+                    context = value[3] if len(value) > 3 else None
+                    dependencies = value[4] if len(value) > 4 else None
+
+                    success = await self.set_verification_result(
+                        content, verification_type, result, context, dependencies, ttl
+                    )
+                    if not success:
+                        return False
+            return True
+        except CacheError as e:
+            logger.error("Cache error in set_batch: %s", e)
+            return False
+        except Exception as e:
+            logger.error("Error in set_batch: %s", e)
+            return False
+
+    async def invalidate_by_pattern(self, pattern: str) -> int:
+        """Invalidate cache entries matching a pattern (implements InvalidationCacheServiceInterface)."""
+        # Use the existing invalidate_by_type method if pattern matches verification type
+        if ':' in pattern:
+            # Extract verification type from pattern
+            parts = pattern.split(':')
+            if len(parts) >= 2:
+                verification_type = parts[1]
+                return await self.invalidate_by_type(verification_type)
+
+        # For other patterns, use cache manager's clear_by_pattern
+        return await self.cache_manager.clear_by_pattern(pattern, self._cache_type)
+
+    async def invalidate_by_dependency(self, dependency: str) -> int:
+        """Invalidate cache entries that depend on specific content (implements InvalidationCacheServiceInterface)."""
+        # This maps to our existing invalidate_by_content method
+        return await self.invalidate_by_content(dependency)

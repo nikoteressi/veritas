@@ -15,7 +15,7 @@ from app.config import settings
 from app.database import create_db_and_tables
 from app.error_handlers import EXCEPTION_HANDLERS
 from app.handlers.websocket_handler import websocket_handler
-from app.cache.factory import cache_factory
+from app.cache import cache_factory
 from app.matplotlib_config import configure_matplotlib
 from app.routers import reputation, verification
 from app.services.progress_manager import initialize_progress_manager

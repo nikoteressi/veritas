@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.orchestration import workflow_coordinator
 from agent.services.processing.validation_service import validation_service
-from app.cache.factory import get_verification_cache
+from app.cache import CacheType, get_cache
 from app.crud import VerificationResultCRUD
 from app.database import async_session_factory
 from app.websocket_manager import EventProgressTracker, websocket_manager
@@ -90,7 +90,7 @@ class VerificationService:
             }
         else:
             # Check cache first
-            cache = await get_verification_cache()
+            cache = await get_cache(CacheType.VERIFICATION)
             content = f"{filename}:{validated_data['prompt']}"
             verification_type = "image_verification"
             context = {"filename": filename} if filename else None
@@ -152,7 +152,8 @@ class VerificationService:
                     "Starting background verification for session %s", session_id)
 
                 # Check cache first
-                cache = await get_verification_cache()
+                cache = await get_cache(CacheType.VERIFICATION)
+
                 content = f"{filename}:{prompt}"
                 verification_type = "image_verification"
                 context = {"filename": filename} if filename else None

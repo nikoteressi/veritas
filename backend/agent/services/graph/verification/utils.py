@@ -41,8 +41,7 @@ class VerificationUtils:
     def extract_keywords(text: str, min_length: int = 3) -> list[str]:
         """Extract keywords from text."""
         # Remove special characters and split
-        words = re.findall(
-            r"\b[a-zA-Z]{" + str(min_length) + ",}\b", text.lower())
+        words = re.findall(r"\b[a-zA-Z]{" + str(min_length) + ",}\b", text.lower())
 
         # Common stop words to filter out
         stop_words = {
@@ -172,8 +171,7 @@ class VerificationUtils:
         diversity_score = min(1.0, source_diversity / 3.0)
 
         # Weighted combination
-        confidence = evidence_score * 0.4 + \
-            diversity_score * 0.3 + consistency_score * 0.3
+        confidence = evidence_score * 0.4 + diversity_score * 0.3 + consistency_score * 0.3
 
         return min(1.0, max(0.0, confidence))
 
@@ -192,12 +190,11 @@ class VerificationUtils:
         ]
 
         for i, stmt1 in enumerate(statements):
-            for j, stmt2 in enumerate(statements[i + 1:], i + 1):
+            for j, stmt2 in enumerate(statements[i + 1 :], i + 1):
                 # Check for direct negation patterns
                 for neg_pattern, pos_pattern in negation_patterns:
                     if (re.search(neg_pattern, stmt1.lower()) and re.search(pos_pattern, stmt2.lower())) or (
-                        re.search(pos_pattern, stmt1.lower()) and re.search(
-                            neg_pattern, stmt2.lower())
+                        re.search(pos_pattern, stmt1.lower()) and re.search(neg_pattern, stmt2.lower())
                     ):
                         contradictions.append((i, j))
                         break
@@ -239,8 +236,7 @@ class VerificationUtils:
             start_time = time.time()
             result = func(*args, **kwargs)
             execution_time = time.time() - start_time
-            logger.debug(
-                f"{func.__name__} executed in {execution_time:.2f} seconds")
+            logger.debug(f"{func.__name__} executed in {execution_time:.2f} seconds")
             return result
 
         return wrapper
@@ -253,8 +249,7 @@ class VerificationUtils:
             start_time = time.time()
             result = await func(*args, **kwargs)
             execution_time = time.time() - start_time
-            logger.debug(
-                f"{func.__name__} executed in {execution_time:.2f} seconds")
+            logger.debug(f"{func.__name__} executed in {execution_time:.2f} seconds")
             return result
 
         return wrapper
@@ -277,8 +272,7 @@ class VerificationUtils:
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
-                items.extend(VerificationUtils.flatten_dict(
-                    v, new_key, sep=sep).items())
+                items.extend(VerificationUtils.flatten_dict(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
         return dict(items)
@@ -294,8 +288,7 @@ class VerificationUtils:
         for text in texts[1:]:
             is_duplicate = False
             for unique_text in unique_texts:
-                similarity = VerificationUtils.calculate_text_similarity(
-                    text, unique_text)
+                similarity = VerificationUtils.calculate_text_similarity(text, unique_text)
                 if similarity >= similarity_threshold:
                     is_duplicate = True
                     break

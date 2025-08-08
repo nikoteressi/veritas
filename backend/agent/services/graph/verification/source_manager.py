@@ -4,6 +4,7 @@ Source manager for web scraping and source management.
 Handles scraping of web sources and caching for efficient verification.
 Enhanced with intelligent caching and adaptive relevance scoring.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +17,6 @@ from typing import Any
 from app.cache import get_general_cache
 
 from ...analysis.adaptive_thresholds import get_adaptive_thresholds
-from app.cache.factory import CacheFactory
 from ...infrastructure.web_scraper import WebScraper
 from ...relevance.relevance_orchestrator import get_relevance_manager
 
@@ -32,8 +32,7 @@ class EnhancedSourceManager:
         Args:
             max_concurrent_scrapes: Maximum number of concurrent scraping operations (default: 3)
         """
-        self.web_scraper = WebScraper(
-            max_concurrent_scrapes=max_concurrent_scrapes)
+        self.web_scraper = WebScraper(max_concurrent_scrapes=max_concurrent_scrapes)
 
         # Use new unified cache system
         self.cache = None
@@ -113,14 +112,12 @@ class EnhancedSourceManager:
         """Ensure relevance manager is initialized."""
         if not self._relevance_initialized:
             try:
-                logger.info(
-                    "Getting relevance manager singleton for source manager...")
+                logger.info("Getting relevance manager singleton for source manager...")
                 self.relevance_manager = get_relevance_manager()
 
                 # Check if the singleton is already initialized
                 if self.relevance_manager.is_initialized:
-                    logger.info(
-                        "Relevance manager singleton already initialized, using existing instance")
+                    logger.info("Relevance manager singleton already initialized, using existing instance")
                     self._relevance_initialized = True
                 else:
                     # Initialize the relevance manager only if not already initialized
@@ -129,17 +126,14 @@ class EnhancedSourceManager:
 
                     if initialization_success:
                         self._relevance_initialized = True
-                        logger.info(
-                            "Relevance manager singleton initialized successfully")
+                        logger.info("Relevance manager singleton initialized successfully")
                     else:
-                        logger.warning(
-                            "Relevance manager could not be initialized (Ollama not available)")
+                        logger.warning("Relevance manager could not be initialized (Ollama not available)")
                         self.relevance_manager = None
                         self._relevance_initialized = False
 
             except (ConnectionError, TimeoutError) as e:
-                logger.error(
-                    "Failed to initialize relevance manager for source manager: %s", e)
+                logger.error("Failed to initialize relevance manager for source manager: %s", e)
                 self.relevance_manager = None
                 self._relevance_initialized = False
 
@@ -176,8 +170,7 @@ class EnhancedSourceManager:
                     # Ensure cached data has the expected structure
                     if isinstance(cached_data, str):
                         # Legacy cache format - just content
-                        results[url] = {"content": cached_data,
-                                        "publication_date": None}
+                        results[url] = {"content": cached_data, "publication_date": None}
                     else:
                         # New format with metadata
                         results[url] = cached_data
@@ -186,8 +179,7 @@ class EnhancedSourceManager:
                     urls_to_scrape.append(url)
 
             except (ConnectionError, TimeoutError) as e:
-                logger.error(
-                    "Error checking cache for URL %s: %s", url, str(e))
+                logger.error("Error checking cache for URL %s: %s", url, str(e))
                 urls_to_scrape.append(url)
 
         # Second pass: Scrape all non-cached URLs concurrently
@@ -206,20 +198,12 @@ class EnhancedSourceManager:
                     try:
                         if scrape_result.get("status") == "success" and scrape_result.get("content"):
                             content = scrape_result["content"]
-                            publication_date = scrape_result.get(
-                                "publication_date")
+                            publication_date = scrape_result.get("publication_date")
 
                             # Store in intelligent cache with context
                             cache_key = f"source_content:{hashlib.md5(url.encode()).hexdigest()}"
                             cache_data = {
                                 "content": content,
-                                "publication_date": publication_date,
-                            }
-                            cache_metadata = {
-                                "url": url,
-                                "query_context": query_context,
-                                "content_length": len(content),
-                                "scraped_at": datetime.now().isoformat(),
                                 "publication_date": publication_date,
                             }
 
@@ -230,32 +214,26 @@ class EnhancedSourceManager:
                             )
 
                             results[url] = cache_data
-                            logger.debug(
-                                "Successfully scraped and cached: %s (pub_date: %s)", url, publication_date)
+                            logger.debug("Successfully scraped and cached: %s (pub_date: %s)", url, publication_date)
                         else:
-                            error_msg = scrape_result.get(
-                                "error_message", "Unknown error")
-                            logger.warning(
-                                "Failed to scrape URL %s: %s", url, error_msg)
-                            results[url] = {
-                                "content": f"Failed to scrape: {error_msg}", "publication_date": None}
+                            error_msg = scrape_result.get("error_message", "Unknown error")
+                            logger.warning("Failed to scrape URL %s: %s", url, error_msg)
+                            results[url] = {"content": f"Failed to scrape: {error_msg}", "publication_date": None}
 
                     except (ConnectionError, TimeoutError) as e:
-                        logger.error(
-                            "Error processing scrape result for URL %s: %s", url, str(e))
-                        results[url] = {
-                            "content": f"Failed to scrape: {str(e)}", "publication_date": None}
+                        logger.error("Error processing scrape result for URL %s: %s", url, str(e))
+                        results[url] = {"content": f"Failed to scrape: {str(e)}", "publication_date": None}
 
             except (ConnectionError, TimeoutError) as e:
                 logger.error("Error during batch scraping: %s", str(e))
                 # Fallback: mark all non-cached URLs as failed
                 for url in urls_to_scrape:
-                    results[url] = {
-                        "content": f"Failed to scrape: {str(e)}", "publication_date": None}
+                    results[url] = {"content": f"Failed to scrape: {str(e)}", "publication_date": None}
 
         cache_hit_rate = cache_hits / len(urls) if urls else 0
-        successful_scrapes = len([r for r in results.values() if r.get(
-            "content") and not r["content"].startswith("Failed to scrape")])
+        successful_scrapes = len(
+            [r for r in results.values() if r.get("content") and not r["content"].startswith("Failed to scrape")]
+        )
         logger.info(
             "Batch scraping completed. Cache hit rate: %.2f%%. Successfully scraped %d out of %d URLs",
             cache_hit_rate * 100,
@@ -325,12 +303,10 @@ class EnhancedSourceManager:
         phrase_score = self._calculate_phrase_score(content_lower, query_lower)
 
         # 2. Keyword frequency and density
-        keyword_score = self._calculate_keyword_score(
-            content_words, query_words)
+        keyword_score = self._calculate_keyword_score(content_words, query_words)
 
         # 3. Semantic proximity (word co-occurrence)
-        proximity_score = self._calculate_proximity_score(
-            content_words, query_words)
+        proximity_score = self._calculate_proximity_score(content_words, query_words)
 
         # 4. Content structure analysis
         structure_score = self._calculate_structure_score(content, query_words)
@@ -340,12 +316,11 @@ class EnhancedSourceManager:
 
         # Combine scores with weights
         combined_score = (
-            phrase_score * 0.35 + keyword_score * 0.25 +
-            proximity_score * 0.20 + structure_score * 0.20
+            phrase_score * 0.35 + keyword_score * 0.25 + proximity_score * 0.20 + structure_score * 0.20
         ) * source_weight
 
         # Apply adaptive thresholds
-        threshold = await self.adaptive_thresholds.get_adaptive_threshold(
+        await self.adaptive_thresholds.get_adaptive_threshold(
             query_type=query_type,
             source_type=source_type,
             context={"content_length": len(content)},
@@ -381,8 +356,7 @@ class EnhancedSourceManager:
         # Check for partial phrase matches
         query_words = query.split()
         if len(query_words) > 1:
-            phrases = [" ".join(query_words[i: i + 2])
-                       for i in range(len(query_words) - 1)]
+            phrases = [" ".join(query_words[i : i + 2]) for i in range(len(query_words) - 1)]
             matches = sum(1 for phrase in phrases if phrase in content)
             return matches / len(phrases)
 
@@ -428,12 +402,11 @@ class EnhancedSourceManager:
         words_found = list(word_positions.keys())
 
         for i, word1 in enumerate(words_found):
-            for word2 in words_found[i + 1:]:
+            for word2 in words_found[i + 1 :]:
                 word1_positions = word_positions[word1]
                 word2_positions = word_positions[word2]
 
-                min_distance = min(
-                    abs(pos1 - pos2) for pos1 in word1_positions for pos2 in word2_positions)
+                min_distance = min(abs(pos1 - pos2) for pos1 in word1_positions for pos2 in word2_positions)
                 distances.append(min_distance)
 
         if distances:
@@ -516,27 +489,26 @@ class EnhancedSourceManager:
         logger.debug("Cluster queries: %s", cluster_queries)
 
         # Prepare corpus for BM25 scoring with scraped documents
-        if (self.relevance_manager and
-            self.relevance_manager.embeddings_coordinator and
-                self.relevance_manager.embeddings_coordinator.hybrid_scorer):
+        if (
+            self.relevance_manager
+            and self.relevance_manager.embeddings_coordinator
+            and self.relevance_manager.embeddings_coordinator.hybrid_scorer
+        ):
             valid_documents = []
-            for url, scraped_info in scraped_content.items():
+            for _url, scraped_info in scraped_content.items():
                 content = scraped_info.get("content", "")
                 if content and not content.startswith("Failed to scrape"):
                     valid_documents.append(content)
 
             if valid_documents:
                 try:
-                    logger.info(
-                        "Preparing BM25 corpus with %d documents", len(valid_documents))
-                    self.relevance_manager.embeddings_coordinator.hybrid_scorer.prepare_corpus(
-                        valid_documents)
+                    logger.info("Preparing BM25 corpus with %d documents", len(valid_documents))
+                    self.relevance_manager.embeddings_coordinator.hybrid_scorer.prepare_corpus(valid_documents)
                     logger.info("BM25 corpus prepared successfully")
                 except Exception as e:
                     logger.error("Failed to prepare BM25 corpus: %s", e)
             else:
-                logger.warning(
-                    "No valid documents found for BM25 corpus preparation")
+                logger.warning("No valid documents found for BM25 corpus preparation")
 
         for url, scraped_info in scraped_content.items():
             content = scraped_info.get("content", "")
@@ -556,29 +528,16 @@ class EnhancedSourceManager:
                     relevance_result = await self.relevance_manager.calculate_comprehensive_relevance(
                         query=" ".join(cluster_queries),
                         document=content,
-                        metadata={
-                            "url": url,
-                            "date": date_for_analysis,
-                            "query_type": "factual",
-                            "source_type": "web"
-                        },
+                        metadata={"url": url, "date": date_for_analysis, "query_type": "factual", "source_type": "web"},
                     )
 
                     # Extract the final score from the relevance result
                     if relevance_result and "final_score" in relevance_result:
                         relevance_score = relevance_result["final_score"]
-                        logger.debug(
-                            "Extracted final_score for %s: %.4f",
-                            url[:50],
-                            relevance_score
-                        )
+                        logger.debug("Extracted final_score for %s: %.4f", url[:50], relevance_score)
                     else:
                         relevance_score = 0.0
-                        logger.warning(
-                            "No final_score found for %s. Result structure: %s",
-                            url[:50],
-                            relevance_result
-                        )
+                        logger.warning("No final_score found for %s. Result structure: %s", url[:50], relevance_result)
                     logger.debug(
                         "Enhanced relevance score for %s: %.4f (pub_date: %s)",
                         url[:50],
@@ -592,17 +551,14 @@ class EnhancedSourceManager:
                         e,
                     )
                     # No fallback - if relevance calculation fails, skip this document
-                    logger.warning(
-                        "Skipping document %s due to relevance calculation failure", url)
+                    logger.warning("Skipping document %s due to relevance calculation failure", url)
                     continue
             else:
                 # No relevance manager available - skip this document
-                logger.warning(
-                    "No relevance manager available, skipping document %s", url)
+                logger.warning("No relevance manager available, skipping document %s", url)
                 continue
 
-            logger.debug("URL: %s - Relevance score: %.4f",
-                         url[:50], relevance_score)
+            logger.debug("URL: %s - Relevance score: %.4f", url[:50], relevance_score)
 
             # Use adaptive threshold
             threshold = await self.adaptive_thresholds.get_adaptive_threshold(
@@ -616,7 +572,7 @@ class EnhancedSourceManager:
                 url[:50],
                 relevance_score,
                 threshold,
-                "YES" if relevance_score > threshold else "NO"
+                "YES" if relevance_score > threshold else "NO",
             )
 
             if relevance_score > threshold:
@@ -654,13 +610,11 @@ class EnhancedSourceManager:
         limited_evidence = evidence[:10]
 
         if len(evidence) > 10:
-            logger.info(
-                "Limited evidence to top 10 sources (from %d)", len(evidence))
+            logger.info("Limited evidence to top 10 sources (from %d)", len(evidence))
 
         logger.info("Final evidence count: %d", len(limited_evidence))
         for i, ev in enumerate(limited_evidence):
-            logger.info("Evidence %d: %s (score: %.4f)", i +
-                        1, ev["url"], ev["relevance_score"])
+            logger.info("Evidence %d: %s (score: %.4f)", i + 1, ev["url"], ev["relevance_score"])
 
         return limited_evidence
 
@@ -668,8 +622,7 @@ class EnhancedSourceManager:
         """Clear component-specific cache (shared cache managed by factory)."""
         # Shared cache is managed by CacheFactory and should not be cleared here
         # This method is kept for interface compatibility
-        logger.info(
-            "Component-specific source cache cleared (shared cache managed by factory)")
+        logger.info("Component-specific source cache cleared (shared cache managed by factory)")
 
     async def get_cache_stats(self) -> dict[str, Any]:
         """Get comprehensive cache statistics."""
@@ -688,8 +641,7 @@ class EnhancedSourceManager:
         """Optimize component-specific cache (shared cache managed by factory)."""
         # Shared cache optimization is automatic in the new system
         # This method is kept for interface compatibility
-        logger.info(
-            "Component-specific source cache optimized (automatic in new system)")
+        logger.info("Component-specific source cache optimized (automatic in new system)")
 
     async def close(self):
         """Close the web scraper and clean up resources."""

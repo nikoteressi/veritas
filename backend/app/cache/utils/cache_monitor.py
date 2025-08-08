@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from app.exceptions import CacheError
 from .factory import cache_factory, get_general_cache
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,9 @@ class CacheMonitor:
 
             return "\n".join(report_lines)
 
+        except CacheError as e:
+            logger.error("Cache error generating performance report: %s", e)
+            return f"Cache error generating performance report: {e}"
         except (ValueError, TypeError, AttributeError, RuntimeError) as e:
             logger.error("Error generating performance report: %s", e)
             return f"Error generating performance report: {e}"
@@ -141,6 +145,14 @@ class CacheMonitor:
                                 "timestamp": datetime.now().isoformat(),
                                 "cache_type": cache_name,
                             }
+                except CacheError as e:
+                    logger.error(
+                        "Cache error getting metrics for %s: %s", cache_name, e)
+                    unified_metrics[cache_name] = {
+                        "error": str(e),
+                        "timestamp": datetime.now().isoformat(),
+                        "cache_type": cache_name,
+                    }
                 except (AttributeError, RuntimeError, ValueError, TypeError) as e:
                     logger.error(
                         "Could not get metrics for %s: %s", cache_name, e)
@@ -152,6 +164,9 @@ class CacheMonitor:
 
             return unified_metrics
 
+        except CacheError as e:
+            logger.error("Cache error collecting unified cache metrics: %s", e)
+            return {}
         except (ValueError, TypeError, AttributeError, RuntimeError) as e:
             logger.error("Error collecting unified cache metrics: %s", e)
             return {}
@@ -248,6 +263,9 @@ class CacheMonitor:
         """
         try:
             return await self._collect_unified_cache_metrics()
+        except CacheError as e:
+            logger.error("Cache error getting cache metrics: %s", e)
+            return {"error": str(e)}
         except (ValueError, TypeError, AttributeError, RuntimeError) as e:
             logger.error("Error getting cache metrics: %s", e)
             return {"error": str(e)}
@@ -292,6 +310,9 @@ class CacheMonitor:
                 "timestamp": datetime.now().isoformat()
             }
 
+        except CacheError as e:
+            logger.error("Cache error optimizing cache settings: %s", e)
+            return {"error": str(e)}
         except (ValueError, TypeError, AttributeError, RuntimeError, KeyError) as e:
             logger.error("Error optimizing cache settings: %s", e)
             return {"error": str(e)}

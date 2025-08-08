@@ -28,7 +28,8 @@ class OllamaChromaClient:
         Initialize ChromaDB client with Ollama embeddings only.
 
         Args:
-            persist_directory: Directory to persist ChromaDB data
+            host: ChromaDB server host
+            port: ChromaDB server port
         """
 
         self.host = host or settings.chroma_host

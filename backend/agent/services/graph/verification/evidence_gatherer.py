@@ -4,6 +4,7 @@ Evidence gatherer for fact verification.
 Handles search query generation and evidence collection for fact clusters.
 Enhanced with intelligent caching and adaptive relevance scoring.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,7 +17,7 @@ from agent.models.fact_checking_models import QueryGenerationOutput
 from agent.models.graph import ClusterType, FactCluster
 from agent.prompts.manager import PromptManager
 from agent.services.analysis.adaptive_thresholds import get_adaptive_thresholds
-from app.cache.factory import get_verification_cache
+from app.cache import CacheType, get_cache
 
 from .response_parser import ResponseParser
 from .source_manager import EnhancedSourceManager
@@ -44,8 +45,7 @@ class EnhancedEvidenceGatherer:
         max_concurrent_scrapes = 3  # Default value
         if self.config and hasattr(self.config, "max_concurrent_scrapes"):
             max_concurrent_scrapes = self.config.max_concurrent_scrapes
-        self.source_manager = EnhancedSourceManager(
-            max_concurrent_scrapes=max_concurrent_scrapes)
+        self.source_manager = EnhancedSourceManager(max_concurrent_scrapes=max_concurrent_scrapes)
 
         # Get adaptive thresholds instance
         self.adaptive_thresholds = get_adaptive_thresholds()
@@ -61,7 +61,8 @@ class EnhancedEvidenceGatherer:
     async def _ensure_cache_initialized(self):
         """Ensure the cache is initialized."""
         if not self._cache_initialized:
-            self.cache = await get_verification_cache()
+            self.cache = await get_cache(CacheType.VERIFICATION)
+
             self._cache_initialized = True
             logger.info("Evidence gatherer cache initialized")
 
@@ -79,11 +80,9 @@ class EnhancedEvidenceGatherer:
         parser = PydanticOutputParser(pydantic_object=QueryGenerationOutput)
 
         # Get domain-specific role description
-        role_description = self.prompt_manager.get_domain_role_description(
-            "general")
+        role_description = self.prompt_manager.get_domain_role_description("general")
 
-        prompt_template = self.prompt_manager.get_prompt_template(
-            "query_generation")
+        prompt_template = self.prompt_manager.get_prompt_template("query_generation")
         prompt = await prompt_template.aformat(
             role_description=role_description,
             claim=primary_claim,
@@ -100,8 +99,7 @@ class EnhancedEvidenceGatherer:
 
         # Extract queries
         queries = [query.query for query in parsed_response.queries]
-        logger.info(
-            "Generated %d LLM queries for cluster %s: %s", len(queries), cluster.id, queries)
+        logger.info("Generated %d LLM queries for cluster %s: %s", len(queries), cluster.id, queries)
         return queries
 
     def _build_cluster_context(self, cluster: FactCluster) -> str:
@@ -117,11 +115,9 @@ class EnhancedEvidenceGatherer:
             # For similarity clusters, use cleaned shared context
             shared_context = cluster.shared_context or ""
             if shared_context.startswith("Combined:"):
-                shared_context = shared_context.replace(
-                    "Combined:", "").strip()
+                shared_context = shared_context.replace("Combined:", "").strip()
             if shared_context.startswith("Common themes:") or shared_context.startswith("Themes:"):
-                shared_context = shared_context.replace(
-                    "Common themes:", "").replace("Themes:", "").strip()
+                shared_context = shared_context.replace("Common themes:", "").replace("Themes:", "").strip()
             return f"Context: {shared_context}" if shared_context else "General context"
 
     async def execute_searches_batch(
@@ -133,8 +129,7 @@ class EnhancedEvidenceGatherer:
 
         await self._ensure_cache_initialized()
 
-        logger.info(
-            "Executing %d search queries with context: %s", len(queries), query_context)
+        logger.info("Executing %d search queries with context: %s", len(queries), query_context)
 
         all_results = []
         cache_hits = 0
@@ -171,11 +166,6 @@ class EnhancedEvidenceGatherer:
                 }
 
                 # Store in intelligent cache
-                cache_metadata = {
-                    "query": query,
-                    "context": query_context,
-                    "result_length": len(str(search_result)),
-                }
 
                 await self.cache.set(
                     cache_key,
@@ -187,8 +177,7 @@ class EnhancedEvidenceGatherer:
                 self.performance_metrics["queries_executed"] += 1
 
             except Exception as e:
-                logger.error(
-                    "Search query '%s' failed: %s", query, e)
+                logger.error("Search query '%s' failed: %s", query, e)
                 error_result = {
                     "query": query,
                     "results": f"Search failed: {e}",
@@ -197,8 +186,7 @@ class EnhancedEvidenceGatherer:
                 all_results.append(error_result)
 
         cache_hit_rate = cache_hits / len(queries) if queries else 0
-        logger.info(
-            f"Search batch completed. Cache hit rate: {cache_hit_rate:.2%}")
+        logger.info(f"Search batch completed. Cache hit rate: {cache_hit_rate:.2%}")
 
         return all_results
 
@@ -216,8 +204,7 @@ class EnhancedEvidenceGatherer:
         # Extract all sources from search results
         all_sources = set()
         for result_data in search_results_data:
-            sources = self.response_parser.extract_sources_from_result(
-                result_data.get("results", ""))
+            sources = self.response_parser.extract_sources_from_result(result_data.get("results", ""))
             all_sources.update(sources)
 
         all_sources_list = list(all_sources)
@@ -228,8 +215,7 @@ class EnhancedEvidenceGatherer:
 
         # Limit sources for processing
         sources_to_evaluate = all_sources_list[:20]
-        self.performance_metrics["sources_evaluated"] += len(
-            sources_to_evaluate)
+        self.performance_metrics["sources_evaluated"] += len(sources_to_evaluate)
 
         # Get adaptive threshold for source selection
         threshold = await self.adaptive_thresholds.get_adaptive_threshold(
@@ -239,8 +225,7 @@ class EnhancedEvidenceGatherer:
         )
 
         # Scrape and evaluate sources with relevance scoring
-        logger.info(
-            f"Scraping and evaluating {len(sources_to_evaluate)} sources")
+        logger.info(f"Scraping and evaluating {len(sources_to_evaluate)} sources")
 
         source_contents = await self.source_manager.scrape_sources_batch(
             sources_to_evaluate, query_context=combined_claim
@@ -257,19 +242,19 @@ class EnhancedEvidenceGatherer:
                     content, combined_claim, source_type, query_type
                 )
 
-                scored_sources.append({
-                    "url": url,
-                    "content": content,
-                    "relevance_score": relevance_score,
-                    "publication_date": publication_date
-                })
+                scored_sources.append(
+                    {
+                        "url": url,
+                        "content": content,
+                        "relevance_score": relevance_score,
+                        "publication_date": publication_date,
+                    }
+                )
 
-                self.performance_metrics["relevance_scores"].append(
-                    relevance_score)
+                self.performance_metrics["relevance_scores"].append(relevance_score)
 
         # Filter sources by adaptive threshold
-        credible_sources = [
-            source for source in scored_sources if source["relevance_score"] >= threshold]
+        credible_sources = [source for source in scored_sources if source["relevance_score"] >= threshold]
 
         # Sort by relevance score and limit to top sources
         credible_sources.sort(key=lambda x: x["relevance_score"], reverse=True)
@@ -278,18 +263,14 @@ class EnhancedEvidenceGatherer:
         credible_urls = [source["url"] for source in top_sources]
 
         # Record performance metrics
-        avg_relevance = sum(s["relevance_score"]
-                            for s in top_sources) / len(top_sources) if top_sources else 0
+        avg_relevance = sum(s["relevance_score"] for s in top_sources) / len(top_sources) if top_sources else 0
 
         # Calculate performance metrics for adaptive thresholds
-        precision = len(credible_urls) / \
-            len(scored_sources) if scored_sources else 0.0
+        precision = len(credible_urls) / len(scored_sources) if scored_sources else 0.0
         # Assume ideal is 10 sources
         recall = min(1.0, len(credible_urls) / 10)
-        f1_score = 2 * (precision * recall) / (precision +
-                                               recall) if (precision + recall) > 0 else 0.0
-        source_retention_rate = len(
-            credible_urls) / len(sources_to_evaluate) if sources_to_evaluate else 0.0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        source_retention_rate = len(credible_urls) / len(sources_to_evaluate) if sources_to_evaluate else 0.0
 
         await self.adaptive_thresholds.record_performance_metrics(
             precision=precision,
@@ -301,10 +282,8 @@ class EnhancedEvidenceGatherer:
         )
 
         logger.info(
-            "Selected {} credible sources from {} (threshold: {:.3f}, avg_relevance: {:.3f})".format(
-                len(credible_urls), len(
-                    sources_to_evaluate), threshold, avg_relevance
-            )
+            f"Selected {len(credible_urls)} credible sources from {len(sources_to_evaluate)} "
+            f"(threshold: {threshold:.3f}, avg_relevance: {avg_relevance:.3f})"
         )
 
         return credible_urls
@@ -339,13 +318,11 @@ class EnhancedEvidenceGatherer:
             search_queries = await self.create_cluster_search_queries(cluster)
 
             if not search_queries:
-                logger.warning(
-                    f"No search queries generated for cluster {cluster.id}")
+                logger.warning(f"No search queries generated for cluster {cluster.id}")
                 return []
 
             # Step 2: Execute searches with context
-            combined_claims = "; ".join(
-                [node.claim for node in cluster.nodes[:3]])
+            combined_claims = "; ".join([node.claim for node in cluster.nodes[:3]])
             search_results = await self.execute_searches_batch(search_queries, query_context=combined_claims)
 
             # Step 3: Select credible sources with enhanced scoring
@@ -380,20 +357,16 @@ class EnhancedEvidenceGatherer:
                 evidence.append(evidence_item)
 
             # Log comprehensive metrics
-            avg_query_relevance = sum(
-                e["query_relevance"] for e in evidence) / len(evidence) if evidence else 0
+            avg_query_relevance = sum(e["query_relevance"] for e in evidence) / len(evidence) if evidence else 0
             logger.info(
-                "Gathered evidence for cluster {}: {} queries, {} credible sources, avg_query_relevance: {:.3f}".format(
-                    cluster.id, len(search_queries), len(
-                        credible_sources), avg_query_relevance
-                )
+                f"Gathered evidence for cluster {cluster.id}: {len(search_queries)} queries, "
+                f"{len(credible_sources)} credible sources, avg_query_relevance: {avg_query_relevance:.3f}"
             )
 
             return evidence
 
         except Exception as e:
-            logger.error(
-                f"Failed to gather evidence for cluster {cluster.id}: {e}")
+            logger.error(f"Failed to gather evidence for cluster {cluster.id}: {e}")
             return []
 
     async def get_cache_stats(self) -> dict[str, Any]:
@@ -403,8 +376,7 @@ class EnhancedEvidenceGatherer:
 
         # Calculate performance metrics
         avg_relevance = (
-            (sum(self.performance_metrics["relevance_scores"]) /
-             len(self.performance_metrics["relevance_scores"]))
+            (sum(self.performance_metrics["relevance_scores"]) / len(self.performance_metrics["relevance_scores"]))
             if self.performance_metrics["relevance_scores"]
             else 0.0
         )
@@ -422,8 +394,7 @@ class EnhancedEvidenceGatherer:
                 self.performance_metrics["cache_hits"]
                 / max(
                     1,
-                    self.performance_metrics["queries_executed"] +
-                    self.performance_metrics["cache_hits"],
+                    self.performance_metrics["queries_executed"] + self.performance_metrics["cache_hits"],
                 )
             ),
         }
@@ -440,8 +411,7 @@ class EnhancedEvidenceGatherer:
         # Get optimization recommendations from adaptive thresholds
         recommendations = await self.adaptive_thresholds.get_threshold_recommendations()
 
-        logger.info(
-            f"Performance optimization completed. Recommendations: {recommendations}")
+        logger.info(f"Performance optimization completed. Recommendations: {recommendations}")
         return recommendations
 
     async def cleanup(self):

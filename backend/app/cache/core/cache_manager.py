@@ -12,8 +12,9 @@ from typing import Any, Dict, List, Optional, Set
 from redis.exceptions import RedisError
 
 from app.exceptions import CacheError
+from app.cache.config import CacheConfig, TTL_PRESETS, KEY_PREFIXES, cache_config
 
-from .config import CacheConfig, TTL_PRESETS, KEY_PREFIXES, cache_config
+from .circuit_breaker import CircuitBreaker, CircuitBreakerError
 from .connection_manager import ConnectionManager
 from .serialization_manager import SerializationManager
 
@@ -49,6 +50,15 @@ class CacheManager:
         self.serialization_manager = SerializationManager(
             compression_threshold=self.config.compression_threshold,
             compression_level=self.config.compression_level
+        )
+
+        # Circuit breaker for Redis operations
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=60,
+            expected_exceptions=(
+                ConnectionError, TimeoutError, RedisError, OSError),
+            success_threshold=3
         )
 
         # Performance metrics
@@ -365,8 +375,9 @@ class CacheManager:
         return {
             'metrics': self._metrics.copy(),
             'hit_rate': hit_rate,
-            'is_healthy': self._is_healthy,
-            'connection_stats': self.connection_manager.get_pool_stats()
+            'is_healthy': self._is_healthy and self.circuit_breaker.is_healthy(),
+            'connection_stats': self.connection_manager.get_pool_stats(),
+            'circuit_breaker': self.circuit_breaker.get_metrics()
         }
 
     def _build_key(self, key: str, cache_type: str) -> str:
@@ -379,86 +390,120 @@ class CacheManager:
         return TTL_PRESETS.get(cache_type, self.config.default_ttl)
 
     async def _get_from_redis(self, key: str) -> Optional[Any]:
-        """Get value from Redis."""
+        """Get value from Redis with circuit breaker protection."""
         try:
-            redis = await self.connection_manager.get_client()
-            data = await redis.get(key)
-
-            if data is None:
-                return None
-
-            return self.serialization_manager.deserialize(data)
-
+            return await self.circuit_breaker.call(self._redis_get_operation, key)
+        except CircuitBreakerError:
+            logger.warning(
+                "Circuit breaker prevented Redis GET for key %s", key)
+            return None
         except (ConnectionError, TimeoutError, ValueError, TypeError, RedisError) as e:
             logger.error("Error getting from Redis key %s: %s", key, e)
             return None
 
+    async def _redis_get_operation(self, key: str) -> Optional[Any]:
+        """Actual Redis GET operation."""
+        redis = await self.connection_manager.get_client()
+        data = await redis.get(key)
+
+        if data is None:
+            return None
+
+        return self.serialization_manager.deserialize(data)
+
     async def _set_in_redis(self, key: str, value: Any, ttl: int) -> bool:
-        """Set value in Redis."""
+        """Set value in Redis with circuit breaker protection."""
         try:
-            redis = await self.connection_manager.get_client()
-            serialized_data = self.serialization_manager.serialize(value)
-
-            await redis.setex(key, ttl, serialized_data)
-            return True
-
+            return await self.circuit_breaker.call(self._redis_set_operation, key, value, ttl)
+        except CircuitBreakerError:
+            logger.warning(
+                "Circuit breaker prevented Redis SET for key %s", key)
+            return False
         except (ConnectionError, TimeoutError, ValueError, TypeError, OSError, RedisError) as e:
             logger.error("Error setting in Redis key %s: %s", key, e)
             return False
 
-    async def _delete_from_redis(self, key: str) -> bool:
-        """Delete value from Redis."""
-        try:
-            redis = await self.connection_manager.get_client()
-            result = await redis.delete(key)
-            return result > 0
+    async def _redis_set_operation(self, key: str, value: Any, ttl: int) -> bool:
+        """Actual Redis SET operation."""
+        redis = await self.connection_manager.get_client()
+        serialized_data = self.serialization_manager.serialize(value)
+        await redis.setex(key, ttl, serialized_data)
+        return True
 
+    async def _delete_from_redis(self, key: str) -> bool:
+        """Delete value from Redis with circuit breaker protection."""
+        try:
+            return await self.circuit_breaker.call(self._redis_delete_operation, key)
+        except CircuitBreakerError:
+            logger.warning(
+                "Circuit breaker prevented Redis DELETE for key %s", key)
+            return False
         except (ConnectionError, TimeoutError, ValueError, TypeError, OSError, RedisError) as e:
             logger.error("Error deleting from Redis key %s: %s", key, e)
             return False
 
+    async def _redis_delete_operation(self, key: str) -> bool:
+        """Actual Redis DELETE operation."""
+        redis = await self.connection_manager.get_client()
+        result = await redis.delete(key)
+        return result > 0
+
     async def _get_many_from_redis(self, keys: List[str]) -> List[Optional[Any]]:
-        """Get multiple values from Redis."""
+        """Get multiple values from Redis with circuit breaker protection."""
         try:
-            redis = await self.connection_manager.get_client()
-            data_list = await redis.mget(keys)
-
-            results = []
-            for data in data_list:
-                if data is None:
-                    results.append(None)
-                else:
-                    try:
-                        results.append(
-                            self.serialization_manager.deserialize(data))
-                    except (ConnectionError, TimeoutError, ValueError, TypeError, RedisError) as e:
-                        logger.error("Error deserializing data: %s", e)
-                        results.append(None)
-
-            return results
-
+            return await self.circuit_breaker.call(self._redis_mget_operation, keys)
+        except CircuitBreakerError:
+            logger.warning(
+                "Circuit breaker prevented Redis MGET for %d keys", len(keys))
+            return [None] * len(keys)
         except (ConnectionError, TimeoutError, ValueError, TypeError, OSError, RedisError) as e:
             logger.error("Error getting multiple from Redis: %s", e)
             return [None] * len(keys)
 
+    async def _redis_mget_operation(self, keys: List[str]) -> List[Optional[Any]]:
+        """Actual Redis MGET operation."""
+        redis = await self.connection_manager.get_client()
+        data_list = await redis.mget(keys)
+
+        results = []
+        for data in data_list:
+            if data is None:
+                results.append(None)
+            else:
+                try:
+                    results.append(
+                        self.serialization_manager.deserialize(data))
+                except (ValueError, TypeError) as e:
+                    logger.error("Error deserializing data: %s", e)
+                    results.append(None)
+
+        return results
+
     async def _set_many_in_redis(self, mapping: Dict[str, Any], ttl: int) -> bool:
-        """Set multiple values in Redis."""
+        """Set multiple values in Redis with circuit breaker protection."""
         try:
-            redis = await self.connection_manager.get_client()
-
-            # Use pipeline for efficiency
-            pipe = redis.pipeline()
-
-            for key, value in mapping.items():
-                serialized_data = self.serialization_manager.serialize(value)
-                pipe.setex(key, ttl, serialized_data)
-
-            await pipe.execute()
-            return True
-
+            return await self.circuit_breaker.call(self._redis_mset_operation, mapping, ttl)
+        except CircuitBreakerError:
+            logger.warning(
+                "Circuit breaker prevented Redis MSET for %d keys", len(mapping))
+            return False
         except (ConnectionError, TimeoutError, ValueError, TypeError, OSError, RedisError) as e:
             logger.error("Error setting multiple in Redis: %s", e)
             return False
+
+    async def _redis_mset_operation(self, mapping: Dict[str, Any], ttl: int) -> bool:
+        """Actual Redis MSET operation."""
+        redis = await self.connection_manager.get_client()
+
+        # Use pipeline for efficiency
+        pipe = redis.pipeline()
+
+        for key, value in mapping.items():
+            serialized_data = self.serialization_manager.serialize(value)
+            pipe.setex(key, ttl, serialized_data)
+
+        await pipe.execute()
+        return True
 
     async def _metrics_collector(self) -> None:
         """Background task to collect and log metrics."""

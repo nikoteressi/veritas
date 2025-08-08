@@ -1,57 +1,68 @@
-"""
-Unified cache system for Veritas.
+"""Unified cache system.
 
-This package provides a complete replacement for all existing cache implementations
-with a unified, high-performance Redis-based solution.
+This module replaces all existing cache implementations with a unified,
+high-performance Redis-based solution.
 
-Main components:
-- CacheManager: Central cache management
-- ConnectionManager: Redis connection pooling
-- SerializationManager: Intelligent serialization
-- CacheConfig: Configuration management
+Components:
+- Core: CacheManager, ConnectionManager, SerializationManager, CircuitBreaker
+- Config: Configuration and type definitions
+- Utils: Factory and monitoring utilities
+- Services: Specialized cache services
 
 Usage:
-    from app.cache import cache_manager
+    from app.cache import cache_manager, cache_factory
     
-    # Initialize cache
-    await cache_manager.initialize()
+    # Use unified cache manager directly
+    await cache_manager.set('key', 'value', ttl=3600)
+    value = await cache_manager.get('key')
     
-    # Use cache
-    await cache_manager.set('key', 'value', cache_type='embedding')
-    value = await cache_manager.get('key', cache_type='embedding')
-    
-    # Cleanup
-    await cache_manager.close()
+    # Or use specialized services
+    embedding_cache = cache_factory.chroma_embedding_cache
+    verification_cache = cache_factory.verification_cache
 """
 
-from .cache_manager import CacheManager, cache_manager
-from .config import CacheConfig, TTL_PRESETS, KEY_PREFIXES, cache_config
-from .connection_manager import ConnectionManager
-from .serialization_manager import SerializationManager
-from .factory import (
-    CacheFactory,
-    cache_factory,
-    get_general_cache,
-    get_embedding_cache,
-    get_verification_cache,
-    get_temporal_cache,
-)
-from .cache_monitor import CacheMonitor
+# Core components
+from .core import CacheManager, ConnectionManager, SerializationManager, CircuitBreaker
+
+# Configuration and types
+from .config import CacheConfig, cache_config, CacheType, CacheTypes
+
+# Utilities and factory
+from .utils import CacheFactory, cache_factory, get_cache, get_general_cache, CacheMonitor
+
+# Services
+from .services import ChromaEmbeddingCache, VerificationCache, TemporalCache
+
+# Initialize global instances
+cache_manager = CacheManager()
+connection_manager = ConnectionManager()
 
 __all__ = [
+    # Core components
     'CacheManager',
-    'cache_manager',
-    'CacheConfig',
-    'cache_config',
     'ConnectionManager',
     'SerializationManager',
+    'CircuitBreaker',
     'CacheFactory',
-    'cache_factory',
-    'TTL_PRESETS',
-    'KEY_PREFIXES',
     'CacheMonitor',
+
+    # Configuration and types
+    'CacheConfig',
+    'cache_config',
+    'CacheType',
+    'CacheTypes',
+
+    # Services
+    'ChromaEmbeddingCache',
+    'VerificationCache',
+    'TemporalCache',
+
+    # Global instances
+    'cache_manager',
+    'connection_manager',
+    'cache_factory',
+
+    # Factory functions
+    'get_cache',
     'get_general_cache',
-    'get_embedding_cache',
-    'get_verification_cache',
-    'get_temporal_cache',
 ]

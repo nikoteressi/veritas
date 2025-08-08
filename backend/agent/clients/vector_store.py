@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 from typing import Any
 
-from agent.clients.chroma_client import OllamaChromaClient
+from app.clients.chroma_client import OllamaChromaClient
 from app.config import settings
 from app.exceptions import VectorStoreError
 from app.json_utils import json_dumps, prepare_for_json_serialization

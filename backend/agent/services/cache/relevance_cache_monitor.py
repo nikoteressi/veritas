@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from app.cache.factory import cache_factory
+from app.cache import get_cache, get_general_cache, CacheType
 from ..relevance.relevance_embeddings_coordinator import RelevanceEmbeddingsCoordinator
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,6 @@ class RelevanceCacheMonitor:
             embeddings_coordinator: RelevanceEmbeddingsCoordinator instance for monitoring
         """
         self.embeddings_coordinator = embeddings_coordinator
-        self.cache_factory = cache_factory
 
         # Initialize monitoring data
         self._monitoring_data = {
@@ -78,20 +77,19 @@ class RelevanceCacheMonitor:
             unified_metrics = {}
 
             # Get cache manager metrics
-            if hasattr(self.cache_factory, '_cache_manager') and self.cache_factory._cache_manager:
-                cache_manager = self.cache_factory._cache_manager
-                if hasattr(cache_manager, 'get_metrics'):
-                    manager_stats = await cache_manager.get_metrics()
-                    unified_metrics["cache_manager"] = {
-                        **manager_stats,
-                        "timestamp": datetime.now().isoformat(),
-                        "cache_type": "unified_manager",
-                    }
+            cache_manager = await get_general_cache()
+            if hasattr(cache_manager, 'get_metrics'):
+                manager_stats = await cache_manager.get_metrics()
+                unified_metrics["cache_manager"] = {
+                    **manager_stats,
+                    "timestamp": datetime.now().isoformat(),
+                    "cache_type": "unified_manager",
+                }
 
             # Get specialized cache metrics
-            for cache_name in ["embedding_cache", "verification_cache", "temporal_cache"]:
+            for cache_name in [CacheType.CHROMA_EMBEDDING, CacheType.VERIFICATION, CacheType.TEMPORAL]:
                 try:
-                    cache_instance = getattr(self.cache_factory, cache_name, None)
+                    cache_instance = await get_cache(cache_name)
                     if cache_instance and hasattr(cache_instance, 'get_metrics'):
                         cache_stats = await cache_instance.get_metrics()
                         unified_metrics[cache_name] = {
@@ -100,7 +98,8 @@ class RelevanceCacheMonitor:
                             "cache_type": cache_name,
                         }
                 except Exception as e:
-                    logger.debug(f"Could not get metrics for {cache_name}: {e}")
+                    logger.debug(
+                        f"Could not get metrics for {cache_name}: {e}")
 
             # Store metrics for trend analysis
             for cache_name, cache_metrics in unified_metrics.items():
@@ -280,7 +279,7 @@ class RelevanceCacheMonitor:
                 if cache_name in unified_metrics:
                     cache_metrics = unified_metrics[cache_name]
                     cache_display_name = cache_name.replace("_", " ").title()
-                    
+
                     report_lines.extend([
                         f"--- {cache_display_name} ---",
                         f"Entries: {cache_metrics.get('total_entries', 'N/A')}",
@@ -296,13 +295,17 @@ class RelevanceCacheMonitor:
 
             for cache_name, metrics_history in self._monitoring_data.items():
                 if metrics_history and len(metrics_history) > 1:
-                    recent_metrics = metrics_history[-10:]  # Last 10 measurements
-                    hit_rates = [m.get('hit_rate', 0) for m in recent_metrics if 'hit_rate' in m]
-                    
+                    # Last 10 measurements
+                    recent_metrics = metrics_history[-10:]
+                    hit_rates = [m.get('hit_rate', 0)
+                                 for m in recent_metrics if 'hit_rate' in m]
+
                     if hit_rates:
                         avg_hit_rate = sum(hit_rates) / len(hit_rates)
-                        trend = "↑" if len(hit_rates) > 1 and hit_rates[-1] > hit_rates[0] else "↓"
-                        report_lines.append(f"{cache_name}: Avg Hit Rate {avg_hit_rate:.1f}% {trend}")
+                        trend = "↑" if len(
+                            hit_rates) > 1 and hit_rates[-1] > hit_rates[0] else "↓"
+                        report_lines.append(
+                            f"{cache_name}: Avg Hit Rate {avg_hit_rate:.1f}% {trend}")
 
             return "\n".join(report_lines) + "\n\n"
 
@@ -342,11 +345,13 @@ class RelevanceCacheMonitor:
                     report += f"  Memory Usage: {cache_stats['memory_usage']:.2f} MB\n"
 
                 # Performance analysis
-                performance_grade = self._calculate_performance_grade(cache_stats)
+                performance_grade = self._calculate_performance_grade(
+                    cache_stats)
                 report += f"  Performance Grade: {performance_grade}\n"
 
                 # Relevance-specific recommendations
-                recommendations = self._generate_relevance_cache_recommendations(cache_name, cache_stats)
+                recommendations = self._generate_relevance_cache_recommendations(
+                    cache_name, cache_stats)
                 if recommendations:
                     report += "  Recommendations:\n"
                     for rec in recommendations:
@@ -375,7 +380,8 @@ class RelevanceCacheMonitor:
                     "Temporal cache hit rate is low. Consider increasing TTL for temporal analysis results."
                 )
             if cache_size > 5000:
-                recommendations.append("Large temporal cache. Consider implementing time-based eviction policies.")
+                recommendations.append(
+                    "Large temporal cache. Consider implementing time-based eviction policies.")
 
         elif cache_name == "adaptive_thresholds_cache":
             if hit_rate < 0.8:
@@ -383,7 +389,8 @@ class RelevanceCacheMonitor:
                     "Adaptive thresholds should have high reuse. Review threshold calculation frequency."
                 )
             if total_requests > 1000 and cache_size < 50:
-                recommendations.append("Consider increasing adaptive thresholds cache size for better performance.")
+                recommendations.append(
+                    "Consider increasing adaptive thresholds cache size for better performance.")
 
         elif cache_name == "explainable_scorer_cache":
             if hit_rate < 0.5:
@@ -393,7 +400,8 @@ class RelevanceCacheMonitor:
 
         # General recommendations
         if hit_rate < 0.4:
-            recommendations.append(f"Critical hit rate for {cache_name}. Review caching strategy and key patterns.")
+            recommendations.append(
+                f"Critical hit rate for {cache_name}. Review caching strategy and key patterns.")
 
         return recommendations
 
@@ -426,7 +434,8 @@ class RelevanceCacheMonitor:
                 # Relevance-specific optimization logic
                 if cache_name == "temporal_cache":
                     if trends.get("avg_hit_rate", 0) < 0.6:
-                        recommendations["ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
+                        recommendations[
+                            "ttl"] = "Increase TTL for temporal analysis results (suggest 1-2 hours)"
                         recommendations["strategy"] = "Consider implementing sliding window caching"
 
                 elif cache_name == "adaptive_thresholds_cache":
@@ -468,7 +477,8 @@ def get_relevance_cache_monitor(
     """
     global _relevance_cache_monitor
     if _relevance_cache_monitor is None:
-        _relevance_cache_monitor = RelevanceCacheMonitor(embeddings_coordinator)
+        _relevance_cache_monitor = RelevanceCacheMonitor(
+            embeddings_coordinator)
     return _relevance_cache_monitor
 
 

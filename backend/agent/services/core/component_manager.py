@@ -20,7 +20,6 @@ from ..analysis.relationship_analysis import (
     RelationshipAnalysisEngine,
     RelationshipConfig,
 )
-from app.cache.factory import cache_factory
 from ..graph.graph_fact_checking import GraphFactCheckingService
 from ..graph.graph_storage import Neo4jGraphStorage
 from ..reputation.source_reputation import SourceReputationSystem
@@ -144,13 +143,13 @@ class ComponentManager:
 
             # Shutdown components in reverse order of initialization
             if self.graph_service:
-                # Close graph service (which will close verification engine and source manager)
+                # Close graph service with new architecture
                 if hasattr(self.graph_service, "close"):
                     await self.graph_service.close()
                 else:
-                    # Fallback: clear caches if close method doesn't exist
-                    if hasattr(self.graph_service, "clear_caches"):
-                        await self.graph_service.clear_caches()
+                    # Fallback: clear cache if close method doesn't exist
+                    if hasattr(self.graph_service, "clear_cache"):
+                        await self.graph_service.clear_cache()
 
             # Most components don't have shutdown methods, so we just clean up references
             self.relationship_analyzer = None
@@ -199,7 +198,6 @@ class ComponentManager:
         """
         if self.graph_service:
             self.graph_service.search_tool = search_tool
-            self.graph_service.verification_engine.search_tool = search_tool
             self.logger.info("Search tool set for graph service")
         else:
             self.logger.warning(
@@ -238,8 +236,8 @@ class ComponentManager:
         """
         try:
             if self.graph_service:
-                if hasattr(self.graph_service, "clear_caches"):
-                    await self.graph_service.clear_caches()
+                if hasattr(self.graph_service, "clear_cache"):
+                    await self.graph_service.clear_cache()
 
             self.logger.info("All caches cleared")
             return True

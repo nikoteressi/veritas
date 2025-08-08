@@ -7,11 +7,13 @@ with proper dependency injection and lifecycle management.
 import logging
 from typing import Optional
 
+from app.clients.chroma_client import OllamaChromaClient
 from app.exceptions import CacheError
 
-from .cache_manager import CacheManager
-from .config import CacheConfig, cache_config
-from .services import EmbeddingCache, TemporalCache, VerificationCache
+from app.cache.core import CacheManager
+from app.cache.config import CacheType, CacheConfig, cache_config
+from app.cache.services import TemporalCache, VerificationCache
+from app.cache.services.chroma_embedding_cache import ChromaEmbeddingCache
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +37,10 @@ class CacheFactory:
 
         # Core components
         self._cache_manager: Optional[CacheManager] = None
+        self._chroma_client: Optional[OllamaChromaClient] = None
 
         # Specialized services
-        self._embedding_cache: Optional[EmbeddingCache] = None
+        self._chroma_embedding_cache: Optional[ChromaEmbeddingCache] = None
         self._verification_cache: Optional[VerificationCache] = None
         self._temporal_cache: Optional[TemporalCache] = None
 
@@ -55,8 +58,14 @@ class CacheFactory:
             self._cache_manager = CacheManager(self.config)
             await self._cache_manager.initialize()
 
+            # Initialize ChromaDB client
+            self._chroma_client = OllamaChromaClient()
+
             # Initialize specialized services
-            self._embedding_cache = EmbeddingCache(self._cache_manager)
+            self._chroma_embedding_cache = ChromaEmbeddingCache(
+                self._cache_manager,
+                self._chroma_client
+            )
             self._verification_cache = VerificationCache(self._cache_manager)
             self._temporal_cache = TemporalCache(self._cache_manager)
 
@@ -68,6 +77,51 @@ class CacheFactory:
             await self.close()
             raise
 
+    async def get_cache(self, cache_type: CacheType):
+        """
+        Универсальный метод получения кеша по типу.
+
+        Args:
+            cache_type: Тип кеша из enum CacheType
+
+        Returns:
+            Соответствующий экземпляр кеша
+
+        Raises:
+            RuntimeError: Если factory не инициализирован
+            ValueError: Если передан неподдерживаемый тип кеша
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        cache_mapping = {
+            CacheType.CHROMA_EMBEDDING: self._chroma_embedding_cache,
+            CacheType.VERIFICATION: self._verification_cache,
+            CacheType.TEMPORAL: self._temporal_cache,
+            CacheType.SIMILARITY: self._cache_manager,  # Пока используем общий менеджер
+            CacheType.SESSION: self._cache_manager,
+            CacheType.METADATA: self._cache_manager,
+            CacheType.RELEVANCE: self._cache_manager,
+            CacheType.SHORT: self._cache_manager,
+            CacheType.MEDIUM: self._cache_manager,
+            CacheType.LONG: self._cache_manager,
+            CacheType.STATS: self._cache_manager,
+            CacheType.HEALTH: self._cache_manager,
+            # Legacy aliases
+            CacheType.EVIDENCE: self._verification_cache,
+            CacheType.EXPLANATION: self._verification_cache,
+            CacheType.ADAPTIVE: self._cache_manager,
+        }
+
+        cache_instance = cache_mapping.get(cache_type)
+        if cache_instance is None:
+            # Для неспециализированных типов возвращаем общий менеджер
+            logger.warning(
+                "Unknown cache type %s, returning general cache manager", cache_type)
+            return self._cache_manager
+
+        return cache_instance
+
     async def close(self) -> None:
         """Close all cache components."""
         try:
@@ -76,7 +130,8 @@ class CacheFactory:
 
             # Reset components
             self._cache_manager = None
-            self._embedding_cache = None
+            self._chroma_client = None
+            self._chroma_embedding_cache = None
             self._verification_cache = None
             self._temporal_cache = None
 
@@ -94,11 +149,11 @@ class CacheFactory:
         return self._cache_manager
 
     @property
-    def embedding_cache(self) -> EmbeddingCache:
-        """Get embedding cache service."""
-        if not self._initialized or not self._embedding_cache:
+    def chroma_embedding_cache(self) -> ChromaEmbeddingCache:
+        """Get ChromaDB embedding cache service."""
+        if not self._initialized or not self._chroma_embedding_cache:
             raise RuntimeError("Cache factory not initialized")
-        return self._embedding_cache
+        return self._chroma_embedding_cache
 
     @property
     def verification_cache(self) -> VerificationCache:
@@ -114,8 +169,6 @@ class CacheFactory:
             raise RuntimeError("Cache factory not initialized")
         return self._temporal_cache
 
-
-
     def is_initialized(self) -> bool:
         """Check if factory is initialized."""
         return self._initialized
@@ -130,14 +183,14 @@ class CacheFactory:
             cache_stats = self.cache_manager.get_stats()
 
             # Check specialized services
-            embedding_stats = self.embedding_cache.get_embedding_stats()
+            chroma_embedding_stats = self.chroma_embedding_cache.get_embedding_stats()
             verification_stats = await self.verification_cache.get_verification_stats()
             temporal_stats = await self.temporal_cache.get_temporal_stats()
 
             return {
                 'status': 'healthy',
                 'cache_manager': cache_stats,
-                'embedding_cache': embedding_stats,
+                'chroma_embedding_cache': chroma_embedding_stats,
                 'verification_cache': verification_stats,
                 'temporal_cache': temporal_stats
             }
@@ -154,39 +207,17 @@ class CacheFactory:
 cache_factory = CacheFactory()
 
 
-# Convenience functions for easy access
+# New unified convenience function
+async def get_cache(cache_type: CacheType):
+    return await cache_factory.get_cache(cache_type)
+
+
+# Legacy convenience functions for backward compatibility
 async def get_general_cache() -> CacheManager:
     """Get initialized general cache (cache manager)."""
     if not cache_factory.is_initialized():
         await cache_factory.initialize()
     return cache_factory.cache_manager
-
-
-async def get_embedding_cache() -> EmbeddingCache:
-    """Get initialized embedding cache."""
-    if not cache_factory.is_initialized():
-        await cache_factory.initialize()
-    return cache_factory.embedding_cache
-
-
-async def get_verification_cache() -> VerificationCache:
-    """Get initialized verification cache."""
-    if not cache_factory.is_initialized():
-        await cache_factory.initialize()
-    return cache_factory.verification_cache
-
-
-async def get_temporal_cache() -> TemporalCache:
-    """Get initialized temporal cache."""
-    if not cache_factory.is_initialized():
-        await cache_factory.initialize()
-    return cache_factory.temporal_cache
-
-
-
-
-
-
 
 
 async def initialize_cache_system() -> None:

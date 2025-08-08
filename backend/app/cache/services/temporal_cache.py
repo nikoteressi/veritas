@@ -6,15 +6,18 @@ trend analysis, and time-based invalidation.
 """
 import logging
 import time
+import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from app.cache.cache_manager import CacheManager
+from app.exceptions import CacheError
+from app.cache.core import CacheManager
+from .base_cache_service import CacheServiceInterface
 
 logger = logging.getLogger(__name__)
 
 
-class TemporalCache:
+class TemporalCache(CacheServiceInterface):
     """
     Specialized cache for temporal analysis.
 
@@ -34,12 +37,17 @@ class TemporalCache:
             cache_manager: Unified cache manager instance
         """
         self.cache_manager = cache_manager
-        self.cache_type = 'temporal'
+        self._cache_type = 'temporal'
 
         # Temporal analysis parameters
         self.recency_decay_factor = 0.1  # How quickly relevance decays over time
         self.trend_window_hours = 24     # Window for trend analysis
         self.max_age_days = 30           # Maximum age for cached temporal data
+
+    @property
+    def cache_type(self) -> str:
+        """Return the cache type."""
+        return self._cache_type
 
     async def get_temporal_relevance(
         self,
@@ -59,7 +67,7 @@ class TemporalCache:
         effective_query_time = query_time or datetime.now()
         key = self._generate_temporal_key(content, 'relevance')
 
-        cached_data = await self.cache_manager.get(key, self.cache_type)
+        cached_data = await self.cache_manager.get(key, self._cache_type)
 
         if cached_data:
             # Calculate current relevance based on time decay
@@ -108,7 +116,7 @@ class TemporalCache:
             'last_accessed': time.time()
         }
 
-        return await self.cache_manager.set(key, temporal_data, ttl, self.cache_type)
+        return await self.cache_manager.set(key, temporal_data, ttl, self._cache_type)
 
     async def get_trend_analysis(
         self,
@@ -129,7 +137,7 @@ class TemporalCache:
             hours=self.trend_window_hours)
         key = self._generate_temporal_key(topic, 'trend')
 
-        cached_trend = await self.cache_manager.get(key, self.cache_type)
+        cached_trend = await self.cache_manager.get(key, self._cache_type)
 
         if cached_trend:
             # Check if trend data is still valid for the requested window
@@ -170,7 +178,7 @@ class TemporalCache:
             'valid_until': (datetime.now() + time_window).isoformat()
         }
 
-        return await self.cache_manager.set(key, cached_trend, ttl, self.cache_type)
+        return await self.cache_manager.set(key, cached_trend, ttl, self._cache_type)
 
     async def get_recency_scores(
         self,
@@ -192,7 +200,7 @@ class TemporalCache:
         # Generate keys for batch retrieval
         keys = [self._generate_temporal_key(
             content, 'relevance') for content in content_list]
-        cached_data = await self.cache_manager.get_many(keys, self.cache_type)
+        cached_data = await self.cache_manager.get_many(keys, self._cache_type)
 
         recency_scores = {}
 
@@ -222,7 +230,7 @@ class TemporalCache:
             True if successful, False otherwise
         """
         key = self._generate_temporal_key(content, 'relevance')
-        cached_data = await self.cache_manager.get(key, self.cache_type)
+        cached_data = await self.cache_manager.get(key, self._cache_type)
 
         if cached_data:
             # Update access information
@@ -233,9 +241,13 @@ class TemporalCache:
             if access_time:
                 cached_data['last_access_time'] = access_time.isoformat()
 
-            return await self.cache_manager.set(key, cached_data, cache_type=self.cache_type)
+            return await self.cache_manager.set(key, cached_data, cache_type=self._cache_type)
 
         return False
+
+    async def cleanup(self) -> int:
+        """Clean up expired cache entries (implements CacheServiceInterface)."""
+        return await self.cleanup_expired_temporal_data()
 
     async def cleanup_expired_temporal_data(self) -> int:
         """
@@ -258,6 +270,10 @@ class TemporalCache:
 
         logger.info("Temporal cache cleanup completed (TTL-based)")
         return 0
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get cache service statistics (implements CacheServiceInterface)."""
+        return await self.get_temporal_stats()
 
     async def get_temporal_stats(self) -> Dict[str, Any]:
         """Get temporal cache statistics."""
@@ -285,7 +301,6 @@ class TemporalCache:
         Returns:
             Cache key
         """
-        import hashlib
         content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()[:16]
         return f"{content_hash}:{analysis_type}"
 
@@ -318,6 +333,10 @@ class TemporalCache:
 
             return base_relevance * decay_factor
 
+        except CacheError as e:
+            logger.error(
+                "Cache error calculating time-adjusted relevance: %s", e)
+            return 0.0
         except Exception as e:
             logger.error("Error calculating time-adjusted relevance: %s", e)
             return 0.0
@@ -356,6 +375,9 @@ class TemporalCache:
 
             return min(1.0, recency_score + access_boost)
 
+        except CacheError as e:
+            logger.error("Cache error calculating recency score: %s", e)
+            return 0.0
         except Exception as e:
             logger.error("Error calculating recency score: %s", e)
             return 0.0

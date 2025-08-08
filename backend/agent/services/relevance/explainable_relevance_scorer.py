@@ -18,7 +18,7 @@ import numpy as np
 
 from app.exceptions import ValidationError
 
-from app.cache.factory import get_general_cache, get_temporal_cache
+from app.cache import CacheType, get_cache, get_general_cache
 from .cached_hybrid_relevance_scorer import CachedHybridRelevanceScorer
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class ExplainableRelevanceScorer:
         """Ensure cache is initialized with the new unified cache system."""
         if not self._cache_initialized:
             self.cache = await get_general_cache()
-            self.temporal_analyzer = await get_temporal_cache()
+            self.temporal_analyzer = await get_cache(CacheType.TEMPORAL)
             self._cache_initialized = True
             logger.info("Explainable relevance scorer cache initialized")
 

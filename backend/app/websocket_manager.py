@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from app.json_utils import json_dumps
 from app.schemas import ProgressEvent
 from app.schemas.websocket import ProgressWebSocketMessage, StepsDefinitionMessage, StepUpdateMessage
-from app.cache.connection_manager import connection_manager
+from app.cache import connection_manager
 
 logger = logging.getLogger(__name__)
 

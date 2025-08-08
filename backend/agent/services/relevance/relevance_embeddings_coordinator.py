@@ -10,7 +10,7 @@ import logging
 from typing import Any
 
 from app.exceptions import ValidationError
-from app.cache.factory import get_temporal_cache, get_general_cache
+from app.cache import CacheType, get_cache, get_general_cache
 
 from ..analysis.adaptive_thresholds import AdaptiveThresholds
 from ..infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
@@ -42,7 +42,7 @@ class RelevanceEmbeddingsCoordinator:
             self.embeddings = EnhancedOllamaEmbeddings()
 
             # Initialize temporal analysis cache
-            self.temporal_cache = await get_temporal_cache()
+            self.temporal_cache = await get_cache(CacheType.TEMPORAL)
 
             # Initialize unified cache for general caching needs
             self.cache = await get_general_cache()

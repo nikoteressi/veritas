@@ -127,7 +127,8 @@ class CacheConfig:
 
 # TTL presets for different cache types
 TTL_PRESETS = {
-    CacheTypes.EMBEDDING: 86400,      # 24 hours - embeddings are expensive to compute
+    # 24 hours - embeddings are expensive to compute
+    CacheTypes.CHROMA_EMBEDDING: 86400,
     CacheTypes.VERIFICATION: 3600,    # 1 hour - verification results
     CacheTypes.TEMPORAL: 1800,        # 30 minutes - temporal analysis
     CacheTypes.RELEVANCE: 900,        # 15 minutes - relevance scores
@@ -140,7 +141,7 @@ TTL_PRESETS = {
 
 # Cache key prefixes for organization
 KEY_PREFIXES = {
-    CacheTypes.EMBEDDING: 'emb:',
+    CacheTypes.CHROMA_EMBEDDING: 'emb:',
     CacheTypes.VERIFICATION: 'ver:',
     CacheTypes.TEMPORAL: 'tmp:',
     CacheTypes.RELEVANCE: 'rel:',

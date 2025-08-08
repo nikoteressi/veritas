@@ -13,6 +13,7 @@ from .temporal_analysis import TemporalAnalysisResult
 from .verification_context import VerificationContext
 from .verification_result import FactCheckResults, VerificationResult
 from .websocket_models import WebSocketMessage
+from .graph import FactNode, FactEdge, FactGraph, FactEdgeModel, FactCluster, FactClusterModel, FactGraphModel, FactNodeModel
 
 __all__ = [
     "Fact",
@@ -29,4 +30,12 @@ __all__ = [
     "VerificationResult",
     "FactCheckResults",
     "WebSocketMessage",
+    "FactNode",
+    "FactEdge",
+    "FactGraph",
+    "FactEdgeModel",
+    "FactCluster",
+    "FactClusterModel",
+    "FactGraphModel",
+    "FactNodeModel"
 ]

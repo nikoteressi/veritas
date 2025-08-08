@@ -11,7 +11,8 @@ import statistics
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.cache.factory import cache_factory
+from app.cache import get_cache, CacheType
+from app.cache.utils.factory import cache_factory
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class AdaptiveThresholds:
         """Ensure the cache is initialized."""
         if not self._cache_initialized:
             try:
-                self.cache = cache_factory.adaptive_cache
+                self.cache = await get_cache(CacheType.ADAPTIVE)
                 self._cache_initialized = True
                 logger.debug(
                     "AdaptiveThresholds cache initialized successfully")

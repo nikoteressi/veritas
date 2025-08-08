@@ -19,7 +19,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from app.config import settings
 from app.exceptions import ValidationError
 
-from app.cache.factory import get_temporal_cache
+from app.cache import CacheType, get_cache
 from agent.services.infrastructure.enhanced_ollama_embeddings import EnhancedOllamaEmbeddings
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,8 @@ class CachedHybridRelevanceScorer:
         """Ensure cache is initialized using the new unified cache system."""
         if not self._cache_initialized:
             try:
-                self.cache = await get_temporal_cache()
+                self.cache = await get_cache(CacheType.RELEVANCE)
+
                 self._cache_initialized = True
                 logger.info("Relevance cache initialized successfully")
             except Exception as e:

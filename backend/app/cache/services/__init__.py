@@ -20,12 +20,20 @@ Usage:
     temporal_cache = TemporalCache(cache_manager)
 """
 
-from .embedding_cache import EmbeddingCache
+from .base_cache_service import (
+    CacheServiceInterface,
+    BatchCacheServiceInterface,
+    InvalidationCacheServiceInterface
+)
+from .chroma_embedding_cache import ChromaEmbeddingCache
 from .temporal_cache import TemporalCache
 from .verification_cache import VerificationCache
 
 __all__ = [
-    'EmbeddingCache',
+    'CacheServiceInterface',
+    'BatchCacheServiceInterface', 
+    'InvalidationCacheServiceInterface',
+    'ChromaEmbeddingCache',
     'VerificationCache',
     'TemporalCache',
 ]

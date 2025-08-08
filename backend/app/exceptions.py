@@ -78,6 +78,10 @@ class CacheError(VeritasException):
     """Exception raised for cache operations."""
 
 
+class CircuitBreakerError(VeritasException):
+    """Exception raised when circuit breaker is open."""
+
+
 class EmbeddingError(VeritasException):
     """Exception raised for embedding operations."""
 

@@ -4,6 +4,7 @@ Enhanced modular graph verification engine.
 Main orchestrator that coordinates all verification modules with intelligent caching,
 adaptive thresholds, and performance monitoring.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,9 +17,10 @@ from agent.llm.embeddings import OllamaEmbeddingFunction
 from agent.models.graph import FactCluster, FactGraph, FactNode
 from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
+from agent.tools import SearxNGSearchTool
+from app.cache import CacheType, get_cache
 from app.config import settings
 from app.models.progress_callback import NoOpProgressCallback, ProgressCallback
-from app.cache import get_verification_cache
 
 from ..graph_config import ClusterVerificationResult, VerificationConfig
 from .cluster_analyzer import ClusterAnalyzer
@@ -27,7 +29,6 @@ from .response_parser import ResponseParser
 from .result_compiler import ResultCompiler
 from .source_manager import EnhancedSourceManager
 from .verification_processor import EnhancedVerificationProcessor
-from agent.tools import SearxNGSearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,8 @@ class EnhancedGraphVerificationEngine:
         self.logger = logging.getLogger(__name__)
 
         # Initialize enhanced verification modules
-        self.evidence_gatherer = EnhancedEvidenceGatherer(
-            search_tool, self.config)
-        self.source_manager = EnhancedSourceManager(
-            max_concurrent_scrapes=self.config.max_concurrent_scrapes)
+        self.evidence_gatherer = EnhancedEvidenceGatherer(search_tool, self.config)
+        self.source_manager = EnhancedSourceManager(max_concurrent_scrapes=self.config.max_concurrent_scrapes)
         self.verification_processor = EnhancedVerificationProcessor()
         self.cluster_analyzer = ClusterAnalyzer()
         self.result_compiler = ResultCompiler()
@@ -84,8 +83,7 @@ class EnhancedGraphVerificationEngine:
 
         # Memory optimization: trigger garbage collection after initialization
         gc.collect()
-        self.logger.debug(
-            "Memory cleanup completed after GraphVerificationEngine initialization")
+        self.logger.debug("Memory cleanup completed after GraphVerificationEngine initialization")
 
     def set_progress_callback(self, callback: ProgressCallback | None) -> None:
         """Set the progress callback for detailed progress reporting."""
@@ -99,7 +97,8 @@ class EnhancedGraphVerificationEngine:
         """Ensure cache is initialized with the new unified cache system."""
         if not self._cache_initialized:
             try:
-                self.cache_manager = await get_verification_cache()
+                self.cache_manager = await get_cache(CacheType.VERIFICATION)
+
                 self._cache_initialized = True
                 self.logger.info("Graph verification engine cache initialized")
             except Exception as e:
@@ -118,8 +117,7 @@ class EnhancedGraphVerificationEngine:
             Dict containing overall verification results with performance metrics
         """
         start_time = datetime.now()
-        self.logger.info(
-            "Starting enhanced graph verification with %d clusters", len(graph.clusters))
+        self.logger.info("Starting enhanced graph verification with %d clusters", len(graph.clusters))
 
         # Update performance metrics
         self.performance_metrics["total_verifications"] += 1
@@ -136,8 +134,7 @@ class EnhancedGraphVerificationEngine:
             async with semaphore:
                 return await self.verify_cluster(cluster, graph, context)
 
-        cluster_tasks = [verify_cluster_with_semaphore(
-            cluster) for cluster in graph.clusters.values()]
+        cluster_tasks = [verify_cluster_with_semaphore(cluster) for cluster in graph.clusters.values()]
 
         cluster_results = await asyncio.gather(*cluster_tasks, return_exceptions=True)
 
@@ -151,8 +148,7 @@ class EnhancedGraphVerificationEngine:
         for i, result in enumerate(cluster_results):
             if isinstance(result, Exception):
                 cluster_id = list(graph.clusters.keys())[i]
-                self.logger.error(
-                    "Failed to verify cluster %s: %s", cluster_id, result)
+                self.logger.error("Failed to verify cluster %s: %s", cluster_id, result)
                 failed_clusters.append(cluster_id)
                 self.performance_metrics["error_count"] += 1
             else:
@@ -193,8 +189,7 @@ class EnhancedGraphVerificationEngine:
         # Update graph with verification results
         await self.result_compiler.update_graph_with_results(graph, successful_results, individual_results)
 
-        self.logger.info(
-            "Enhanced graph verification completed in %.2fs", verification_time)
+        self.logger.info("Enhanced graph verification completed in %.2fs", verification_time)
         return overall_result
 
     async def verify_cluster(
@@ -255,8 +250,7 @@ class EnhancedGraphVerificationEngine:
                         summary += f" [Published: {publication_date}]"
 
                     content_summary[url] = summary
-                self.logger.info(
-                    "Scraped content summary: %s", content_summary)
+                self.logger.info("Scraped content summary: %s", content_summary)
 
                 self.logger.info(
                     "Successfully scraped %d sources for cluster %s",
@@ -281,16 +275,14 @@ class EnhancedGraphVerificationEngine:
                 # Log summary of enriched evidence to prevent BlockingIOError
                 evidence_summary = f"Enriched evidence: {len(enriched_evidence)} items"
                 if enriched_evidence:
-                    first_keys = list(enriched_evidence[0].keys(
-                    )) if enriched_evidence[0] else "empty"
+                    first_keys = list(enriched_evidence[0].keys()) if enriched_evidence[0] else "empty"
                     evidence_summary += f", first item keys: {first_keys}"
                 self.logger.info(evidence_summary)
 
                 # Combine original evidence with scraped content
                 evidence.extend(enriched_evidence)
             else:
-                self.logger.warning(
-                    "No credible sources found for cluster %s", cluster.id)
+                self.logger.warning("No credible sources found for cluster %s", cluster.id)
 
             # Step 2: Verify individual facts within cluster context
             individual_results = await self.verification_processor.verify_cluster_facts(cluster, evidence, context)
@@ -384,8 +376,7 @@ class EnhancedGraphVerificationEngine:
                 cross_verification_results=[],
                 contradictions_found=[],
                 supporting_evidence=[],
-                verification_time=(
-                    datetime.now() - start_time).total_seconds(),
+                verification_time=(datetime.now() - start_time).total_seconds(),
                 metadata={"error": str(e), "engine_version": "modular_v1.0"},
             )
 
@@ -399,8 +390,7 @@ class EnhancedGraphVerificationEngine:
         while using the new modular architecture.
         """
         try:
-            self.logger.info(
-                "Starting modular batch verification for %d clusters", len(clusters))
+            self.logger.info("Starting modular batch verification for %d clusters", len(clusters))
 
             # Step 1: Generate search queries for all clusters
             all_search_queries = []
@@ -427,14 +417,12 @@ class EnhancedGraphVerificationEngine:
             combined_claim = f"Multiple claims verification: {'; '.join(all_claims[:5])}"
             credible_urls = await self.evidence_gatherer.select_credible_sources_batch(combined_claim, search_results)
 
-            self.logger.info(
-                "Selected %s credible sources for batch scraping", len(credible_urls))
+            self.logger.info("Selected %s credible sources for batch scraping", len(credible_urls))
 
             # Step 4: Scrape sources
             scraped_content = await self.source_manager.scrape_sources_batch(credible_urls)
 
-            self.logger.info("Successfully scraped %d sources",
-                             len(scraped_content))
+            self.logger.info("Successfully scraped %d sources", len(scraped_content))
 
             # Memory optimization: trigger garbage collection after batch scraping
             gc.collect()
@@ -465,8 +453,7 @@ class EnhancedGraphVerificationEngine:
                     )
 
                 except (OSError, ValueError, KeyError, RuntimeError) as e:
-                    self.logger.error(
-                        "Failed to verify cluster %s: %s", cluster.id, e)
+                    self.logger.error("Failed to verify cluster %s: %s", cluster.id, e)
                     # Add error results for all nodes in this cluster
                     for node in cluster.nodes:
                         all_results[node.id] = {
@@ -576,8 +563,7 @@ class EnhancedGraphVerificationEngine:
             1, self.performance_metrics["total_verifications"]
         )
 
-        error_rate = self.performance_metrics["error_count"] / \
-            max(1, self.performance_metrics["total_verifications"])
+        error_rate = self.performance_metrics["error_count"] / max(1, self.performance_metrics["total_verifications"])
 
         return {
             "engine_metrics": {
@@ -609,8 +595,7 @@ class EnhancedGraphVerificationEngine:
         await self.verification_processor.clear_cache()
 
         # Shared cache is managed by CacheFactory and should not be cleared here
-        self.logger.info(
-            "Component-specific engine caches cleared (shared cache managed by factory)")
+        self.logger.info("Component-specific engine caches cleared (shared cache managed by factory)")
 
     async def optimize_performance(self):
         """Optimize performance across all components."""
@@ -637,11 +622,9 @@ class EnhancedGraphVerificationEngine:
 
         # Check error rate
         if self.performance_metrics["total_verifications"] > 0:
-            error_rate = self.performance_metrics["error_count"] / \
-                self.performance_metrics["total_verifications"]
+            error_rate = self.performance_metrics["error_count"] / self.performance_metrics["total_verifications"]
             if error_rate > 0.1:
-                engine_recommendations.append(
-                    "High error rate detected - review configuration")
+                engine_recommendations.append("High error rate detected - review configuration")
 
         all_recommendations = {
             "engine": engine_recommendations,
@@ -674,18 +657,15 @@ class EnhancedGraphVerificationEngine:
         # Close enhanced components
         if hasattr(self, "verification_processor") and self.verification_processor:
             await self.verification_processor.cleanup()
-            logger.info(
-                "EnhancedGraphVerificationEngine: VerificationProcessor closed")
+            logger.info("EnhancedGraphVerificationEngine: VerificationProcessor closed")
 
         if hasattr(self, "source_manager") and self.source_manager:
             await self.source_manager.close()
-            logger.info(
-                "EnhancedGraphVerificationEngine: SourceManager closed")
+            logger.info("EnhancedGraphVerificationEngine: SourceManager closed")
 
         if hasattr(self, "evidence_gatherer") and self.evidence_gatherer:
             await self.evidence_gatherer.cleanup()
-            logger.info(
-                "EnhancedGraphVerificationEngine: EvidenceGatherer closed")
+            logger.info("EnhancedGraphVerificationEngine: EvidenceGatherer closed")
 
         # Cache is managed by CacheFactory, no need to clear here
         # Caches are shared resources and should not be cleared on component shutdown

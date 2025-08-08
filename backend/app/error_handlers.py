@@ -13,6 +13,7 @@ from app.exceptions import (
     AgentError,
     AnalysisError,
     CacheError,
+    CircuitBreakerError,
     DatabaseError,
     EmbeddingError,
     GraphError,
@@ -219,6 +220,20 @@ async def cache_error_handler(request: Request, exc: CacheError) -> JSONResponse
     )
 
 
+async def circuit_breaker_error_handler(request: Request, exc: CircuitBreakerError) -> JSONResponse:
+    """Handle circuit breaker errors."""
+    logger.warning("Circuit breaker error: %s", exc.message)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": "Service temporarily unavailable",
+            "message": "The service is temporarily unavailable due to circuit breaker protection.",
+            "error_code": exc.error_code or "CIRCUIT_BREAKER_OPEN",
+            "timestamp": datetime.now().isoformat(),
+        },
+    )
+
+
 async def embedding_error_handler(request: Request, exc: EmbeddingError) -> JSONResponse:
     """Handle embedding errors."""
     logger.error("Embedding error: %s", exc.message)
@@ -301,6 +316,7 @@ EXCEPTION_HANDLERS = {
     AgentError: agent_error_handler,
     ToolError: tool_error_handler,
     CacheError: cache_error_handler,
+    CircuitBreakerError: circuit_breaker_error_handler,
     EmbeddingError: embedding_error_handler,
     GraphError: graph_error_handler,
     RelevanceError: relevance_error_handler,

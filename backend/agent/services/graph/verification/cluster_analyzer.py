@@ -3,6 +3,7 @@ Cluster analyzer for cross-verification and contradiction detection.
 
 Handles analysis of fact clusters for contradictions and cross-verification.
 """
+
 from __future__ import annotations
 
 import logging
@@ -56,8 +57,7 @@ class ClusterAnalyzer:
                 cross_result = await self._cross_verify_pair(fact1, fact2, evidence)
                 cross_verification_results.append(cross_result)
             except (ValueError, KeyError, TypeError, RuntimeError) as e:
-                logger.error(
-                    "Cross-verification failed for %s vs %s: %s", fact1.id, fact2.id, e)
+                logger.error("Cross-verification failed for %s vs %s: %s", fact1.id, fact2.id, e)
                 cross_verification_results.append(
                     {
                         "fact1_id": fact1.id,
@@ -74,8 +74,7 @@ class ClusterAnalyzer:
         self, fact1: FactNode, fact2: FactNode, evidence: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Cross-verify a pair of facts."""
-        prompt = self.verification_processor.create_cross_verification_prompt(
-            fact1, fact2, evidence)
+        prompt = self.verification_processor.create_cross_verification_prompt(fact1, fact2, evidence)
 
         llm_response = await llm_manager.invoke_text_only(prompt)
 
@@ -104,8 +103,7 @@ class ClusterAnalyzer:
                 relationship = "INDEPENDENT"
 
             # Extract confidence if present
-            confidence_match = re.search(
-                r'confidence["\']?\s*:\s*([0-9.]+)', response, re.IGNORECASE)
+            confidence_match = re.search(r'confidence["\']?\s*:\s*([0-9.]+)', response, re.IGNORECASE)
             if confidence_match:
                 confidence = float(confidence_match.group(1))
 
@@ -133,8 +131,7 @@ class ClusterAnalyzer:
         contradictions = []
 
         # Check for verdict contradictions
-        verdict_contradictions = self._detect_verdict_contradictions(
-            individual_results)
+        verdict_contradictions = self._detect_verdict_contradictions(individual_results)
         contradictions.extend(verdict_contradictions)
 
         # Check for semantic contradictions using LLM
@@ -180,14 +177,12 @@ class ClusterAnalyzer:
         for node in cluster.nodes:
             result = individual_results.get(node.id, {})
             verdict = result.get("verdict", "UNKNOWN")
-            claims_with_verdicts.append(
-                f"Claim: {node.claim} | Verdict: {verdict}")
+            claims_with_verdicts.append(f"Claim: {node.claim} | Verdict: {verdict}")
 
         claims_text = "\n".join(claims_with_verdicts)
 
         # Create contradiction detection prompt
-        prompt_template = self.prompt_manager.get_prompt_template(
-            "detect_contradictions")
+        prompt_template = self.prompt_manager.get_prompt_template("detect_contradictions")
 
         # Get format instructions for structured output
         format_instructions = self.response_parser.get_contradiction_format_instructions()
@@ -207,8 +202,7 @@ class ClusterAnalyzer:
 
         try:
             llm_response = await llm_manager.invoke_text_only(prompt)
-            contradictions = self.response_parser.parse_contradiction_response(
-                llm_response)
+            contradictions = self.response_parser.parse_contradiction_response(llm_response)
 
             # Add cluster context to contradictions
             for contradiction in contradictions:
@@ -253,8 +247,7 @@ class ClusterAnalyzer:
 
         # Adjust confidence based on contradictions
         if contradictions:
-            high_severity_contradictions = [
-                c for c in contradictions if c.get("severity") == "high"]
+            high_severity_contradictions = [c for c in contradictions if c.get("severity") == "high"]
             if high_severity_contradictions:
                 avg_confidence *= 0.5  # Reduce confidence significantly
             else:
@@ -262,8 +255,7 @@ class ClusterAnalyzer:
 
         # Adjust confidence based on cross-verification
         if cross_verification_results:
-            supporting_count = sum(1 for cv in cross_verification_results if cv.get(
-                "relationship") == "SUPPORTING")
+            supporting_count = sum(1 for cv in cross_verification_results if cv.get("relationship") == "SUPPORTING")
             contradicting_count = sum(
                 1 for cv in cross_verification_results if cv.get("relationship") == "CONTRADICTING"
             )

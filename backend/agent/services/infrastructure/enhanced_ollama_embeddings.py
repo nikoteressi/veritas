@@ -17,7 +17,7 @@ from langchain_ollama import OllamaEmbeddings
 
 from app.config import settings
 from app.exceptions import EmbeddingError
-from app.cache.factory import cache_factory
+from app.cache import get_cache, CacheType
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class EnhancedOllamaEmbeddings:
         """Ensure cache is initialized."""
         if not self._cache_initialized:
             try:
-                self.cache = cache_factory.embedding_cache
+                self.cache = get_cache(CacheType.CHROMA_EMBEDDING)
                 self._cache_initialized = True
                 logger.info("Enhanced Ollama embeddings cache initialized")
             except Exception as e:

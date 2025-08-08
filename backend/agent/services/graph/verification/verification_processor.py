@@ -4,6 +4,7 @@ Verification processor for individual fact verification.
 Handles the verification of individual facts within cluster context.
 Enhanced with intelligent caching and adaptive confidence scoring.
 """
+
 from __future__ import annotations
 
 import logging
@@ -13,10 +14,10 @@ from agent.llm import llm_manager
 from agent.models.graph import FactCluster, FactNode
 from agent.models.verification_context import VerificationContext
 from agent.prompts import PromptManager
+from app.cache import CacheType, get_cache
 from app.exceptions import AgentError
 
 from ...analysis.adaptive_thresholds import get_adaptive_thresholds
-from app.cache.factory import get_verification_cache
 from .response_parser import ResponseParser
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ class EnhancedVerificationProcessor:
     async def _ensure_cache_initialized(self):
         """Ensure cache is initialized with the new unified cache system."""
         if not self._cache_initialized:
-            self.cache = await get_verification_cache()
+            self.cache = await get_cache(CacheType.VERIFICATION)
             self._cache_initialized = True
             logger.info("Verification processor cache initialized")
 
@@ -67,13 +68,9 @@ class EnhancedVerificationProcessor:
         cluster_context = self._create_cluster_context(cluster, evidence)
 
         for node in cluster.nodes:
-            # Create cache key for this verification
-            cache_key = f"cluster_verification:{cluster.id}:{node.id}:{hash(str(evidence))}"
-
             # Check cache first
             cached_result = await self.cache.get_verification_result(
-                content=node.claim,
-                verification_type="cluster_verification"
+                content=node.claim, verification_type="cluster_verification"
             )
             if cached_result:
                 self.performance_metrics["cache_hits"] += 1
@@ -82,8 +79,7 @@ class EnhancedVerificationProcessor:
                 continue
 
             # Verify this fact with cluster context
-            verification_prompt = self._create_cluster_verification_prompt(
-                node, cluster_context, evidence)
+            verification_prompt = self._create_cluster_verification_prompt(node, cluster_context, evidence)
 
             try:
                 import time
@@ -93,12 +89,10 @@ class EnhancedVerificationProcessor:
                 llm_response = await llm_manager.invoke_text_only(verification_prompt)
 
                 verification_time = time.time() - start_time
-                self.performance_metrics["verification_times"].append(
-                    verification_time)
+                self.performance_metrics["verification_times"].append(verification_time)
 
                 # Parse LLM response
-                fact_result = self.response_parser.parse_verification_response(
-                    llm_response)
+                fact_result = self.response_parser.parse_verification_response(llm_response)
 
                 # Ensure fact_result is not None and is a dictionary
                 if fact_result is None or not isinstance(fact_result, dict):
@@ -127,25 +121,19 @@ class EnhancedVerificationProcessor:
 
                 # Cache the result
                 await self.cache.set_verification_result(
-                    content=node.claim,
-                    verification_type="cluster_verification",
-                    result=fact_result
+                    content=node.claim, verification_type="cluster_verification", result=fact_result
                 )
 
                 results[node.id] = fact_result
                 self.performance_metrics["verifications_performed"] += 1
-                self.performance_metrics["confidence_scores"].append(
-                    enhanced_confidence)
+                self.performance_metrics["confidence_scores"].append(enhanced_confidence)
 
             except Exception as e:
                 logger.error(f"Failed to verify fact {node.id}: {e}")
-                raise AgentError(
-                    f"Failed to verify fact {node.id}: {e}") from e
+                raise AgentError(f"Failed to verify fact {node.id}: {e}") from e
 
         # Record metrics in adaptive thresholds
         if results:
-            avg_confidence = sum(r.get("confidence", 0)
-                                 for r in results.values()) / len(results)
             await self.adaptive_thresholds.record_performance_metrics(
                 precision=0.8,  # Placeholder precision
                 recall=0.7,  # Placeholder recall
@@ -186,11 +174,9 @@ class EnhancedVerificationProcessor:
                 if isinstance(ev, dict):
                     source = ev.get("url", ev.get("source", "Unknown source"))
                     content = ev.get("content", ev.get("search_results", ""))
-                    relevance = ev.get("query_relevance",
-                                       ev.get("relevance_score", 0))
+                    relevance = ev.get("query_relevance", ev.get("relevance_score", 0))
 
-                    content_preview = str(
-                        content)[:150] if content else "No content"
+                    content_preview = str(content)[:150] if content else "No content"
                     context_parts.append(f"- Source {i + 1}: {source}")
                     context_parts.append(f"  Preview: {content_preview}...")
                     if relevance:
@@ -198,8 +184,7 @@ class EnhancedVerificationProcessor:
                 else:
                     # Handle string evidence
                     content_preview = str(ev)[:150]
-                    context_parts.append(
-                        f"- Evidence {i + 1}: {content_preview}...")
+                    context_parts.append(f"- Evidence {i + 1}: {content_preview}...")
 
         return "\n".join(context_parts)
 
@@ -215,12 +200,10 @@ class EnhancedVerificationProcessor:
                 if isinstance(ev, dict):
                     source = ev.get("url", ev.get("source", "Unknown source"))
                     content = ev.get("content", ev.get("search_results", ""))
-                    relevance = ev.get("query_relevance",
-                                       ev.get("relevance_score", 0))
+                    relevance = ev.get("query_relevance", ev.get("relevance_score", 0))
 
                     # Limit content length but preserve important information
-                    content_text = str(content)[
-                        :800] if content else "No content available"
+                    content_text = str(content)[:800] if content else "No content available"
 
                     evidence_piece = f"Evidence {i + 1} (Source: {source}"
                     if relevance:
@@ -231,14 +214,12 @@ class EnhancedVerificationProcessor:
                 else:
                     # Handle string evidence
                     content_text = str(ev)[:800]
-                    evidence_pieces.append(
-                        f"Evidence {i + 1}:\n{content_text}")
+                    evidence_pieces.append(f"Evidence {i + 1}:\n{content_text}")
 
             evidence_text = "\n\n".join(evidence_pieces)
 
         # Get verification prompt template
-        prompt_template = self.prompt_manager.get_prompt_template(
-            "cluster_fact_verification")
+        prompt_template = self.prompt_manager.get_prompt_template("cluster_fact_verification")
 
         # Get format instructions for structured output
         format_instructions = self.response_parser.get_verification_format_instructions()
@@ -263,18 +244,13 @@ class EnhancedVerificationProcessor:
         # Ensure cache is initialized
         await self._ensure_cache_initialized()
 
-        # Create cache key for individual verification
-        cache_key = f"individual_verification:{node.id}:{hash(str(context.additional_context))}"
-
         # Check cache first
         cached_result = await self.cache.get_verification_result(
-            content=node.claim,
-            verification_type="individual_verification"
+            content=node.claim, verification_type="individual_verification"
         )
         if cached_result:
             self.performance_metrics["cache_hits"] += 1
-            logger.debug(
-                f"Cache hit for individual node {node.id} verification")
+            logger.debug(f"Cache hit for individual node {node.id} verification")
             return cached_result
 
         try:
@@ -283,8 +259,7 @@ class EnhancedVerificationProcessor:
             start_time = time.time()
 
             # Create simple verification prompt for individual node
-            prompt_template = self.prompt_manager.get_prompt_template(
-                "individual_fact_verification")
+            prompt_template = self.prompt_manager.get_prompt_template("individual_fact_verification")
 
             # Get format instructions for structured output
             format_instructions = self.response_parser.get_verification_format_instructions()
@@ -312,12 +287,10 @@ class EnhancedVerificationProcessor:
             llm_response = await llm_manager.invoke_text_only(prompt)
 
             verification_time = time.time() - start_time
-            self.performance_metrics["verification_times"].append(
-                verification_time)
+            self.performance_metrics["verification_times"].append(verification_time)
 
             # Parse response
-            result = self.response_parser.parse_verification_response(
-                llm_response)
+            result = self.response_parser.parse_verification_response(llm_response)
 
             # Ensure result is not None and is a dictionary
             if result is None or not isinstance(result, dict):
@@ -346,14 +319,11 @@ class EnhancedVerificationProcessor:
 
             # Cache the result
             await self.cache.set_verification_result(
-                content=node.claim,
-                verification_type="individual_verification",
-                result=result
+                content=node.claim, verification_type="individual_verification", result=result
             )
 
             self.performance_metrics["verifications_performed"] += 1
-            self.performance_metrics["confidence_scores"].append(
-                enhanced_confidence)
+            self.performance_metrics["confidence_scores"].append(enhanced_confidence)
 
             return result
 
@@ -379,11 +349,9 @@ class EnhancedVerificationProcessor:
                 if isinstance(ev, dict):
                     source = ev.get("url", ev.get("source", "Unknown source"))
                     content = ev.get("content", ev.get("search_results", ""))
-                    relevance = ev.get("query_relevance",
-                                       ev.get("relevance_score", 0))
+                    relevance = ev.get("query_relevance", ev.get("relevance_score", 0))
 
-                    content_text = str(content)[
-                        :400] if content else "No content"
+                    content_text = str(content)[:400] if content else "No content"
                     evidence_piece = f"Evidence {i + 1} (Source: {source}"
                     if relevance:
                         evidence_piece += f", Relevance: {relevance:.3f}"
@@ -396,8 +364,7 @@ class EnhancedVerificationProcessor:
 
             evidence_text = "\n".join(evidence_pieces)
 
-        prompt_template = self.prompt_manager.get_prompt_template(
-            "cross_verification")
+        prompt_template = self.prompt_manager.get_prompt_template("cross_verification")
 
         return prompt_template.format(
             primary_claims=f"1. {fact1.claim}",
@@ -439,8 +406,7 @@ class EnhancedVerificationProcessor:
             elif original_confidence < threshold * 0.7:
                 enhancement_factor *= 0.95
 
-            enhanced_confidence = min(
-                1.0, original_confidence * enhancement_factor)
+            enhanced_confidence = min(1.0, original_confidence * enhancement_factor)
 
             return enhanced_confidence
 
@@ -454,15 +420,13 @@ class EnhancedVerificationProcessor:
         cache_stats = await self.cache.get_stats()
 
         avg_confidence = (
-            (sum(self.performance_metrics["confidence_scores"]) /
-             len(self.performance_metrics["confidence_scores"]))
+            (sum(self.performance_metrics["confidence_scores"]) / len(self.performance_metrics["confidence_scores"]))
             if self.performance_metrics["confidence_scores"]
             else 0.0
         )
 
         avg_verification_time = (
-            (sum(self.performance_metrics["verification_times"]) /
-             len(self.performance_metrics["verification_times"]))
+            (sum(self.performance_metrics["verification_times"]) / len(self.performance_metrics["verification_times"]))
             if self.performance_metrics["verification_times"]
             else 0.0
         )
@@ -480,8 +444,7 @@ class EnhancedVerificationProcessor:
                 self.performance_metrics["cache_hits"]
                 / max(
                     1,
-                    self.performance_metrics["verifications_performed"] +
-                    self.performance_metrics["cache_hits"],
+                    self.performance_metrics["verifications_performed"] + self.performance_metrics["cache_hits"],
                 )
             ),
         }
@@ -500,8 +463,7 @@ class EnhancedVerificationProcessor:
         # Get optimization recommendations from adaptive thresholds
         recommendations = await self.adaptive_thresholds.get_threshold_recommendations()
 
-        logger.info(
-            f"Verification processor optimization completed. Recommendations: {recommendations}")
+        logger.info(f"Verification processor optimization completed. Recommendations: {recommendations}")
         return recommendations
 
     async def cleanup(self):
