@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import pickle
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -34,10 +35,15 @@ class InMemoryStorageStrategy(StorageStrategy):
         Args:
             config: Storage configuration
         """
+        # Call parent constructor
+        super().__init__(config)
+        
         self._config = config or {}
         self._max_graphs = self._config.get("max_graphs", 100)
-        self._enable_persistence = self._config.get("enable_persistence", False)
-        self._persistence_path = Path(self._config.get("persistence_path", "./data/graphs"))
+        self._enable_persistence = self._config.get(
+            "enable_persistence", False)
+        self._persistence_path = Path(self._config.get(
+            "persistence_path", "./data/graphs"))
 
         # In-memory storage
         self._graphs: dict[str, FactGraph] = {}
@@ -92,48 +98,67 @@ class InMemoryStorageStrategy(StorageStrategy):
         self._connected = False
         logger.info("Disconnected from in-memory storage")
 
-    async def save_graph(self, graph: FactGraph) -> None:
+    async def save_graph(self, graph: FactGraph, graph_id: str | None = None) -> str:
         """
         Save a graph to storage.
 
         Args:
             graph: Graph to save
+            graph_id: Optional graph identifier
+
+        Returns:
+            Graph identifier in storage
         """
         self._ensure_connected()
 
+        # Use provided graph_id or graph's own id from metadata
+        final_graph_id = graph_id or graph.metadata.get("graph_id")
+        
+        # If no graph_id provided and none in metadata, generate one
+        if not final_graph_id:
+            final_graph_id = str(uuid.uuid4())
+        
+        # Update graph's id in metadata
+        graph.metadata["graph_id"] = final_graph_id
+
         # Check capacity
-        if len(self._graphs) >= self._max_graphs and graph.graph_id not in self._graphs:
+        if len(self._graphs) >= self._max_graphs and final_graph_id not in self._graphs:
             # Remove oldest graph to make space
-            oldest_graph_id = min(self._graphs.keys(), key=lambda gid: self._graphs[gid].created_at)
+            oldest_graph_id = min(self._graphs.keys(),
+                                  key=lambda gid: self._graphs[gid].created_at)
             await self._remove_graph_data(oldest_graph_id)
-            logger.warning(f"Removed oldest graph {oldest_graph_id} to make space")
+            logger.warning(
+                f"Removed oldest graph {oldest_graph_id} to make space")
+
+        # Note: FactGraph doesn't have graph_id attribute, using final_graph_id for storage
 
         # Save graph
-        self._graphs[graph.graph_id] = graph
+        self._graphs[final_graph_id] = graph
 
         # Initialize collections for this graph if not exists
-        if graph.graph_id not in self._nodes:
-            self._nodes[graph.graph_id] = {}
-        if graph.graph_id not in self._edges:
-            self._edges[graph.graph_id] = {}
-        if graph.graph_id not in self._clusters:
-            self._clusters[graph.graph_id] = {}
+        if final_graph_id not in self._nodes:
+            self._nodes[final_graph_id] = {}
+        if final_graph_id not in self._edges:
+            self._edges[final_graph_id] = {}
+        if final_graph_id not in self._clusters:
+            self._clusters[final_graph_id] = {}
 
         # Save nodes, edges, and clusters
         for node in graph.nodes.values():
-            self._nodes[graph.graph_id][node.node_id] = node
+            self._nodes[final_graph_id][node.id] = node
 
         for edge in graph.edges.values():
-            self._edges[graph.graph_id][edge.edge_id] = edge
+            self._edges[final_graph_id][edge.id] = edge
 
         for cluster in graph.clusters.values():
-            self._clusters[graph.graph_id][cluster.cluster_id] = cluster
+            self._clusters[final_graph_id][cluster.id] = cluster
 
         # Persist if enabled
         if self._enable_persistence:
             await self._persist_graph(graph)
 
-        logger.debug(f"Saved graph {graph.graph_id}")
+        logger.debug(f"Saved graph {final_graph_id}")
+        return final_graph_id
 
     async def load_graph(self, graph_id: str) -> FactGraph | None:
         """
@@ -159,27 +184,32 @@ class InMemoryStorageStrategy(StorageStrategy):
         clusters = self._clusters.get(graph_id, {})
 
         # Create updated graph
-        updated_graph = FactGraph(
-            id=graph.graph_id,
-            nodes=nodes.copy(),
-            edges=edges.copy(),
-            clusters=clusters.copy(),
-            metadata=graph.metadata.copy(),
-            created_at=graph.created_at,
-            updated_at=graph.updated_at,
-        )
+        updated_graph = FactGraph()
+        updated_graph.nodes = nodes.copy()
+        updated_graph.edges = edges.copy()
+        updated_graph.clusters = clusters.copy()
+        updated_graph.metadata = graph.metadata.copy()
+        updated_graph.created_at = graph.created_at
 
         logger.debug(f"Loaded graph {graph_id}")
         return updated_graph
 
-    async def delete_graph(self, graph_id: str) -> None:
+    async def delete_graph(self, graph_id: str) -> bool:
         """
         Delete a graph from storage.
 
         Args:
             graph_id: Graph identifier
+
+        Returns:
+            True if deletion was successful, False otherwise
         """
         self._ensure_connected()
+
+        # Check if graph exists
+        if graph_id not in self._graphs:
+            logger.warning(f"Graph {graph_id} not found for deletion")
+            return False
 
         await self._remove_graph_data(graph_id)
 
@@ -188,109 +218,130 @@ class InMemoryStorageStrategy(StorageStrategy):
             await self._remove_from_persistence(graph_id)
 
         logger.debug(f"Deleted graph {graph_id}")
+        return True
 
-    async def save_node(self, graph_id: str, node: FactNode) -> None:
+    async def save_node(self, node: FactNode, graph_id: str) -> str:
         """
         Save a node to storage.
 
         Args:
-            graph_id: Graph identifier
             node: Node to save
+            graph_id: Graph identifier
+
+        Returns:
+            Node identifier in storage
         """
         self._ensure_connected()
 
         if graph_id not in self._nodes:
             self._nodes[graph_id] = {}
 
-        self._nodes[graph_id][node.node_id] = node
+        self._nodes[graph_id][node.id] = node
 
-        # Update graph's updated_at timestamp
-        if graph_id in self._graphs:
-            self._graphs[graph_id].updated_at = datetime.now()
+        logger.debug(f"Saved node {node.id} to graph {graph_id}")
+        return node.id
 
-        logger.debug(f"Saved node {node.node_id} to graph {graph_id}")
-
-    async def save_edge(self, graph_id: str, edge: FactEdge) -> None:
+    async def save_edge(self, edge: FactEdge, graph_id: str) -> str:
         """
         Save an edge to storage.
 
         Args:
-            graph_id: Graph identifier
             edge: Edge to save
+            graph_id: Graph identifier
+
+        Returns:
+            Edge identifier in storage
         """
         self._ensure_connected()
 
         if graph_id not in self._edges:
             self._edges[graph_id] = {}
 
-        self._edges[graph_id][edge.edge_id] = edge
+        self._edges[graph_id][edge.id] = edge
 
-        # Update graph's updated_at timestamp
-        if graph_id in self._graphs:
-            self._graphs[graph_id].updated_at = datetime.now()
+        logger.debug(f"Saved edge {edge.id} to graph {graph_id}")
+        return edge.id
 
-        logger.debug(f"Saved edge {edge.edge_id} to graph {graph_id}")
-
-    async def save_cluster(self, graph_id: str, cluster: FactCluster) -> None:
+    async def save_cluster(self, cluster: FactCluster, graph_id: str) -> str:
         """
         Save a cluster to storage.
 
         Args:
-            graph_id: Graph identifier
             cluster: Cluster to save
+            graph_id: Graph identifier
+
+        Returns:
+            Cluster identifier in storage
         """
         self._ensure_connected()
 
         if graph_id not in self._clusters:
             self._clusters[graph_id] = {}
 
-        self._clusters[graph_id][cluster.cluster_id] = cluster
+        self._clusters[graph_id][cluster.id] = cluster
 
-        # Update graph's updated_at timestamp
-        if graph_id in self._graphs:
-            self._graphs[graph_id].updated_at = datetime.now()
+        logger.debug(f"Saved cluster {cluster.id} to graph {graph_id}")
+        return cluster.id
 
-        logger.debug(f"Saved cluster {cluster.cluster_id} to graph {graph_id}")
-
-    async def list_graphs(self) -> list[str]:
+    async def list_graphs(self, limit: int | None = None) -> list[dict[str, Any]]:
         """
-        List all available graph identifiers.
+        List all available graphs with metadata.
+
+        Args:
+            limit: Optional limit on number of results
 
         Returns:
-            List of graph identifiers
+            List of graph metadata dictionaries
         """
         self._ensure_connected()
-        return list(self._graphs.keys())
+        
+        graph_list = []
+        graph_ids = list(self._graphs.keys())
+        
+        # Apply limit if specified
+        if limit is not None:
+            graph_ids = graph_ids[:limit]
+        
+        for graph_id in graph_ids:
+            graph = self._graphs[graph_id]
+            metadata = {
+                "graph_id": graph_id,
+                "created_at": graph.created_at.isoformat() if graph.created_at else None,
+                "node_count": len(self._nodes.get(graph_id, {})),
+                "edge_count": len(self._edges.get(graph_id, {})),
+                "cluster_count": len(self._clusters.get(graph_id, {})),
+                "metadata": graph.metadata
+            }
+            graph_list.append(metadata)
+        
+        return graph_list
 
     def get_strategy_name(self) -> str:
         """Get strategy name."""
         return "in_memory_storage"
 
-    def validate_config(self, config: dict[str, Any]) -> bool:
+    def validate_config(self) -> bool:
         """
         Validate storage configuration.
-
-        Args:
-            config: Configuration to validate
 
         Returns:
             True if configuration is valid
         """
         try:
-            max_graphs = config.get("max_graphs", 100)
+            max_graphs = self._config.get("max_graphs", 100)
             if not isinstance(max_graphs, int) or max_graphs <= 0:
                 return False
 
-            enable_persistence = config.get("enable_persistence", False)
+            enable_persistence = self._config.get("enable_persistence", False)
             if not isinstance(enable_persistence, bool):
                 return False
 
-            persistence_path = config.get("persistence_path", "./data/graphs")
+            persistence_path = self._config.get(
+                "persistence_path", "./data/graphs")
             if not isinstance(persistence_path, str):
                 return False
 
             return True
-
         except Exception:
             return False
 
@@ -298,18 +349,23 @@ class InMemoryStorageStrategy(StorageStrategy):
         """Get current configuration."""
         return self._config.copy()
 
-    def update_config(self, config: dict[str, Any]) -> None:
+    def update_config(self, new_config: dict[str, Any]) -> None:
         """
         Update storage configuration.
 
         Args:
-            config: New configuration
+            new_config: New configuration parameters
         """
-        if self.validate_config(config):
-            self._config.update(config)
+        # Update the config first
+        self._config.update(new_config)
+        
+        # Validate the updated configuration
+        if self.validate_config():
             self._max_graphs = self._config.get("max_graphs", 100)
-            self._enable_persistence = self._config.get("enable_persistence", False)
-            self._persistence_path = Path(self._config.get("persistence_path", "./data/graphs"))
+            self._enable_persistence = self._config.get(
+                "enable_persistence", False)
+            self._persistence_path = Path(self._config.get(
+                "persistence_path", "./data/graphs"))
             logger.info("In-memory storage configuration updated")
         else:
             raise ValueError("Invalid configuration")
@@ -320,7 +376,8 @@ class InMemoryStorageStrategy(StorageStrategy):
 
         total_nodes = sum(len(nodes) for nodes in self._nodes.values())
         total_edges = sum(len(edges) for edges in self._edges.values())
-        total_clusters = sum(len(clusters) for clusters in self._clusters.values())
+        total_clusters = sum(len(clusters)
+                             for clusters in self._clusters.values())
 
         stats = {
             "strategy": "in_memory_storage",
@@ -355,7 +412,8 @@ class InMemoryStorageStrategy(StorageStrategy):
     async def _load_from_persistence(self) -> None:
         """Load data from persistence files."""
         if not self._persistence_path.exists():
-            logger.info("No persistence directory found, starting with empty storage")
+            logger.info(
+                "No persistence directory found, starting with empty storage")
             return
 
         async with self._persistence_lock:
@@ -384,7 +442,8 @@ class InMemoryStorageStrategy(StorageStrategy):
                     with open(clusters_file, "rb") as f:
                         self._clusters = pickle.load(f)
 
-                logger.info(f"Loaded {len(self._graphs)} graphs from persistence")
+                logger.info(
+                    f"Loaded {len(self._graphs)} graphs from persistence")
 
             except Exception as e:
                 logger.error(f"Failed to load from persistence: {str(e)}")
@@ -488,15 +547,18 @@ class InMemoryStorageStrategy(StorageStrategy):
         export_data = {
             "graphs": {gid: self._serialize_graph(graph) for gid, graph in self._graphs.items()},
             "nodes": {
-                gid: {nid: self._serialize_node(node) for nid, node in nodes.items()}
+                gid: {nid: self._serialize_node(node)
+                      for nid, node in nodes.items()}
                 for gid, nodes in self._nodes.items()
             },
             "edges": {
-                gid: {eid: self._serialize_edge(edge) for eid, edge in edges.items()}
+                gid: {eid: self._serialize_edge(edge)
+                      for eid, edge in edges.items()}
                 for gid, edges in self._edges.items()
             },
             "clusters": {
-                gid: {cid: self._serialize_cluster(cluster) for cid, cluster in clusters.items()}
+                gid: {cid: self._serialize_cluster(
+                    cluster) for cid, cluster in clusters.items()}
                 for gid, clusters in self._clusters.items()
             },
             "metadata": {
@@ -514,32 +576,30 @@ class InMemoryStorageStrategy(StorageStrategy):
     def _serialize_graph(self, graph: FactGraph) -> dict[str, Any]:
         """Serialize graph to dictionary."""
         return {
-            "graph_id": graph.graph_id,
             "metadata": graph.metadata,
             "created_at": graph.created_at.isoformat(),
-            "updated_at": graph.updated_at.isoformat(),
         }
 
     def _serialize_node(self, node: FactNode) -> dict[str, Any]:
         """Serialize node to dictionary."""
         return {
-            "node_id": node.node_id,
+            "node_id": node.id,
             "claim": node.claim,
-            "source": node.source,
+            "domain": node.domain,
             "confidence": node.confidence,
             "metadata": node.metadata,
             "created_at": node.created_at.isoformat() if node.created_at else None,
-            "embedding": node.embedding.tolist() if node.embedding is not None else None,
+            "embedding": node.embedding if node.embedding is not None else None,
         }
 
     def _serialize_edge(self, edge: FactEdge) -> dict[str, Any]:
         """Serialize edge to dictionary."""
         return {
-            "edge_id": edge.edge_id,
-            "source_node_id": edge.source_node_id,
-            "target_node_id": edge.target_node_id,
+            "edge_id": edge.id,
+            "source_node_id": edge.source_id,
+            "target_node_id": edge.target_id,
             "relationship_type": edge.relationship_type,
-            "weight": edge.weight,
+            "strength": edge.strength,
             "metadata": edge.metadata,
             "created_at": edge.created_at.isoformat() if edge.created_at else None,
         }
@@ -547,8 +607,8 @@ class InMemoryStorageStrategy(StorageStrategy):
     def _serialize_cluster(self, cluster: FactCluster) -> dict[str, Any]:
         """Serialize cluster to dictionary."""
         return {
-            "cluster_id": cluster.cluster_id,
-            "node_ids": cluster.node_ids,
+            "cluster_id": cluster.id,
+            "nodes": [node.id for node in cluster.nodes],
             "cluster_type": cluster.cluster_type,
             "verification_strategy": cluster.verification_strategy,
             "metadata": cluster.metadata,

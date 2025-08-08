@@ -33,7 +33,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
         self._llm_service = None  # Will be injected
         self._search_service = None  # Will be injected
 
-        logger.info(f"Initialized {self.get_strategy_name()} with config: {self._config}")
+        logger.info(
+            f"Initialized {self.get_strategy_name()} with config: {self._config}")
 
     async def verify_node(self, node: FactNode, context: dict[str, Any] | None = None) -> VerificationResponse:
         """
@@ -49,14 +50,16 @@ class IndividualVerificationStrategy(VerificationStrategy):
         if not self._llm_service:
             raise RuntimeError("LLM service not configured")
 
-        logger.info(f"Starting individual verification for node: {node.node_id}")
+        logger.info(
+            f"Starting individual verification for node: {node.node_id}")
 
         try:
             # Update node status
             node.verification_status = VerificationStatus.IN_PROGRESS
 
             # Prepare verification context
-            verification_context = self.prepare_verification_context(node, context)
+            verification_context = self.prepare_verification_context(
+                node, context)
 
             # Search for evidence if search service is available
             evidence = []
@@ -72,7 +75,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
                 node.confidence = verification_result.confidence_score
             else:
                 node.verification_status = VerificationStatus.FAILED
-                node.confidence = max(0.0, 1.0 - verification_result.confidence_score)
+                node.confidence = max(
+                    0.0, 1.0 - verification_result.confidence_score)
 
             # Update metadata with verification details
             if not node.metadata:
@@ -87,7 +91,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
                 }
             )
 
-            logger.info(f"Completed verification for node {node.node_id}: {verification_result.is_verified}")
+            logger.info(
+                f"Completed verification for node {node.node_id}: {verification_result.is_verified}")
             return verification_result
 
         except Exception as e:
@@ -116,7 +121,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
         Returns:
             List of verification responses for each node
         """
-        logger.info(f"Starting individual verification for cluster: {cluster.cluster_id}")
+        logger.info(
+            f"Starting individual verification for cluster: {cluster.cluster_id}")
 
         results = []
 
@@ -135,7 +141,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
             # Handle exceptions
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
-                    logger.error(f"Error in parallel verification: {str(result)}")
+                    logger.error(
+                        f"Error in parallel verification: {str(result)}")
                     results[i] = VerificationResponse(
                         is_verified=False,
                         confidence_score=0.0,
@@ -153,7 +160,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
                 if self._config["request_delay"] > 0:
                     await asyncio.sleep(self._config["request_delay"])
 
-        logger.info(f"Completed cluster verification: {len(results)} nodes processed")
+        logger.info(
+            f"Completed cluster verification: {len(results)} nodes processed")
         return results
 
     async def cross_verify(
@@ -169,7 +177,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
         Returns:
             List of verification responses
         """
-        logger.info("Cross-verification requested, falling back to individual verification")
+        logger.info(
+            "Cross-verification requested, falling back to individual verification")
 
         # Create temporary cluster for processing
         temp_cluster = FactCluster(
@@ -188,7 +197,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
 
             return search_results
         except Exception as e:
-            logger.warning(f"Evidence search failed for node {node.node_id}: {str(e)}")
+            logger.warning(
+                f"Evidence search failed for node {node.node_id}: {str(e)}")
             return []
 
     async def _verify_with_llm(
@@ -220,9 +230,11 @@ class IndividualVerificationStrategy(VerificationStrategy):
                 prompt_parts.append(f"{i}. {ev.get('content', 'No content')}")
 
         if context and context.get("additional_context"):
-            prompt_parts.append(f"Additional context: {context['additional_context']}")
+            prompt_parts.append(
+                f"Additional context: {context['additional_context']}")
 
-        prompt_parts.append("Provide a detailed verification response with confidence score.")
+        prompt_parts.append(
+            "Provide a detailed verification response with confidence score.")
 
         return "\n\n".join(prompt_parts)
 
@@ -292,7 +304,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
 
         if "max_evidence_sources" in config:
             if not isinstance(config["max_evidence_sources"], int) or config["max_evidence_sources"] < 1:
-                raise ValueError("max_evidence_sources must be a positive integer")
+                raise ValueError(
+                    "max_evidence_sources must be a positive integer")
 
         return True
 
@@ -311,7 +324,8 @@ class IndividualVerificationStrategy(VerificationStrategy):
         new_config.update(config)
         self._validate_config(new_config)
         self._config = new_config
-        logger.info(f"Updated config for {self.get_strategy_name()}: {self._config}")
+        logger.info(
+            f"Updated config for {self.get_strategy_name()}: {self._config}")
 
     def _get_default_config(self) -> dict[str, Any]:
         """Get default configuration."""

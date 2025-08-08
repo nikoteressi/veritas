@@ -36,9 +36,11 @@ class BatchVerificationStrategy(VerificationStrategy):
         self._config = config or {}
         self._batch_size = self._config.get("batch_size", 5)
         self._parallel_batches = self._config.get("parallel_batches", True)
-        self._max_concurrent_batches = self._config.get("max_concurrent_batches", 2)
+        self._max_concurrent_batches = self._config.get(
+            "max_concurrent_batches", 2)
         self._use_search = self._config.get("use_search", True)
-        self._max_evidence_sources = self._config.get("max_evidence_sources", 3)
+        self._max_evidence_sources = self._config.get(
+            "max_evidence_sources", 3)
 
         # Services (would be injected in real implementation)
         self._llm_service = None  # Placeholder for LLM service
@@ -85,7 +87,8 @@ class BatchVerificationStrategy(VerificationStrategy):
         """
         try:
             # Get nodes in cluster
-            cluster_nodes = [node for node in all_nodes if node.node_id in cluster.node_ids]
+            cluster_nodes = [
+                node for node in all_nodes if node.node_id in cluster.node_ids]
 
             if not cluster_nodes:
                 return self._create_error_result(cluster.cluster_id, "No nodes found in cluster")
@@ -100,13 +103,16 @@ class BatchVerificationStrategy(VerificationStrategy):
                 batch_results = await self._process_batches_sequential(batches, all_nodes)
 
             # Combine batch results
-            combined_result = self._combine_batch_results(cluster.cluster_id, batch_results)
+            combined_result = self._combine_batch_results(
+                cluster.cluster_id, batch_results)
 
-            logger.info(f"Batch verification completed for cluster {cluster.cluster_id}")
+            logger.info(
+                f"Batch verification completed for cluster {cluster.cluster_id}")
             return combined_result
 
         except Exception as e:
-            logger.error(f"Batch verification failed for cluster {cluster.cluster_id}: {str(e)}")
+            logger.error(
+                f"Batch verification failed for cluster {cluster.cluster_id}: {str(e)}")
             return self._create_error_result(cluster.cluster_id, str(e))
 
     async def cross_verify(
@@ -130,7 +136,8 @@ class BatchVerificationStrategy(VerificationStrategy):
             for batch in batches:
                 # Find relevant verification results for this batch
                 batch_node_ids = {node.node_id for node in batch}
-                batch_results = [result for result in verification_results if result.node_id in batch_node_ids]
+                batch_results = [
+                    result for result in verification_results if result.node_id in batch_node_ids]
 
                 # Perform cross-verification within batch
                 cross_verified = await self._cross_verify_batch(batch, batch_results)
@@ -190,9 +197,11 @@ class BatchVerificationStrategy(VerificationStrategy):
             self._config.update(config)
             self._batch_size = self._config.get("batch_size", 5)
             self._parallel_batches = self._config.get("parallel_batches", True)
-            self._max_concurrent_batches = self._config.get("max_concurrent_batches", 2)
+            self._max_concurrent_batches = self._config.get(
+                "max_concurrent_batches", 2)
             self._use_search = self._config.get("use_search", True)
-            self._max_evidence_sources = self._config.get("max_evidence_sources", 3)
+            self._max_evidence_sources = self._config.get(
+                "max_evidence_sources", 3)
             logger.info("Batch verification strategy configuration updated")
         else:
             raise ValueError("Invalid configuration")
@@ -224,7 +233,7 @@ class BatchVerificationStrategy(VerificationStrategy):
         """Create batches from nodes."""
         batches = []
         for i in range(0, len(nodes), self._batch_size):
-            batch = nodes[i : i + self._batch_size]
+            batch = nodes[i: i + self._batch_size]
             batches.append(batch)
         return batches
 
@@ -274,8 +283,10 @@ class BatchVerificationStrategy(VerificationStrategy):
                 result = await self._verify_node_in_batch(node, batch, batch_evidence, all_nodes)
                 results.append(result)
             except Exception as e:
-                logger.error(f"Failed to verify node {node.node_id} in batch: {str(e)}")
-                error_result = self._create_error_result(None, str(e), node.node_id)
+                logger.error(
+                    f"Failed to verify node {node.node_id} in batch: {str(e)}")
+                error_result = self._create_error_result(
+                    None, str(e), node.node_id)
                 results.append(error_result)
 
         return results
@@ -308,7 +319,8 @@ class BatchVerificationStrategy(VerificationStrategy):
     ) -> VerificationResult:
         """Verify a single node within batch context."""
         # Create verification prompt with batch context
-        batch_context = [other_node.claim for other_node in batch if other_node.node_id != node.node_id]
+        batch_context = [
+            other_node.claim for other_node in batch if other_node.node_id != node.node_id]
 
         # This would use the actual LLM service
         # For now, create a mock verification result
@@ -357,7 +369,8 @@ class BatchVerificationStrategy(VerificationStrategy):
             if conflicts:
                 # Adjust confidence based on conflicts
                 conflict_penalty = min(0.2 * len(conflicts), 0.5)
-                adjusted_confidence = max(0.1, result.confidence_score - conflict_penalty)
+                adjusted_confidence = max(
+                    0.1, result.confidence_score - conflict_penalty)
 
                 # Create updated result
                 updated_result = VerificationResult(
@@ -367,8 +380,10 @@ class BatchVerificationStrategy(VerificationStrategy):
                     verification_status=result.verification_status,
                     confidence_score=adjusted_confidence,
                     evidence=result.evidence,
-                    reasoning=result.reasoning + f" (Adjusted for {len(conflicts)} conflicts)",
-                    metadata={**result.metadata, "cross_verification": True, "conflicts_detected": len(conflicts)},
+                    reasoning=result.reasoning +
+                    f" (Adjusted for {len(conflicts)} conflicts)",
+                    metadata={**result.metadata, "cross_verification": True,
+                              "conflicts_detected": len(conflicts)},
                     verified_at=datetime.now(),
                 )
                 updated_results.append(updated_result)
@@ -384,10 +399,13 @@ class BatchVerificationStrategy(VerificationStrategy):
 
         # Calculate overall statistics
         total_nodes = len(batch_results)
-        verified_count = sum(1 for result in batch_results if result.verification_status == "verified")
-        disputed_count = sum(1 for result in batch_results if result.verification_status == "disputed")
+        verified_count = sum(
+            1 for result in batch_results if result.verification_status == "verified")
+        disputed_count = sum(
+            1 for result in batch_results if result.verification_status == "disputed")
 
-        avg_confidence = sum(result.confidence_score for result in batch_results) / total_nodes
+        avg_confidence = sum(
+            result.confidence_score for result in batch_results) / total_nodes
 
         # Determine overall status
         if verified_count > disputed_count:

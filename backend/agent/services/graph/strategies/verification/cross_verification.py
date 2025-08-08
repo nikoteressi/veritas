@@ -34,8 +34,10 @@ class CrossVerificationStrategy(VerificationStrategy):
             config: Strategy configuration
         """
         self._config = config or {}
-        self._comparison_threshold = self._config.get("comparison_threshold", 0.7)
-        self._consensus_threshold = self._config.get("consensus_threshold", 0.6)
+        self._comparison_threshold = self._config.get(
+            "comparison_threshold", 0.7)
+        self._consensus_threshold = self._config.get(
+            "consensus_threshold", 0.6)
         self._max_cross_checks = self._config.get("max_cross_checks", 10)
         self._use_search = self._config.get("use_search", True)
 
@@ -77,30 +79,35 @@ class CrossVerificationStrategy(VerificationStrategy):
         """
         try:
             # Get nodes in cluster
-            cluster_nodes = [node for node in all_nodes if node.node_id in cluster.node_ids]
+            cluster_nodes = [
+                node for node in all_nodes if node.node_id in cluster.node_ids]
 
             if not cluster_nodes:
                 return self._create_error_result(cluster.cluster_id, "No nodes found in cluster")
 
             # Get context nodes (nodes not in cluster)
-            context_nodes = [node for node in all_nodes if node.node_id not in cluster.node_ids]
+            context_nodes = [
+                node for node in all_nodes if node.node_id not in cluster.node_ids]
 
             # Perform cross-verification analysis
             cross_verification_results = await self._perform_cluster_cross_verification(cluster_nodes, context_nodes)
 
             # Analyze consensus and conflicts
-            consensus_analysis = self._analyze_consensus(cross_verification_results)
+            consensus_analysis = self._analyze_consensus(
+                cross_verification_results)
 
             # Create cluster verification result
             cluster_result = self._create_cluster_result(
                 cluster.cluster_id, cross_verification_results, consensus_analysis
             )
 
-            logger.info(f"Cross-verification completed for cluster {cluster.cluster_id}")
+            logger.info(
+                f"Cross-verification completed for cluster {cluster.cluster_id}")
             return cluster_result
 
         except Exception as e:
-            logger.error(f"Cross-verification failed for cluster {cluster.cluster_id}: {str(e)}")
+            logger.error(
+                f"Cross-verification failed for cluster {cluster.cluster_id}: {str(e)}")
             return self._create_error_result(cluster.cluster_id, str(e))
 
     async def cross_verify(
@@ -136,7 +143,8 @@ class CrossVerificationStrategy(VerificationStrategy):
                 node = node_lookup[result.node_id]
 
                 # Find conflicting and supporting results
-                conflicts, supports = self._find_conflicts_and_supports(result, verification_results, nodes)
+                conflicts, supports = self._find_conflicts_and_supports(
+                    result, verification_results, nodes)
 
                 # Update result with cross-verification insights
                 updated_result = await self._update_result_with_cross_verification(
@@ -145,7 +153,8 @@ class CrossVerificationStrategy(VerificationStrategy):
 
                 updated_results.append(updated_result)
 
-            logger.info(f"Cross-verification analysis completed for {len(nodes)} nodes")
+            logger.info(
+                f"Cross-verification analysis completed for {len(nodes)} nodes")
             return updated_results
 
         except Exception as e:
@@ -197,8 +206,10 @@ class CrossVerificationStrategy(VerificationStrategy):
         """
         if self.validate_config(config):
             self._config.update(config)
-            self._comparison_threshold = self._config.get("comparison_threshold", 0.7)
-            self._consensus_threshold = self._config.get("consensus_threshold", 0.6)
+            self._comparison_threshold = self._config.get(
+                "comparison_threshold", 0.7)
+            self._consensus_threshold = self._config.get(
+                "consensus_threshold", 0.6)
             self._max_cross_checks = self._config.get("max_cross_checks", 10)
             self._use_search = self._config.get("use_search", True)
             logger.info("Cross-verification strategy configuration updated")
@@ -243,7 +254,8 @@ class CrossVerificationStrategy(VerificationStrategy):
             confidence_score=confidence_score,
             evidence=[],
             reasoning="No context available for cross-verification",
-            metadata={"verification_method": "standalone", "cross_verification": False},
+            metadata={"verification_method": "standalone",
+                      "cross_verification": False},
             verified_at=datetime.now(),
         )
 
@@ -256,7 +268,8 @@ class CrossVerificationStrategy(VerificationStrategy):
         conflicting_nodes = await self._find_conflicting_nodes(node, context_nodes)
 
         # Calculate consensus score
-        consensus_score = self._calculate_consensus_score(node, similar_nodes, conflicting_nodes)
+        consensus_score = self._calculate_consensus_score(
+            node, similar_nodes, conflicting_nodes)
 
         # Determine verification status
         if consensus_score >= self._consensus_threshold:
@@ -270,9 +283,11 @@ class CrossVerificationStrategy(VerificationStrategy):
             confidence = 0.5
 
         # Collect evidence
-        evidence = self._collect_cross_verification_evidence(node, similar_nodes, conflicting_nodes)
+        evidence = self._collect_cross_verification_evidence(
+            node, similar_nodes, conflicting_nodes)
 
-        reasoning = self._generate_cross_verification_reasoning(node, similar_nodes, conflicting_nodes, consensus_score)
+        reasoning = self._generate_cross_verification_reasoning(
+            node, similar_nodes, conflicting_nodes, consensus_score)
 
         result = VerificationResult(
             result_id=str(uuid.uuid4()),
@@ -339,7 +354,8 @@ class CrossVerificationStrategy(VerificationStrategy):
         # For now, use simple text-based similarity
 
         # Check if claims are similar
-        claim_similarity = self._simple_text_similarity(node1.claim, node2.claim)
+        claim_similarity = self._simple_text_similarity(
+            node1.claim, node2.claim)
 
         # Check domain similarity
         domain1 = node1.metadata.get("domain", "general")
@@ -352,7 +368,8 @@ class CrossVerificationStrategy(VerificationStrategy):
             source_similarity = 1.0 if node1.source == node2.source else 0.0
 
         # Weighted average
-        similarity = claim_similarity * 0.7 + domain_similarity * 0.2 + source_similarity * 0.1
+        similarity = claim_similarity * 0.7 + \
+            domain_similarity * 0.2 + source_similarity * 0.1
 
         return similarity
 
@@ -402,7 +419,8 @@ class CrossVerificationStrategy(VerificationStrategy):
             return 0.0
 
         # Normalize to [-1, 1] range
-        consensus_score = (support_weight - conflict_weight) / (support_weight + conflict_weight)
+        consensus_score = (support_weight - conflict_weight) / \
+            (support_weight + conflict_weight)
 
         return consensus_score
 
@@ -413,14 +431,18 @@ class CrossVerificationStrategy(VerificationStrategy):
         evidence = []
 
         if similar_nodes:
-            evidence.append(f"Supported by {len(similar_nodes)} similar claims")
+            evidence.append(
+                f"Supported by {len(similar_nodes)} similar claims")
             for similar_node in similar_nodes[:3]:  # Limit to top 3
-                evidence.append(f"Supporting claim: {similar_node.claim[:100]}...")
+                evidence.append(
+                    f"Supporting claim: {similar_node.claim[:100]}...")
 
         if conflicting_nodes:
-            evidence.append(f"Conflicts with {len(conflicting_nodes)} opposing claims")
+            evidence.append(
+                f"Conflicts with {len(conflicting_nodes)} opposing claims")
             for conflicting_node in conflicting_nodes[:3]:  # Limit to top 3
-                evidence.append(f"Conflicting claim: {conflicting_node.claim[:100]}...")
+                evidence.append(
+                    f"Conflicting claim: {conflicting_node.claim[:100]}...")
 
         return evidence
 
@@ -430,13 +452,16 @@ class CrossVerificationStrategy(VerificationStrategy):
         """Generate reasoning for cross-verification result."""
         reasoning_parts = []
 
-        reasoning_parts.append(f"Cross-verification analysis of claim: '{node.claim[:100]}...'")
+        reasoning_parts.append(
+            f"Cross-verification analysis of claim: '{node.claim[:100]}...'")
 
         if similar_nodes:
-            reasoning_parts.append(f"Found {len(similar_nodes)} supporting claims")
+            reasoning_parts.append(
+                f"Found {len(similar_nodes)} supporting claims")
 
         if conflicting_nodes:
-            reasoning_parts.append(f"Found {len(conflicting_nodes)} conflicting claims")
+            reasoning_parts.append(
+                f"Found {len(conflicting_nodes)} conflicting claims")
 
         reasoning_parts.append(f"Consensus score: {consensus_score:.2f}")
 
@@ -492,9 +517,11 @@ class CrossVerificationStrategy(VerificationStrategy):
         # Update reasoning
         cross_verification_info = []
         if supports:
-            cross_verification_info.append(f"{len(supports)} supporting results")
+            cross_verification_info.append(
+                f"{len(supports)} supporting results")
         if conflicts:
-            cross_verification_info.append(f"{len(conflicts)} conflicting results")
+            cross_verification_info.append(
+                f"{len(conflicts)} conflicting results")
 
         updated_reasoning = result.reasoning
         if cross_verification_info:
@@ -543,7 +570,7 @@ class CrossVerificationStrategy(VerificationStrategy):
         conflicts = []
 
         for i, node1 in enumerate(nodes):
-            for _j, node2 in enumerate(nodes[i + 1 :], i + 1):
+            for _j, node2 in enumerate(nodes[i + 1:], i + 1):
                 # High similarity might indicate potential conflict
                 # if they have different verification outcomes
                 similarity = similarity_matrix[node1.node_id][node2.node_id]
@@ -590,11 +617,14 @@ class CrossVerificationStrategy(VerificationStrategy):
             confidence_scores.append(result.confidence_score)
 
         total_results = len(verification_results)
-        avg_confidence = sum(confidence_scores) / total_results if confidence_scores else 0.0
+        avg_confidence = sum(confidence_scores) / \
+            total_results if confidence_scores else 0.0
 
         # Determine consensus
-        max_status = max(status_counts.items(), key=lambda x: x[1]) if status_counts else ("inconclusive", 0)
-        consensus_strength = max_status[1] / total_results if total_results > 0 else 0.0
+        max_status = max(status_counts.items(
+        ), key=lambda x: x[1]) if status_counts else ("inconclusive", 0)
+        consensus_strength = max_status[1] / \
+            total_results if total_results > 0 else 0.0
 
         analysis = {
             "total_results": total_results,

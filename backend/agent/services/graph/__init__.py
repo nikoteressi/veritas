@@ -27,7 +27,13 @@ from .graph_config import VerificationConfig
 from .graph_fact_checking import GraphFactCheckingService
 
 # Main service
-from .graph_service import GraphService
+from .graph_service import GraphService, get_graph_service, initialize_graph_service
+
+# Composition managers
+from .command_manager import CommandManager
+from .observer_manager import ObserverManager
+from .builder_manager import BuilderManager
+from .graph_operations import GraphOperations
 
 # New graph system components
 # Interfaces
@@ -105,4 +111,11 @@ __all__ = [
     "initialize_config",
     # Main service
     "GraphService",
+    "get_graph_service",
+    "initialize_graph_service",
+    # Composition managers
+    "CommandManager",
+    "ObserverManager",
+    "BuilderManager",
+    "GraphOperations",
 ]

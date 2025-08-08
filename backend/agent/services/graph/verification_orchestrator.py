@@ -45,7 +45,8 @@ class FactVerificationOrchestrator:
         self.graph_verifier = graph_verifier
         self.cache_manager = cache_manager or GraphCacheManager()
         self.uncertainty_analyzer = uncertainty_analyzer or UncertaintyAnalyzer()
-        self.result_compiler = result_compiler or VerificationResultCompiler(self.uncertainty_analyzer)
+        self.result_compiler = result_compiler or VerificationResultCompiler(
+            self.uncertainty_analyzer)
         self.logger = logging.getLogger(__name__)
 
     async def verify_claim(
@@ -71,7 +72,8 @@ class FactVerificationOrchestrator:
             FactCheckResult: Verification result
         """
         try:
-            self.logger.info("Starting graph-based verification for claim: %s", claim[:100])
+            self.logger.info(
+                "Starting graph-based verification for claim: %s", claim[:100])
 
             # Check cache first
             if use_cache:
@@ -160,7 +162,8 @@ class FactVerificationOrchestrator:
             FactCheckSummary: Summary of verification results
         """
         try:
-            self.logger.info("Starting graph-based verification for %d claims", len(claims))
+            self.logger.info(
+                "Starting graph-based verification for %d claims", len(claims))
 
             if progress_callback:
                 progress_callback("Building shared knowledge graph...")
@@ -174,7 +177,8 @@ class FactVerificationOrchestrator:
             for i, claim in enumerate(claims):
                 try:
                     if progress_callback:
-                        progress_callback(f"Verifying claim {i + 1}/{len(claims)}...")
+                        progress_callback(
+                            f"Verifying claim {i + 1}/{len(claims)}...")
 
                     # Check cache first
                     cached_result = None
@@ -186,7 +190,8 @@ class FactVerificationOrchestrator:
                         claim_result = await self.result_compiler.convert_to_claim_result(
                             {
                                 "individual_results": [
-                                    {"verdict": cached_result.verdict, "confidence": cached_result.confidence}
+                                    {"verdict": cached_result.verdict,
+                                        "confidence": cached_result.confidence}
                                 ]
                             },
                             graph_nodes,
@@ -211,7 +216,8 @@ class FactVerificationOrchestrator:
                     claim_results.append(claim_result)
 
                 except Exception as e:
-                    self.logger.error("Error verifying claim '%s': %s", claim, e)
+                    self.logger.error(
+                        "Error verifying claim '%s': %s", claim, e)
                     # Add error result for this claim
                     error_result = ClaimResult(
                         claim=claim,
@@ -254,7 +260,8 @@ class FactVerificationOrchestrator:
             return summary
 
         except Exception as e:
-            self.logger.error("Error in graph-based multi-claim verification: %s", e)
+            self.logger.error(
+                "Error in graph-based multi-claim verification: %s", e)
             # Return error summary
             return FactCheckSummary(
                 claims=[],
@@ -285,7 +292,8 @@ class FactVerificationOrchestrator:
             FactCheckResult: Verification result
         """
         try:
-            self.logger.info("Verifying claim with custom graph: %s", claim[:100])
+            self.logger.info(
+                "Verifying claim with custom graph: %s", claim[:100])
 
             # Verify claim using provided graph
             verification_results = await self.graph_verifier.verify_claim(claim, graph_nodes, graph_edges)
@@ -317,7 +325,8 @@ class FactVerificationOrchestrator:
                 evidence=[],
                 sources=sources or [],
                 queries=queries or [],
-                metadata={"error": str(e), "verification_method": "custom_graph"},
+                metadata={"error": str(
+                    e), "verification_method": "custom_graph"},
             )
 
     async def invalidate_cache(self, claim: str, evidence_texts: list[str]) -> None:

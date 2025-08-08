@@ -55,7 +55,8 @@ class GraphRepositoryImpl(GraphRepository):
         try:
             # Validate graph before saving
             if not self._validate_graph(graph):
-                logger.error(f"Graph validation failed for {graph.graph_id}")
+                graph_id = graph.metadata.get("graph_id", "unknown")
+                logger.error(f"Graph validation failed for {graph_id}")
                 return False
 
             # Save using storage strategy
@@ -63,18 +64,21 @@ class GraphRepositoryImpl(GraphRepository):
 
             if success:
                 # Update cache
+                graph_id = graph.metadata.get("graph_id", "unknown")
                 if self._config["enable_cache"]:
-                    self._cache[graph.graph_id] = graph
-                    self._cache_timestamps[graph.graph_id] = datetime.now()
+                    self._cache[graph_id] = graph
+                    self._cache_timestamps[graph_id] = datetime.now()
 
-                logger.info(f"Successfully saved graph {graph.graph_id}")
+                logger.info(f"Successfully saved graph {graph_id}")
                 return True
             else:
-                logger.error(f"Failed to save graph {graph.graph_id}")
+                graph_id = graph.metadata.get("graph_id", "unknown")
+                logger.error(f"Failed to save graph {graph_id}")
                 return False
 
         except Exception as e:
-            logger.error(f"Error saving graph {graph.graph_id}: {str(e)}")
+            graph_id = graph.metadata.get("graph_id", "unknown")
+            logger.error(f"Error saving graph {graph_id}: {str(e)}")
             return False
 
     async def load_graph(self, graph_id: str) -> FactGraph | None:
@@ -132,12 +136,14 @@ class GraphRepositoryImpl(GraphRepository):
             success = await self.save_graph(graph)
 
             if success:
-                logger.info(f"Successfully updated graph {graph.graph_id}")
+                graph_id = graph.metadata.get("graph_id", "unknown")
+                logger.info(f"Successfully updated graph {graph_id}")
 
             return success
 
         except Exception as e:
-            logger.error(f"Error updating graph {graph.graph_id}: {str(e)}")
+            graph_id = graph.metadata.get("graph_id", "unknown")
+            logger.error(f"Error updating graph {graph_id}: {str(e)}")
             return False
 
     async def delete_graph(self, graph_id: str) -> bool:
@@ -376,12 +382,13 @@ class GraphRepositoryImpl(GraphRepository):
 
     def _validate_graph(self, graph: FactGraph) -> bool:
         """Validate graph before saving."""
-        if not graph.graph_id:
+        graph_id = graph.metadata.get("graph_id")
+        if not graph_id:
             logger.error("Graph ID is required")
             return False
 
         if not graph.nodes:
-            logger.warning(f"Graph {graph.graph_id} has no nodes")
+            logger.warning(f"Graph {graph_id} has no nodes")
 
         # Validate node references in edges
         for edge in graph.edges:
